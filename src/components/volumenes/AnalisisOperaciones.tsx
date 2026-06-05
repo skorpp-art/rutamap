@@ -23,6 +23,7 @@ import type {
   FilaOperacion, AnalisisRecorrido,
   DashboardUnificado, RutaAlerta,
 } from "@/app/actions/operaciones-diarias";
+import { PALETA } from "@/lib/estados";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function inferirZona(codigo: string) {
@@ -412,13 +413,13 @@ export function AnalisisOperaciones() {
                     )}
                     {tieneOps && (
                       <>
-                        <Bar yAxisId="left" dataKey="choferes" name="Choferes @30" fill="#16a34a" opacity={0.5} radius={[3,3,0,0]} barSize={10} />
+                        <Bar yAxisId="left" dataKey="choferes" name="Choferes @30" fill={PALETA.verde} opacity={0.5} radius={[3,3,0,0]} barSize={10} />
                         <Line yAxisId="right" type="monotone" dataKey="promedio" stroke="#f97316" strokeWidth={2.5}
                           name="Prom pkg/ruta" dot={{ r: 4 }} connectNulls />
                         {/* Banda de equilibrio — usando ReferenceLine es correcto para líneas fijas */}
-                        <ReferenceLine yAxisId="right" y={35} stroke="#ef4444" strokeDasharray="4 2" strokeWidth={1} />
-                        <ReferenceLine yAxisId="right" y={25} stroke="#f59e0b" strokeDasharray="4 2" strokeWidth={1} />
-                        <ReferenceLine yAxisId="right" y={30} stroke="#16a34a" strokeDasharray="2 4" strokeWidth={1} />
+                        <ReferenceLine yAxisId="right" y={35} stroke={PALETA.rojo} strokeDasharray="4 2" strokeWidth={1} />
+                        <ReferenceLine yAxisId="right" y={25} stroke={PALETA.ambar} strokeDasharray="4 2" strokeWidth={1} />
+                        <ReferenceLine yAxisId="right" y={30} stroke={PALETA.verde} strokeDasharray="2 4" strokeWidth={1} />
                       </>
                     )}
                   </ComposedChart>

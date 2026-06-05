@@ -13,6 +13,7 @@ import {
   getKpisDiarios, getKpiDia, upsertKpiDiario,
   type KpiDia, type KpiForm,
 } from "@/app/actions/kpis";
+import { PALETA } from "@/lib/estados";
 
 function hoy() { return new Date().toISOString().slice(0, 10); }
 
@@ -29,7 +30,7 @@ function leerTargets() {
 type Estado = "ok" | "alerta" | "malo" | "sin";
 
 function colorEstado(e: Estado) {
-  return e === "ok" ? "#16a34a" : e === "alerta" ? "#f59e0b" : e === "malo" ? "#ef4444" : "#94a3b8";
+  return e === "ok" ? PALETA.verde : e === "alerta" ? PALETA.ambar : e === "malo" ? PALETA.rojo : PALETA.gris;
 }
 
 export function KpisMonitoreo() {
@@ -203,11 +204,11 @@ export function KpisMonitoreo() {
           ) : (
             <>
               <MiniChart titulo="Carga del playón (min)" data={chartData} dataKey="carga"
-                target={targets.carga} targetMode="max" color="#2563eb" />
+                target={targets.carga} targetMode="max" color={PALETA.azul} />
               <MiniChart titulo="Entregas en término (%)" data={chartData} dataKey="termino"
-                target={targets.termino} targetMode="min" color="#16a34a" dominio={[0, 100]} />
+                target={targets.termino} targetMode="min" color={PALETA.verde} dominio={[0, 100]} />
               <MiniChart titulo="Devoluciones (%)" data={chartData} dataKey="devol"
-                target={targets.devol} targetMode="max" color="#ef4444" />
+                target={targets.devol} targetMode="max" color={PALETA.rojo} />
             </>
           )}
         </div>
@@ -271,7 +272,7 @@ function MiniChart({ titulo, data, dataKey, target, targetMode, color, dominio }
           <XAxis dataKey="dia" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
           <YAxis tick={{ fontSize: 9 }} domain={dominio ?? [0, "auto"]} />
           <Tooltip formatter={(v) => [v, titulo]} />
-          <ReferenceLine y={target} stroke={targetMode === "min" ? "#16a34a" : "#ef4444"} strokeDasharray="4 3" strokeWidth={1.5} />
+          <ReferenceLine y={target} stroke={targetMode === "min" ? PALETA.verde : PALETA.rojo} strokeDasharray="4 3" strokeWidth={1.5} />
           <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2}
             dot={{ r: 3, fill: color }} connectNulls name={titulo} />
         </ComposedChart>

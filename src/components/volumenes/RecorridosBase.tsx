@@ -9,6 +9,7 @@ import { Plus, X } from "lucide-react";
 import { getRecorridosBase } from "@/app/actions/volumenes";
 import { crearRecorrido, toggleActivoRecorrido } from "@/app/actions/recorridos";
 import type { RecorridoBaseItem } from "@/app/actions/volumenes";
+import { ZONA_COLOR } from "@/lib/estados";
 
 type RecorridoBase = RecorridoBaseItem;
 
@@ -64,9 +65,7 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
     codigo: "", nombre: "", zona: "Oeste", tipo: "fijo" as string,
   });
 
-  const COLORES_ZONA: Record<string, string> = {
-    Oeste: "#2563eb", Norte: "#d97706", Sur: "#16a34a", CABA: "#dc2626",
-  };
+  const COLORES_ZONA = ZONA_COLOR;
 
   async function guardarNuevoRecorrido() {
     if (!nuevoForm.codigo.trim() || !nuevoForm.nombre.trim()) {

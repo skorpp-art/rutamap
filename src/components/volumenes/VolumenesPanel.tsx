@@ -34,22 +34,8 @@ import type {
   ProyeccionDiaV2, BandaControl, CalidadDatos, ClienteManual,
   PlantillaCelda,
 } from "@/app/actions/volumenes";
-
-// Colores por zona de riesgo
-const RIESGO_COLOR: Record<string, string> = {
-  ok: "#16a34a",
-  alto: "#f59e0b",
-  bajo: "#f59e0b",
-  peligroso_alto: "#ef4444",
-  peligroso_bajo: "#ef4444",
-};
-const RIESGO_LABEL: Record<string, string> = {
-  ok: "En rango",
-  alto: "Sobre objetivo",
-  bajo: "Bajo objetivo",
-  peligroso_alto: "⚠ Peligroso — sobrecarga",
-  peligroso_bajo: "⚠ Ineficiente — subutilizado",
-};
+import { PALETA, ESTADO, clasificarRiesgo } from "@/lib/estados";
+import { EstadoBadge } from "@/components/ui/estado-badge";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function hoy(): string { return new Date().toISOString().slice(0, 10); }
@@ -521,7 +507,7 @@ export function VolumenesPanel() {
                   <YAxis tick={{ fontSize: 10 }} tickFormatter={v => v.toLocaleString("es-AR")} />
                   <Tooltip content={<TooltipGrafico />} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="Semana anterior" fill="#94a3b8" opacity={0.45} radius={[3,3,0,0]} barSize={20} />
+                  <Bar dataKey="Semana anterior" fill={PALETA.gris} opacity={0.45} radius={[3,3,0,0]} barSize={20} />
                   <Bar dataKey="Esta semana" radius={[3,3,0,0]} barSize={20}>
                     {chartData.map((e, i) => <Cell key={i} fill={e.esHoy ? "#1d4ed8" : "#3b82f6"} />)}
                   </Bar>
@@ -568,12 +554,7 @@ export function VolumenesPanel() {
           const choferesCalc = calcPaquetes > 0 ? Math.ceil(calcPaquetes / targetPkg) : 0;
           const choferesMin  = calcPaquetes > 0 ? Math.ceil(calcPaquetes / (targetPkg + 5)) : 0;
           const choferesMax  = calcPaquetes > 0 ? Math.ceil(calcPaquetes / (targetPkg - 5)) : 0;
-          const zonaCalc = promPorRuta === 0 ? null
-            : promPorRuta >= targetPkg + 10 ? "peligroso_alto"
-            : promPorRuta >= targetPkg + 5  ? "alto"
-            : promPorRuta <= targetPkg - 10 ? "peligroso_bajo"
-            : promPorRuta <= targetPkg - 5  ? "bajo"
-            : "ok";
+          const zonaCalc = clasificarRiesgo(promPorRuta, targetPkg);
 
           return (
           <div className="p-6 space-y-5">
@@ -709,9 +690,7 @@ export function VolumenesPanel() {
                     <div className="px-5 py-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-medium">Promedio por ruta ({calcRutas} rutas)</span>
-                        <span className={cn("text-lg font-bold tabular-nums",
-                          zonaCalc === "ok" ? "text-green-600" :
-                          zonaCalc?.includes("peligroso") ? "text-red-600" : "text-amber-600")}>
+                        <span className="text-lg font-bold tabular-nums" style={{ color: ESTADO[zonaCalc].hex }}>
                           {promPorRuta.toFixed(1)} pkg/ruta
                         </span>
                       </div>
@@ -740,10 +719,10 @@ export function VolumenesPanel() {
                         <span className="font-semibold text-green-600">P.E. ({targetPkg})</span>
                         <span>↑ Peligroso ({targetPkg+10})</span>
                       </div>
-                      {zonaCalc && (
-                        <p className="text-xs font-semibold text-center" style={{ color: RIESGO_COLOR[zonaCalc] }}>
-                          {RIESGO_LABEL[zonaCalc]}
-                        </p>
+                      {zonaCalc !== "sin" && (
+                        <div className="flex justify-center">
+                          <EstadoBadge estado={zonaCalc} />
+                        </div>
                       )}
                     </div>
                   </div>
@@ -891,16 +870,16 @@ export function VolumenesPanel() {
                         <YAxis tick={{ fontSize: 9 }} domain={[0, targetPkg + 15]} />
                         <Tooltip formatter={(v) => [`${v} pkg/ruta`]} />
                         {/* Líneas de referencia fijas — ReferenceLine evita re-renders */}
-                        <ReferenceLine y={targetPkg + 10} stroke="#ef4444" strokeDasharray="4 3" strokeWidth={1} />
-                        <ReferenceLine y={targetPkg + 5}  stroke="#f59e0b" strokeDasharray="4 3" strokeWidth={1} />
-                        <ReferenceLine y={targetPkg}      stroke="#16a34a" strokeDasharray="4 3" strokeWidth={1} />
-                        <ReferenceLine y={targetPkg - 5}  stroke="#f59e0b" strokeDasharray="4 3" strokeWidth={1} />
-                        <ReferenceLine y={targetPkg - 10} stroke="#ef4444" strokeDasharray="4 3" strokeWidth={1} />
+                        <ReferenceLine y={targetPkg + 10} stroke={PALETA.rojo} strokeDasharray="4 3" strokeWidth={1} />
+                        <ReferenceLine y={targetPkg + 5}  stroke={PALETA.ambar} strokeDasharray="4 3" strokeWidth={1} />
+                        <ReferenceLine y={targetPkg}      stroke={PALETA.verde} strokeDasharray="4 3" strokeWidth={1} />
+                        <ReferenceLine y={targetPkg - 5}  stroke={PALETA.ambar} strokeDasharray="4 3" strokeWidth={1} />
+                        <ReferenceLine y={targetPkg - 10} stroke={PALETA.rojo} strokeDasharray="4 3" strokeWidth={1} />
                         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                         <Line type="monotone" dataKey="promedio" stroke="#2563eb" strokeWidth={2}
                           dot={(p: any) => {
                             if (!p.cx || !p.cy) return <g key={p.key} />;
-                            const color = p?.payload?.zona==="ok"?"#16a34a":p?.payload?.zona?.includes("peligroso")?"#ef4444":"#f59e0b";
+                            const color = p?.payload?.zona==="ok"?PALETA.verde:p?.payload?.zona?.includes("peligroso")?PALETA.rojo:PALETA.ambar;
                             return <circle key={p.key} cx={p.cx} cy={p.cy} r={3} fill={color} stroke="white" strokeWidth={1} />;
                           }} name="Promedio" />
                       </ComposedChart>

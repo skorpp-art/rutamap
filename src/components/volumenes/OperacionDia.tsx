@@ -14,6 +14,7 @@ import {
   guardarOperacionBulk,
 } from "@/app/actions/operacion";
 import { crearRecorrido, actualizarCamposRecorrido, getSiguienteCodigo } from "@/app/actions/recorridos";
+import { ZONA_COLOR as ZONA_HEX } from "@/lib/estados";
 import type { OperacionRuta } from "@/app/actions/operacion";
 import { jsPDF } from "jspdf";
 
@@ -24,9 +25,7 @@ const TIPOS_OPT = [
   { valor: "corte",     label: "Corte" },
   { valor: "suplencia", label: "Comodín" },
 ] as const;
-const COLORES_ZONA: Record<string, string> = {
-  Oeste: "#2563eb", Norte: "#f59e0b", Sur: "#16a34a", CABA: "#dc2626",
-};
+const COLORES_ZONA = ZONA_HEX;
 
 function hoy() { return new Date().toISOString().slice(0, 10); }
 function addDias(iso: string, n: number): string {

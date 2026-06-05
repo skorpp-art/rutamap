@@ -21,6 +21,7 @@ import { jsPDF } from "jspdf";
 import { cn } from "@/lib/utils";
 import { actualizarAreaRecorrido, actualizarTrazaRecorrido } from "@/app/actions/recorridos";
 import { getCalorRecorridos, type CalorRecorrido } from "@/app/actions/volumenes";
+import { PALETA } from "@/lib/estados";
 import type { ModoEdicion } from "./MapaLeaflet";
 import type { RecorridoGeo, Zona } from "@/types/database.types";
 import { ZONAS } from "@/types/database.types";
@@ -28,16 +29,16 @@ import { ZONAS } from "@/types/database.types";
 // ── Calor de volumen: color por promedio de paquetes del recorrido ──────────
 // Bandas alineadas con la operación (objetivo ~30 pkg/chofer)
 const CALOR_BANDAS = [
-  { max: 0,        color: "#cbd5e1", label: "Sin datos" },
-  { max: 24.999,   color: "#2563eb", label: "Bajo (<25)" },
-  { max: 35,       color: "#22c55e", label: "Óptimo (25–35)" },
-  { max: 40,       color: "#f59e0b", label: "Alto (35–40)" },
-  { max: Infinity, color: "#ef4444", label: "Sobrecarga (>40)" },
+  { max: 0,        color: PALETA.gris,  label: "Sin datos" },
+  { max: 24.999,   color: PALETA.azul,  label: "Bajo (<25)" },
+  { max: 35,       color: PALETA.verde, label: "Óptimo (25–35)" },
+  { max: 40,       color: PALETA.ambar, label: "Alto (35–40)" },
+  { max: Infinity, color: PALETA.rojo,  label: "Sobrecarga (>40)" },
 ];
 function colorCalor(prom: number | undefined): string {
-  if (!prom || prom <= 0) return "#cbd5e1";
+  if (!prom || prom <= 0) return PALETA.gris;
   for (const b of CALOR_BANDAS) if (prom <= b.max) return b.color;
-  return "#ef4444";
+  return PALETA.rojo;
 }
 
 interface VistaMapaClientProps {
