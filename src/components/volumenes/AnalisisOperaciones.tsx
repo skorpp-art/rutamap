@@ -24,6 +24,8 @@ import type {
   DashboardUnificado, RutaAlerta,
 } from "@/app/actions/operaciones-diarias";
 import { PALETA } from "@/lib/estados";
+import { SkeletonCards, SkeletonChart } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function inferirZona(codigo: string) {
@@ -365,17 +367,22 @@ export function AnalisisOperaciones() {
       {/* ── VISIÓN GENERAL ── */}
       {vista === "dashboard" && (
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
-          {sinDatos ? (
-            <div className="flex flex-col items-center justify-center h-64 gap-4 text-muted-foreground">
-              <BarChart2 className="h-12 w-12 opacity-20" />
-              <p className="text-sm font-medium">No hay datos todavía</p>
-              <p className="text-xs text-center max-w-sm">
-                Importá el Excel de operaciones diarias (Turno Tarde + Pre Turno) para ver el análisis unificado.
-              </p>
-              <Button size="sm" onClick={() => setVista("importar")}>
-                <Upload className="h-3.5 w-3.5 mr-1.5" /> Importar primeros datos
-              </Button>
-            </div>
+          {cargando && sinDatos ? (
+            <>
+              <SkeletonCards n={4} />
+              <SkeletonChart height={240} />
+            </>
+          ) : sinDatos ? (
+            <EmptyState
+              icon={BarChart2}
+              title="No hay datos todavía"
+              description="Importá el Excel de operaciones diarias (Turno Tarde + Pre Turno) para ver el análisis unificado."
+              action={
+                <Button size="sm" onClick={() => setVista("importar")}>
+                  <Upload className="h-3.5 w-3.5 mr-1.5" /> Importar primeros datos
+                </Button>
+              }
+            />
           ) : (
             <>
               {/* Indicadores de fuentes */}

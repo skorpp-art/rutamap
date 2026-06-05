@@ -15,6 +15,7 @@ import {
 } from "@/app/actions/operacion";
 import { crearRecorrido, actualizarCamposRecorrido, getSiguienteCodigo } from "@/app/actions/recorridos";
 import { ZONA_COLOR as ZONA_HEX } from "@/lib/estados";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { OperacionRuta } from "@/app/actions/operacion";
 import { jsPDF } from "jspdf";
 
@@ -623,7 +624,16 @@ export function OperacionDia({
       {/* ── Tabla de rutas ── */}
       <div className="flex-1 overflow-y-auto">
         {cargando ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">Cargando operación del día…</div>
+          <div className="p-3 space-y-1.5">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-2 py-1.5">
+                <Skeleton className="h-4 w-4 rounded shrink-0" />
+                <Skeleton className="h-3.5 w-20 shrink-0" />
+                <Skeleton className="h-3.5 flex-1" style={{ maxWidth: `${40 + (i % 5) * 10}%` }} />
+                <Skeleton className="h-3.5 w-12 shrink-0 ml-auto" />
+              </div>
+            ))}
+          </div>
         ) : (
           <table className="w-full text-xs">
             <thead className="sticky top-0 bg-background border-b z-10">

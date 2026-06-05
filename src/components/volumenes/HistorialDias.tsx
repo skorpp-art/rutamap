@@ -3,8 +3,10 @@
 import { useState, useEffect, Fragment } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, AlertTriangle, RefreshCw, Package, Users, TrendingDown } from "lucide-react";
+import { ChevronDown, ChevronRight, AlertTriangle, RefreshCw, Package, Users, TrendingDown, CalendarDays } from "lucide-react";
 import { getHistorialDiasV2, getDiaCompleto } from "@/app/actions/operaciones-diarias";
+import { SkeletonTable } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { HistorialDiaV2 } from "@/app/actions/operaciones-diarias";
 
 const ZONA_COLORS: Record<string, string> = {
@@ -178,9 +180,13 @@ export function HistorialDias() {
       </div>
 
       {cargando ? (
-        <div className="p-8 text-center text-sm text-muted-foreground">Cargando historial…</div>
+        <div className="p-4"><SkeletonTable rows={8} /></div>
       ) : historial.length === 0 ? (
-        <div className="p-8 text-center text-sm text-muted-foreground">Sin datos. Importá el Excel de clientes y/o recorridos.</div>
+        <EmptyState
+          icon={CalendarDays}
+          title="Sin historial todavía"
+          description="Importá el Excel de clientes y/o el de operaciones para empezar a ver el historial día por día."
+        />
       ) : (
         <div className="flex-1 overflow-y-auto">
           <table className="w-full text-xs">

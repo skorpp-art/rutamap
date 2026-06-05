@@ -14,6 +14,8 @@ import {
   type KpiDia, type KpiForm,
 } from "@/app/actions/kpis";
 import { PALETA } from "@/lib/estados";
+import { SkeletonCards, SkeletonChart } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 function hoy() { return new Date().toISOString().slice(0, 10); }
 
@@ -144,6 +146,7 @@ export function KpisMonitoreo() {
       )}
 
       {/* Tarjetas del último día */}
+      {!ultimo && cargando && <SkeletonCards n={4} />}
       {ultimo && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <KpiCard index={0} icon={<Timer className="h-4 w-4" />} label="Carga playón"
@@ -198,9 +201,20 @@ export function KpisMonitoreo() {
         {/* Tendencias */}
         <div className="lg:col-span-2 space-y-4">
           {chartData.length === 0 ? (
-            <div className="border rounded-xl p-10 text-center text-sm text-muted-foreground bg-background">
-              Todavía no hay KPIs cargados. Empezá cargando el día de hoy en el formulario.
-            </div>
+            cargando ? (
+              <>
+                <SkeletonChart height={140} />
+                <SkeletonChart height={140} />
+              </>
+            ) : (
+              <div className="border rounded-xl bg-background">
+                <EmptyState
+                  icon={Activity}
+                  title="Todavía no hay KPIs cargados"
+                  description="Cargá el día de hoy en el formulario de la izquierda (carga del playón, % en término, devoluciones) y vas a ver acá la tendencia."
+                />
+              </div>
+            )
           ) : (
             <>
               <MiniChart titulo="Carga del playón (min)" data={chartData} dataKey="carga"

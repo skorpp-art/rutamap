@@ -37,6 +37,7 @@ import type {
 import { PALETA, ESTADO, clasificarRiesgo } from "@/lib/estados";
 import { EstadoBadge } from "@/components/ui/estado-badge";
 import { NumeroAnimado } from "@/components/ui/numero-animado";
+import { SkeletonCards, SkeletonChart } from "@/components/ui/skeleton";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function hoy(): string { return new Date().toISOString().slice(0, 10); }
@@ -465,7 +466,13 @@ export function VolumenesPanel() {
         )}
 
         {/* ══════════════ TAB DASHBOARD ══════════════ */}
-        {tab === "dashboard" && (
+        {tab === "dashboard" && cargando && !resumen && (
+          <div className="p-6 space-y-5">
+            <SkeletonCards n={4} />
+            <SkeletonChart height={270} />
+          </div>
+        )}
+        {tab === "dashboard" && !(cargando && !resumen) && (
           <div className="p-6 space-y-5">
 
             {/* Fila principal: Choferes hoy MUY prominente + stats */}
