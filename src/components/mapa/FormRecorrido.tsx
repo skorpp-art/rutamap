@@ -31,7 +31,7 @@ const schema = z.object({
     .regex(/^[A-Z0-9\-]+$/, "Solo letras mayúsculas, números y guiones"),
   nombre: z.string().min(3, "Mínimo 3 caracteres").max(80, "Máximo 80 caracteres"),
   zona: z.enum(["CABA", "Norte", "Sur", "Oeste"] as const),
-  tipo: z.enum(["fijo", "suplencia"] as const),
+  tipo: z.enum(["fijo", "suplencia", "corte", "pre_turno"] as const),
   color: z.string().min(1, "Seleccioná un color"),
   descripcion: z.string().max(200, "Máximo 200 caracteres").optional(),
 });
@@ -41,6 +41,8 @@ export type FormValues = z.infer<typeof schema>;
 const TIPOS: { valor: TipoRecorrido; label: string }[] = [
   { valor: "fijo", label: "Fijo" },
   { valor: "suplencia", label: "Suplencia" },
+  { valor: "corte", label: "Corte" },
+  { valor: "pre_turno", label: "Pre-turno" },
 ];
 
 // ─── Props ────────────────────────────────────────────────────────────────────

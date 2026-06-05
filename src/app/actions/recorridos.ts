@@ -120,6 +120,37 @@ export async function toggleActivoRecorrido(
   }
 }
 
+export async function eliminarRecorrido(
+  id: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc("eliminar_recorrido", { p_id: id });
+    if (error) return { ok: false, error: error.message };
+    revalidatePath("/");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+export async function getSiguienteCodigo(
+  zona: string, tipo: string
+): Promise<{ ok: boolean; codigo?: string; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("get_siguiente_codigo", {
+      p_zona: zona, p_tipo: tipo,
+    });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, codigo: data as string };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
 export async function duplicarRecorrido(
   id: string,
   nuevoCodigo: string

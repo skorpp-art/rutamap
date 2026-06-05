@@ -1,0 +1,739 @@
+"use client";
+
+import { useState, useRef, useEffect, Fragment } from "react";
+import * as XLSX from "xlsx";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Upload, BarChart2, AlertTriangle, TrendingUp, TrendingDown, Minus,
+  FileSpreadsheet, CheckCircle, Package, Users, RefreshCw, Trash2,
+  ChevronDown, ChevronRight,
+} from "lucide-react";
+import {
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Legend, ReferenceLine,
+} from "recharts";
+import {
+  importarOperacionDiaria, getAnalisisRecorridos,
+  getDashboardUnificado, getRutasAlerta, eliminarDiaCompleto,
+  getDiaCompleto,
+} from "@/app/actions/operaciones-diarias";
+import type {
+  FilaOperacion, AnalisisRecorrido,
+  DashboardUnificado, RutaAlerta,
+} from "@/app/actions/operaciones-diarias";
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function inferirZona(codigo: string) {
+  if (codigo.includes("-OE-")) return "Oeste";
+  if (codigo.includes("-NO-")) return "Norte";
+  if (codigo.includes("-SU-")) return "Sur";
+  if (codigo.includes("-CA-")) return "CABA";
+  return "";
+}
+function inferirTipo(codigo: string) {
+  const pre = codigo.split("-")[0].toUpperCase();
+  if (pre === "RF") return "fijo";
+  if (["PT","PR"].includes(pre)) return "pre_turno";
+  if (pre === "CE") return "corte";
+  return "suplencia";
+}
+const CODIGO_REGEX = /^(RF|CE|PT|PR|CMD)-[A-Z]{2}-\d{1,3}$/i;
+
+function parsearSheet(ws: XLSX.WorkSheet, turno: "tarde"|"preturno") {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+  const filas: FilaOperacion[] = [];
+  let colCodigo = -1, colSistema = -1, colXFuera = -1, colTotal = -1;
+
+  // Buscar header row
+  for (let i = 0; i < Math.min(rows.length, 15); i++) {
+    const row = rows[i].map((c: unknown) => String(c).toUpperCase().replace(/[^A-ZÁÉÍÓÚ ]/g, "").trim());
+    const cs = row.findIndex(c => c === "SISTEMA");
+    const cx = row.findIndex(c => c.includes("FUERA") || c === "X FU");
+    const ct = row.findIndex(c => c === "TOTAL");
+    if (cs >= 0 && ct >= 0) {
+      // Buscar CÓDIGO entre las primeras columnas
+      for (let j = 0; j < Math.min(row.length, 6); j++) {
+        if (row[j].includes("DIGO") || row[j].includes("CODIGO")) { colCodigo = j; break; }
+      }
+      if (colCodigo < 0) colCodigo = 2; // fallback posición 2
+      colSistema = cs; colXFuera = cx; colTotal = ct;
+      // Parse desde siguiente fila
+      for (let r = i + 1; r < rows.length; r++) {
+        const raw = String(rows[r][colCodigo] ?? "").trim();
+        if (!CODIGO_REGEX.test(raw)) continue;
+        const sistema = parseInt(String(rows[r][colSistema] ?? "0")) || 0;
+        const x_fuera = colXFuera >= 0 ? (parseInt(String(rows[r][colXFuera] ?? "0")) || 0) : 0;
+        const total   = colTotal >= 0  ? (parseInt(String(rows[r][colTotal]   ?? "0")) || 0) : sistema + x_fuera;
+        if (total === 0 && sistema === 0) continue;
+        filas.push({ codigo: raw.toUpperCase(), zona: inferirZona(raw), tipo: inferirTipo(raw), sistema, x_fuera, total });
+      }
+      break;
+    }
+  }
+  return { turno, filas, ignoradas: 0 };
+}
+
+// Detectar turno desde nombre de archivo o hoja
+function detectarTurno(filename: string, sheetName: string): "tarde" | "preturno" | null {
+  const texto = (filename + " " + sheetName).toUpperCase();
+  if (texto.includes("PRE") && (texto.includes("TURNO") || texto.includes("TURN"))) return "preturno";
+  if (texto.includes("TARDE") || texto.includes("TURNO TARDE")) return "tarde";
+  return null;
+}
+
+// ── Colores ───────────────────────────────────────────────────────────────────
+const ZONA_COLORS: Record<string, { bg: string; text: string }> = {
+  Oeste: { bg: "bg-blue-100", text: "text-blue-700" },
+  Norte: { bg: "bg-amber-100", text: "text-amber-700" },
+  Sur:   { bg: "bg-green-100", text: "text-green-700" },
+  CABA:  { bg: "bg-red-100",   text: "text-red-700" },
+};
+function colorProm(p: number) {
+  if (p > 40) return "text-red-600 font-bold";
+  if (p > 35) return "text-amber-600 font-semibold";
+  if (p < 20) return "text-slate-400";
+  return "text-green-600 font-semibold";
+}
+
+// ── Tooltip del gráfico ───────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function TooltipUnif({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  const d: DashboardUnificado = payload[0]?.payload;
+  return (
+    <div className="bg-background border rounded-lg shadow-lg p-3 text-xs space-y-1 min-w-[180px]">
+      <p className="font-bold">{label} · {d?.dia_nombre}</p>
+      {d?.total_paquetes > 0 && <p>Paquetes: <b>{d.total_paquetes.toLocaleString("es-AR")}</b></p>}
+      {d?.rutas_activas > 0 && <p>Rutas: <b>{d.rutas_activas}</b> ({d.rutas_fijas}F {d.rutas_preturno}PT)</p>}
+      {d?.prom_por_ruta > 0 && <p>Prom/ruta: <b className={colorProm(d.prom_por_ruta)}>{d.prom_por_ruta}</b></p>}
+      {d?.choferes_30 > 0 && <p>Choferes @30: <b>{d.choferes_30}</b></p>}
+      <p className="text-[10px] text-muted-foreground flex gap-1">
+        {d?.tiene_clientes && <span className="text-blue-600">● Clientes</span>}
+        {d?.tiene_ops && <span className="text-green-600">● Operaciones</span>}
+      </p>
+    </div>
+  );
+}
+
+// ── Detalle expandible de un día (top clientes + zonas + alertas) ──────────────
+function DiaDetalleInline({ fecha }: { fecha: string }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [detalle, setDetalle] = useState<Record<string, any> | null>(null);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    getDiaCompleto(fecha).then(res => {
+      if (res.ok && res.data) setDetalle(res.data);
+      setCargando(false);
+    });
+  }, [fecha]);
+
+  if (cargando) return <td colSpan={10} className="bg-slate-50 px-4 py-3 text-xs text-muted-foreground text-center">Cargando detalle…</td>;
+  if (!detalle) return <td colSpan={10} className="bg-slate-50 px-4 py-3 text-xs text-muted-foreground text-center">Sin detalle</td>;
+
+  const porZona: { zona: string; rutas: number; total: number; prom: number; alertas: number }[] = detalle.por_zona ?? [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rutasAlerta: any[] = detalle.rutas_alerta ?? [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const topClientes: any[] = (detalle.top_clientes ?? []).slice(0, 6);
+
+  return (
+    <td colSpan={10} className="bg-slate-50 px-4 py-4 border-b">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Top clientes */}
+        {topClientes.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+              <Package className="h-3 w-3" /> Top clientes
+            </p>
+            {topClientes.map((c, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground w-4 text-right">{i+1}</span>
+                <span className="flex-1 truncate font-medium">{c.cliente}</span>
+                <span className="font-bold tabular-nums">{c.paquetes}</span>
+              </div>
+            ))}
+            {detalle.total_clientes > 6 && (
+              <p className="text-[10px] text-muted-foreground">+ {detalle.total_clientes - 6} más · Total {Number(detalle.total_paquetes).toLocaleString("es-AR")} paq</p>
+            )}
+          </div>
+        )}
+        {/* Por zona */}
+        {porZona.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+              <Users className="h-3 w-3" /> Por zona
+            </p>
+            {porZona.map(z => (
+              <div key={z.zona} className="flex items-center gap-2 text-xs">
+                <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium w-14 text-center", ZONA_COLORS[z.zona]?.bg, ZONA_COLORS[z.zona]?.text)}>{z.zona}</span>
+                <span className="text-muted-foreground tabular-nums w-14">{z.rutas} rutas</span>
+                <span className={cn("font-semibold tabular-nums", colorProm(z.prom))}>{z.prom} prom</span>
+                {z.alertas > 0 && <span className="text-[10px] text-red-600 font-bold">⚠{z.alertas}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+        {/* Rutas en alerta */}
+        {rutasAlerta.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-red-600 flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" /> Sobrecarga (&gt;35)
+            </p>
+            {rutasAlerta.slice(0, 6).map((r: { codigo: string; total: number; x_fuera: number }) => (
+              <div key={r.codigo} className="flex items-center gap-2 text-xs">
+                <span className="font-mono font-bold text-blue-700 w-20">{r.codigo}</span>
+                <span className={cn("font-bold tabular-nums", r.total > 40 ? "text-red-600" : "text-amber-600")}>{r.total} paq</span>
+                {r.x_fuera > 0 && <span className="text-[10px] text-amber-500">+{r.x_fuera}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+        {porZona.length === 0 && rutasAlerta.length === 0 && (
+          <div className="col-span-3 text-center text-xs text-muted-foreground py-2">
+            Sin datos de recorridos para este día. Importá el Excel de operaciones para ver el detalle por zona.
+          </div>
+        )}
+      </div>
+    </td>
+  );
+}
+
+// ── Componente principal ──────────────────────────────────────────────────────
+export function AnalisisOperaciones() {
+  const [vista, setVista] = useState<"dashboard" | "importar" | "rutas">("dashboard");
+  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
+  const [archivos, setArchivos] = useState<{
+    nombre: string; turno: "tarde" | "preturno"; filas: FilaOperacion[];
+  }[]>([]);
+  const [importando, setImportando] = useState(false);
+  const [dashboard, setDashboard] = useState<DashboardUnificado[]>([]);
+  const [alertas, setAlertas] = useState<RutaAlerta[]>([]);
+  const [analisis, setAnalisis] = useState<AnalisisRecorrido[]>([]);
+  const [diasVista, setDiasVista] = useState(30);
+  const [cargando, setCargando] = useState(false);
+  const [borrandoDia, setBorrandoDia] = useState<string | null>(null);
+  const [diaExpandido, setDiaExpandido] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function eliminarDia(fecha: string) {
+    const fechaFmt = new Date(fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
+    if (!confirm(`¿Eliminar TODOS los datos del ${fechaFmt}?\n\nSe borran los paquetes/clientes y los recorridos importados de ese día. No se puede deshacer.`)) return;
+    setBorrandoDia(fecha);
+    try {
+      const res = await eliminarDiaCompleto(fecha);
+      if (!res.ok) { toast.error("Error al eliminar el día", { description: res.error }); return; }
+      toast.success(`Día eliminado (${res.clientes ?? 0} clientes · ${res.operaciones ?? 0} recorridos)`);
+      await cargarDatos(diasVista);
+    } finally { setBorrandoDia(null); }
+  }
+
+  // Cargar datos al montar
+  useEffect(() => { cargarDatos(diasVista); }, []);
+
+  async function cargarDatos(dias: number) {
+    setCargando(true);
+    try {
+      const [resDash, resAlertas, resAnalisis] = await Promise.all([
+        getDashboardUnificado(dias),
+        getRutasAlerta(dias),
+        getAnalisisRecorridos(dias),
+      ]);
+      if (resDash.ok && resDash.data) setDashboard(resDash.data);
+      if (resAlertas.ok && resAlertas.data) setAlertas(resAlertas.data);
+      if (resAnalisis.ok && resAnalisis.data) setAnalisis(resAnalisis.data);
+    } finally { setCargando(false); }
+  }
+
+  // ── Multi-archivo ──────────────────────────────────────────────────────────
+  async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+
+    // Auto-detectar fecha del primer archivo
+    const m = files[0].name.match(/(\d{1,2})[_\-\/](\d{1,2})/);
+    if (m) {
+      const d = m[1].padStart(2, "0"), mes = m[2].padStart(2, "0");
+      setFecha(`${new Date().getFullYear()}-${mes}-${d}`);
+    }
+
+    const resultados: typeof archivos = [];
+    for (const file of files) {
+      try {
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: "array" });
+        let encontrado = false;
+        for (const sheetName of wb.SheetNames) {
+          const turno = detectarTurno(file.name, sheetName);
+          if (turno) {
+            const parsed = parsearSheet(wb.Sheets[sheetName], turno);
+            if (parsed.filas.length > 0) {
+              resultados.push({ nombre: `${file.name} › ${sheetName}`, turno, filas: parsed.filas });
+              encontrado = true;
+            }
+          }
+        }
+        // Si no encontró por nombre de hoja, usar nombre del archivo
+        if (!encontrado) {
+          const turno = detectarTurno(file.name, "") ?? "tarde";
+          for (const sheetName of wb.SheetNames) {
+            const parsed = parsearSheet(wb.Sheets[sheetName], turno);
+            if (parsed.filas.length > 0) {
+              resultados.push({ nombre: `${file.name} › ${sheetName}`, turno, filas: parsed.filas });
+              break;
+            }
+          }
+        }
+      } catch { toast.error(`Error al leer ${file.name}`); }
+    }
+    setArchivos(resultados);
+    const total = resultados.reduce((s, r) => s + r.filas.length, 0);
+    toast.success(`${total} recorridos detectados en ${resultados.length} hoja${resultados.length > 1 ? "s" : ""}`);
+  }
+
+  async function confirmar() {
+    if (!archivos.length) return;
+    setImportando(true);
+    let total = 0;
+    try {
+      for (const arch of archivos) {
+        const res = await importarOperacionDiaria(fecha, arch.turno, arch.filas);
+        if (!res.ok) { toast.error(`Error: ${arch.nombre}`, { description: res.error }); return; }
+        total += res.importados ?? 0;
+      }
+      toast.success(`${total} recorridos importados para ${fecha}`);
+      setArchivos([]);
+      if (fileRef.current) fileRef.current.value = "";
+      setVista("dashboard");
+      await cargarDatos(diasVista);
+    } finally { setImportando(false); }
+  }
+
+  // ── Datos del gráfico (últimos 14 días, orden cronológico) ─────────────────
+  const chartData = [...dashboard]
+    .slice(0, 14)
+    .reverse()
+    .map(d => ({
+      ...d,
+      dia: d.fecha.slice(5),
+      paquetes: d.total_paquetes || undefined,
+      promedio: d.prom_por_ruta > 0 ? d.prom_por_ruta : undefined,
+      choferes: d.choferes_30 || undefined,
+    }));
+
+  const tieneClientes = dashboard.some(d => d.tiene_clientes);
+  const tieneOps = dashboard.some(d => d.tiene_ops);
+  const sinDatos = dashboard.length === 0;
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Sub-tabs */}
+      <div className="px-5 py-2 border-b flex items-center gap-2 bg-background">
+        <div className="flex gap-1">
+          {([
+            ["dashboard", "📊 Visión general"],
+            ["importar",  "📥 Importar operaciones"],
+            ["rutas",     "🗺 Por recorrido"],
+          ] as const).map(([v, lbl]) => (
+            <button key={v} onClick={() => { setVista(v); if (v !== "importar" && !dashboard.length) cargarDatos(diasVista); }}
+              className={cn("px-3 py-1.5 text-xs font-medium rounded-lg transition-colors",
+                vista === v ? "bg-blue-600 text-white" : "text-muted-foreground hover:bg-accent")}>
+              {lbl}
+            </button>
+          ))}
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <div className="flex gap-1">
+            {[14, 30, 60].map(d => (
+              <button key={d} onClick={() => { setDiasVista(d); cargarDatos(d); }}
+                className={cn("text-[10px] px-1.5 py-0.5 rounded border transition-colors",
+                  diasVista === d ? "bg-slate-700 text-white border-slate-700" : "border-border text-muted-foreground")}>
+                {d}d
+              </button>
+            ))}
+          </div>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => cargarDatos(diasVista)} disabled={cargando}>
+            <RefreshCw className={cn("h-3.5 w-3.5", cargando && "animate-spin")} />
+          </Button>
+        </div>
+      </div>
+
+      {/* ── VISIÓN GENERAL ── */}
+      {vista === "dashboard" && (
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          {sinDatos ? (
+            <div className="flex flex-col items-center justify-center h-64 gap-4 text-muted-foreground">
+              <BarChart2 className="h-12 w-12 opacity-20" />
+              <p className="text-sm font-medium">No hay datos todavía</p>
+              <p className="text-xs text-center max-w-sm">
+                Importá el Excel de operaciones diarias (Turno Tarde + Pre Turno) para ver el análisis unificado.
+              </p>
+              <Button size="sm" onClick={() => setVista("importar")}>
+                <Upload className="h-3.5 w-3.5 mr-1.5" /> Importar primeros datos
+              </Button>
+            </div>
+          ) : (
+            <>
+              {/* Indicadores de fuentes */}
+              <div className="flex gap-2 text-[10px]">
+                <span className={cn("px-2 py-1 rounded-full border flex items-center gap-1",
+                  tieneClientes ? "bg-blue-50 border-blue-200 text-blue-700" : "bg-slate-50 border-dashed text-muted-foreground")}>
+                  <Package className="h-3 w-3" />
+                  {tieneClientes ? "Paquetes/clientes ✓" : "Sin datos de paquetes"}
+                </span>
+                <span className={cn("px-2 py-1 rounded-full border flex items-center gap-1",
+                  tieneOps ? "bg-green-50 border-green-200 text-green-700" : "bg-slate-50 border-dashed text-muted-foreground")}>
+                  <Users className="h-3 w-3" />
+                  {tieneOps ? "Operaciones por recorrido ✓" : "Sin datos de recorridos"}
+                </span>
+                {!tieneClientes && (
+                  <span className="text-[10px] text-amber-600 self-center">
+                    → Importá también el Excel de clientes para ver paquetes totales
+                  </span>
+                )}
+              </div>
+
+              {/* Gráfico unificado */}
+              <div className="border rounded-xl p-5 bg-background">
+                <p className="text-sm font-bold mb-4">Evolución diaria — últimos {Math.min(14, dashboard.length)} días</p>
+                <ResponsiveContainer width="100%" height={230}>
+                  <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="dia" tick={{ fontSize: 10 }} />
+                    <YAxis yAxisId="left" tick={{ fontSize: 10 }} tickFormatter={v => v.toLocaleString("es-AR")} />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} domain={[0, 60]} />
+                    <Tooltip content={<TooltipUnif />} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    {tieneClientes && (
+                      <Bar yAxisId="left" dataKey="paquetes" name="Paquetes totales" fill="#3b82f6" opacity={0.7} radius={[3,3,0,0]} barSize={18} />
+                    )}
+                    {tieneOps && (
+                      <>
+                        <Bar yAxisId="left" dataKey="choferes" name="Choferes @30" fill="#16a34a" opacity={0.5} radius={[3,3,0,0]} barSize={10} />
+                        <Line yAxisId="right" type="monotone" dataKey="promedio" stroke="#f97316" strokeWidth={2.5}
+                          name="Prom pkg/ruta" dot={{ r: 4 }} connectNulls />
+                        {/* Banda de equilibrio — usando ReferenceLine es correcto para líneas fijas */}
+                        <ReferenceLine yAxisId="right" y={35} stroke="#ef4444" strokeDasharray="4 2" strokeWidth={1} />
+                        <ReferenceLine yAxisId="right" y={25} stroke="#f59e0b" strokeDasharray="4 2" strokeWidth={1} />
+                        <ReferenceLine yAxisId="right" y={30} stroke="#16a34a" strokeDasharray="2 4" strokeWidth={1} />
+                      </>
+                    )}
+                  </ComposedChart>
+                </ResponsiveContainer>
+                <div className="flex gap-3 mt-1 text-[9px] text-muted-foreground">
+                  <span className="text-red-400">- - - 35 (máx)</span>
+                  <span className="text-green-600">— — 30 (P.E.)</span>
+                  <span className="text-amber-400">- - - 25 (mín)</span>
+                </div>
+              </div>
+
+              {/* Tabla resumen por día */}
+              <div className="border rounded-xl overflow-hidden">
+                <div className="px-4 py-2.5 border-b bg-muted/20 flex items-center">
+                  <p className="text-xs font-semibold">Detalle por día</p>
+                  <p className="text-[10px] text-muted-foreground ml-auto">
+                    Clic en una fila para ver el detalle del día
+                  </p>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-background border-b sticky top-0">
+                      <tr>
+                        <th className="w-6 px-2 py-2" />
+                        <th className="text-left px-3 py-2 text-muted-foreground font-medium">Fecha</th>
+                        <th className="text-left px-3 py-2 text-muted-foreground font-medium">Día</th>
+                        <th className="text-right px-3 py-2 text-muted-foreground font-medium">Paq.</th>
+                        <th className="text-right px-3 py-2 text-muted-foreground font-medium">Rutas</th>
+                        <th className="text-right px-3 py-2 text-muted-foreground font-medium">Prom.</th>
+                        <th className="text-right px-3 py-2 text-muted-foreground font-medium">X%</th>
+                        <th className="text-right px-3 py-2 text-muted-foreground font-medium">Chof.@30</th>
+                        <th className="text-left px-3 py-2 text-muted-foreground font-medium">Estado</th>
+                        <th className="text-center px-2 py-2 text-muted-foreground font-medium text-[10px]">Borrar</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {dashboard.map(d => {
+                        const exp = diaExpandido === d.fecha;
+                        return (
+                        <Fragment key={d.fecha + d.dia_nombre}>
+                        <tr
+                          onClick={() => setDiaExpandido(exp ? null : d.fecha)}
+                          className={cn("hover:bg-accent/30 group cursor-pointer transition-colors", exp && "bg-blue-50/50")}>
+                          <td className="px-2 py-1.5 text-center text-muted-foreground">
+                            {exp ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                          </td>
+                          <td className="px-3 py-1.5 font-semibold tabular-nums">
+                            {new Date(d.fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                          </td>
+                          <td className="px-3 py-1.5 text-muted-foreground">{d.dia_nombre}</td>
+                          <td className="px-3 py-1.5 text-right tabular-nums">
+                            {d.total_paquetes > 0 ? d.total_paquetes.toLocaleString("es-AR") : <span className="text-muted-foreground/40">—</span>}
+                          </td>
+                          <td className="px-3 py-1.5 text-right tabular-nums">
+                            {d.rutas_activas > 0 ? (
+                              <span>{d.rutas_activas} <span className="text-[10px] text-muted-foreground">({d.rutas_fijas}F {d.rutas_preturno}PT)</span></span>
+                            ) : <span className="text-muted-foreground/40">—</span>}
+                          </td>
+                          <td className={cn("px-3 py-1.5 text-right tabular-nums font-semibold", colorProm(d.prom_por_ruta))}>
+                            {d.prom_por_ruta > 0 ? d.prom_por_ruta : "—"}
+                          </td>
+                          <td className={cn("px-3 py-1.5 text-right tabular-nums", d.pct_x_fuera > 5 ? "text-amber-600 font-semibold" : "text-muted-foreground")}>
+                            {d.pct_x_fuera > 0 ? `${d.pct_x_fuera}%` : "—"}
+                          </td>
+                          <td className="px-3 py-1.5 text-right tabular-nums text-blue-700 font-semibold">
+                            {d.choferes_30 > 0 ? d.choferes_30 : "—"}
+                          </td>
+                          <td className="px-3 py-1.5">
+                            <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium",
+                              d.estado === "SOBRECARGA" ? "bg-red-100 text-red-700" :
+                              d.estado === "SOBRE TARGET" ? "bg-amber-100 text-amber-700" :
+                              d.estado === "OK" ? "bg-green-100 text-green-700" :
+                              "bg-slate-100 text-slate-500")}>
+                              {d.estado}
+                            </span>
+                          </td>
+                          <td className="px-2 py-1.5 text-center">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); eliminarDia(d.fecha); }}
+                              disabled={borrandoDia === d.fecha}
+                              className="inline-flex items-center justify-center h-6 w-6 rounded-md border border-red-200 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50"
+                              title="Eliminar todos los datos de este día">
+                              {borrandoDia === d.fecha
+                                ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                : <Trash2 className="h-3.5 w-3.5" />}
+                            </button>
+                          </td>
+                        </tr>
+                        {exp && (
+                          <tr>
+                            <DiaDetalleInline fecha={d.fecha} />
+                          </tr>
+                        )}
+                        </Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Alertas de recorridos */}
+              {alertas.length > 0 && (
+                <div className="border rounded-xl overflow-hidden">
+                  <div className="px-4 py-2.5 border-b bg-red-50 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                    <p className="text-xs font-semibold text-red-700">
+                      Recorridos con sobrecarga frecuente — últimos {diasVista} días
+                    </p>
+                  </div>
+                  <table className="w-full text-xs">
+                    <thead className="bg-background border-b">
+                      <tr>
+                        <th className="text-left px-3 py-2 text-muted-foreground font-medium">Código</th>
+                        <th className="text-left px-3 py-2 text-muted-foreground font-medium">Zona</th>
+                        <th className="text-right px-3 py-2 text-muted-foreground font-medium">Prom.</th>
+                        <th className="text-right px-3 py-2 text-muted-foreground font-medium">Máx.</th>
+                        <th className="text-right px-3 py-2 text-muted-foreground font-medium">% días &gt;40</th>
+                        <th className="text-left px-3 py-2 text-muted-foreground font-medium">Recomendación</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {alertas.map(r => (
+                        <tr key={r.codigo} className="hover:bg-accent/20">
+                          <td className="px-3 py-2 font-mono font-bold text-blue-700">{r.codigo}</td>
+                          <td className="px-3 py-2">
+                            <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium", ZONA_COLORS[r.zona]?.bg, ZONA_COLORS[r.zona]?.text)}>
+                              {r.zona}
+                            </span>
+                          </td>
+                          <td className={cn("px-3 py-2 text-right font-bold tabular-nums", colorProm(r.prom_total))}>{r.prom_total}</td>
+                          <td className="px-3 py-2 text-right tabular-nums font-semibold">{r.max_total}</td>
+                          <td className="px-3 py-2 text-right">
+                            <span className={cn("font-bold", r.pct_sobre >= 75 ? "text-red-600" : "text-amber-600")}>
+                              {r.pct_sobre}%
+                            </span>
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className={cn("text-[10px] px-2 py-0.5 rounded-full",
+                              r.recomendacion.includes("permanente") ? "bg-red-100 text-red-700 font-semibold" :
+                              r.recomendacion.includes("frecuente") ? "bg-amber-100 text-amber-700" :
+                              "bg-slate-100 text-slate-500")}>
+                              {r.recomendacion}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── IMPORTAR (multi-archivo) ── */}
+      {vista === "importar" && (
+        <div className="p-6 space-y-5 max-w-2xl">
+          <div className="border rounded-xl p-5 bg-background space-y-4">
+            <div className="flex items-start gap-3">
+              <FileSpreadsheet className="h-8 w-8 text-blue-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold">Importar Excel de operaciones</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Podés seleccionar <strong>uno o varios archivos</strong> a la vez.<br />
+                  El sistema detecta automáticamente Turno Tarde y Pre Turno por el nombre del archivo o de las hojas.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
+                className="border rounded-lg px-3 py-2 text-sm h-9 bg-background" />
+              <Button variant="outline" className="h-9 gap-2" onClick={() => fileRef.current?.click()}>
+                <Upload className="h-3.5 w-3.5" />
+                Seleccionar archivos (uno o más)
+              </Button>
+              <input ref={fileRef} type="file" accept=".xlsx,.xls" multiple className="hidden" onChange={handleFiles} />
+            </div>
+            <div className="bg-slate-50 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
+              <p className="font-semibold text-slate-600">Detección automática:</p>
+              <p>• Archivo con "PRE TURNO" o "PRE TURNO" en el nombre → Pre-Turno</p>
+              <p>• Archivo con "TURNO TARDE" o "TARDE" → Turno Tarde</p>
+              <p>• O una hoja con ese nombre dentro del Excel</p>
+              <p>Columnas leídas: <strong>CÓDIGO · SISTEMA · X FUERA · TOTAL</strong> — el resto se ignora</p>
+            </div>
+          </div>
+
+          {/* Preview multi-archivo */}
+          {archivos.length > 0 && (
+            <div className="space-y-3">
+              {archivos.map((arch, idx) => (
+                <div key={idx} className="border rounded-xl overflow-hidden">
+                  <div className={cn("px-4 py-2.5 flex items-center gap-2",
+                    arch.turno === "tarde" ? "bg-blue-600" : "bg-violet-600")}>
+                    <p className="text-xs font-bold text-white uppercase tracking-wide">
+                      {arch.turno === "tarde" ? "Turno Tarde" : "Pre-Turno"} · {arch.filas.length} recorridos
+                    </p>
+                    <span className="text-[10px] text-white/70 ml-auto truncate max-w-[200px]">{arch.nombre}</span>
+                  </div>
+                  <div className="max-h-36 overflow-y-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-slate-50 border-b">
+                        <tr>
+                          <th className="text-left px-3 py-1 font-medium text-muted-foreground">Código</th>
+                          <th className="text-left px-3 py-1 font-medium text-muted-foreground">Zona</th>
+                          <th className="text-right px-3 py-1 font-medium text-muted-foreground">Sist.</th>
+                          <th className="text-right px-3 py-1 font-medium text-muted-foreground">X Fuera</th>
+                          <th className="text-right px-3 py-1 font-medium text-muted-foreground">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {arch.filas.map(f => (
+                          <tr key={f.codigo}>
+                            <td className="px-3 py-1 font-mono font-bold text-blue-700">{f.codigo}</td>
+                            <td className="px-3 py-1">
+                              <span className={cn("text-[10px] px-1 rounded", ZONA_COLORS[f.zona]?.bg, ZONA_COLORS[f.zona]?.text)}>
+                                {f.zona}
+                              </span>
+                            </td>
+                            <td className="px-3 py-1 text-right tabular-nums">{f.sistema}</td>
+                            <td className={cn("px-3 py-1 text-right tabular-nums", f.x_fuera > 0 ? "text-amber-600" : "text-muted-foreground/40")}>
+                              {f.x_fuera > 0 ? `+${f.x_fuera}` : "—"}
+                            </td>
+                            <td className={cn("px-3 py-1 text-right font-bold tabular-nums",
+                              f.total > 40 ? "text-red-600" : f.total > 35 ? "text-amber-600" : "text-green-600")}>
+                              {f.total}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+              <Button onClick={confirmar} disabled={importando}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold h-10 gap-2">
+                <CheckCircle className="h-4 w-4" />
+                {importando ? "Importando…" : `Confirmar — ${archivos.reduce((s,a) => s+a.filas.length,0)} recorridos para ${fecha}`}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── POR RECORRIDO ── */}
+      {vista === "rutas" && (
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {analisis.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">
+              Sin datos de recorridos. Importá el Excel de operaciones primero.
+            </div>
+          ) : (
+            <div className="border rounded-xl overflow-hidden">
+              <table className="w-full text-xs">
+                <thead className="bg-slate-50 border-b sticky top-0">
+                  <tr>
+                    <th className="text-left px-3 py-2.5 text-muted-foreground font-medium">Código</th>
+                    <th className="text-left px-3 py-2.5 text-muted-foreground font-medium">Zona</th>
+                    <th className="text-right px-3 py-2.5 text-muted-foreground font-medium">Días</th>
+                    <th className="text-right px-3 py-2.5 text-muted-foreground font-medium">Prom.</th>
+                    <th className="text-right px-3 py-2.5 text-muted-foreground font-medium">X Fuera</th>
+                    <th className="text-right px-3 py-2.5 text-muted-foreground font-medium">Máx</th>
+                    <th className="text-right px-3 py-2.5 text-muted-foreground font-medium">% &gt;40</th>
+                    <th className="text-center px-3 py-2.5 text-muted-foreground font-medium">Tend.</th>
+                    <th className="text-left px-3 py-2.5 text-muted-foreground font-medium">Alerta</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {analisis.map(r => (
+                    <tr key={r.codigo} className={cn("hover:bg-accent/20 transition-colors", r.pct_sobrecarga >= 50 && "bg-red-50/30")}>
+                      <td className="px-3 py-2 font-mono font-bold text-blue-700">{r.codigo}</td>
+                      <td className="px-3 py-2">
+                        <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium", ZONA_COLORS[r.zona]?.bg, ZONA_COLORS[r.zona]?.text)}>
+                          {r.zona}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{r.dias_registrados}</td>
+                      <td className={cn("px-3 py-2 text-right tabular-nums", colorProm(r.prom_total))}>{r.prom_total}</td>
+                      <td className={cn("px-3 py-2 text-right tabular-nums", r.prom_x_fuera >= 3 ? "text-amber-600 font-semibold" : "text-muted-foreground")}>
+                        {r.prom_x_fuera > 0 ? `+${r.prom_x_fuera}` : "—"}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums font-semibold">{r.max_total}</td>
+                      <td className="px-3 py-2 text-right">
+                        {r.pct_sobrecarga > 0 ? (
+                          <span className={cn("font-semibold", r.pct_sobrecarga >= 50 ? "text-red-600" : "text-amber-600")}>
+                            {r.pct_sobrecarga}%
+                          </span>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <span className={cn(
+                          r.tendencia === "subiendo" ? "text-red-500" :
+                          r.tendencia === "bajando"  ? "text-green-600" : "text-muted-foreground"
+                        )}>
+                          {r.tendencia === "subiendo" ? <TrendingUp className="h-3.5 w-3.5" /> :
+                           r.tendencia === "bajando"  ? <TrendingDown className="h-3.5 w-3.5" /> :
+                           <Minus className="h-3.5 w-3.5" />}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex gap-1 flex-wrap">
+                          {r.pct_sobrecarga >= 50 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700">⚠ Sobrecarga</span>}
+                          {r.prom_x_fuera >= 3 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">X Fuera alto</span>}
+                          {r.tendencia === "subiendo" && r.prom_total > 32 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700">↑ Revisar</span>}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

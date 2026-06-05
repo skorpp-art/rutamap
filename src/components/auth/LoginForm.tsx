@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2, Mail, Lock } from "lucide-react";
+import { Loader2, Mail, Lock, Map as MapIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -180,6 +180,23 @@ export function LoginForm() {
           {cargando && <Loader2 className="animate-spin" />}
           Ingresar
         </Button>
+
+        {/* Acceso de invitado al mapa (sin cuenta) */}
+        <div className="flex items-center gap-2 w-full">
+          <Separator className="flex-1" />
+          <span className="text-xs text-muted-foreground px-1">o</span>
+          <Separator className="flex-1" />
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full gap-2"
+          onClick={() => router.push("/")}
+        >
+          <MapIcon className="h-4 w-4" />
+          Ver mapas como invitado
+        </Button>
+
         <p className="text-sm text-muted-foreground text-center">
           ¿No tenés cuenta?{" "}
           <Link href="/registro" className="text-primary font-medium hover:underline">

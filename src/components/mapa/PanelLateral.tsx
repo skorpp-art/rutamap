@@ -15,11 +15,24 @@ interface PanelLateralProps {
   recorridos: RecorridoGeo[];
   recorridoActivoId: string | null;
   onSelectRecorrido: (id: string) => void;
+  visibles: Set<string>;
+  onToggleVisible: (id: string) => void;
+  onMostrarZona: (zona: Zona) => void;
+  onOcultarTodo: () => void;
+  onMostrarTodo: (ids?: string[]) => void;
+  puedeEditar?: boolean;
 }
 
 type Orden = "codigo" | "zona" | "fecha";
 
-const TIPOS: TipoRecorrido[] = ["fijo", "suplencia"];
+const TIPOS: TipoRecorrido[] = ["fijo", "suplencia", "corte", "pre_turno"];
+
+const TIPO_LABELS: Record<string, string> = {
+  fijo: "Fijo",
+  suplencia: "Supl.",
+  corte: "Corte",
+  pre_turno: "Pre-T",
+};
 
 const ORDEN_LABELS: Record<Orden, string> = {
   codigo: "Código A→Z",
@@ -43,6 +56,12 @@ export function PanelLateral({
   recorridos,
   recorridoActivoId,
   onSelectRecorrido,
+  visibles,
+  onToggleVisible,
+  onMostrarZona,
+  onOcultarTodo,
+  onMostrarTodo,
+  puedeEditar = true,
 }: PanelLateralProps) {
   const [busqueda, setBusqueda] = useState("");
   const [zonasActivas, setZonasActivas] = useState<Set<Zona>>(new Set());
@@ -57,6 +76,7 @@ export function PanelLateral({
       next.has(zona) ? next.delete(zona) : next.add(zona);
       return next;
     });
+    onMostrarZona(zona);
   }
 
   function toggleTipo(tipo: TipoRecorrido) {
@@ -138,17 +158,19 @@ export function PanelLateral({
             )}
           </div>
 
-          {/* Nuevo recorrido */}
-          <DialogRecorrido>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-muted-foreground hover:text-foreground"
-              title="Nuevo recorrido"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </Button>
-          </DialogRecorrido>
+          {/* Nuevo recorrido — solo usuarios con sesión */}
+          {puedeEditar && (
+            <DialogRecorrido>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                title="Nuevo recorrido"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+            </DialogRecorrido>
+          )}
         </div>
 
         {/* Búsqueda */}
@@ -180,6 +202,25 @@ export function PanelLateral({
           ))}
         </div>
 
+        {/* Controles rápidos de visibilidad */}
+        <div className="flex gap-1 items-center">
+          <span className="text-[10px] text-muted-foreground">Mapa:</span>
+          <button
+            onClick={() => onMostrarTodo(filtrados.map((r) => r.id))}
+            className="text-[10px] px-1.5 py-0.5 rounded border border-border text-muted-foreground hover:border-brand-blue/50 transition-colors"
+            title={hayFiltros ? "Mostrar en el mapa los recorridos filtrados" : "Mostrar todos en el mapa"}
+          >
+            {hayFiltros ? `Ver filtrados (${filtrados.length})` : "Ver todos"}
+          </button>
+          <button
+            onClick={onOcultarTodo}
+            className="text-[10px] px-1.5 py-0.5 rounded border border-border text-muted-foreground hover:border-brand-blue/50 transition-colors"
+            title="Ocultar todos del mapa"
+          >
+            Ocultar
+          </button>
+        </div>
+
         {/* Filtro tipos + activo + limpiar */}
         <div className="flex gap-1 flex-wrap">
           {TIPOS.map((tipo) => (
@@ -187,15 +228,19 @@ export function PanelLateral({
               key={tipo}
               onClick={() => toggleTipo(tipo)}
               className={cn(
-                "text-[10px] px-1.5 py-0.5 rounded border transition-colors capitalize",
+                "text-[10px] px-1.5 py-0.5 rounded border transition-colors",
                 tiposActivos.has(tipo)
                   ? tipo === "suplencia"
                     ? "bg-orange-500 text-white border-orange-500"
-                    : "bg-brand-blue text-white border-brand-blue"
+                    : tipo === "corte"
+                      ? "bg-red-500 text-white border-red-500"
+                      : tipo === "pre_turno"
+                        ? "bg-violet-500 text-white border-violet-500"
+                        : "bg-brand-blue text-white border-brand-blue"
                   : "bg-transparent text-muted-foreground border-border hover:border-brand-blue/50"
               )}
             >
-              {tipo}
+              {TIPO_LABELS[tipo] ?? tipo}
             </button>
           ))}
 
@@ -244,7 +289,9 @@ export function PanelLateral({
                 key={r.id}
                 recorrido={r}
                 seleccionado={r.id === recorridoActivoId}
+                visible={visibles.has(r.id)}
                 onClick={() => onSelectRecorrido(r.id)}
+                onToggleVisible={(e) => { e.stopPropagation(); onToggleVisible(r.id); }}
               />
             ))}
           </div>
@@ -252,13 +299,22 @@ export function PanelLateral({
       </div>
 
       {/* Pie */}
-      <div className="px-3 py-2 border-t flex items-center gap-2">
+      <div className="px-3 py-2 border-t flex items-center gap-2 flex-wrap">
         <Badge variant="secondary" className="text-[10px]">
           {totalActivos} activos
         </Badge>
-        {totalInactivos > 0 && (
+        {totalInactivos > 0 && soloActivos && (
+          <button
+            onClick={() => setSoloActivos(false)}
+            className="text-[10px] text-muted-foreground border border-dashed border-border rounded px-1.5 py-0.5 hover:bg-accent transition-colors"
+            title="Ver recorridos inactivos para reactivarlos o eliminarlos"
+          >
+            {totalInactivos} inactivo{totalInactivos > 1 ? "s" : ""} — ver
+          </button>
+        )}
+        {totalInactivos > 0 && !soloActivos && (
           <Badge variant="outline" className="text-[10px] text-muted-foreground">
-            {totalInactivos} inactivos
+            {totalInactivos} inactivo{totalInactivos > 1 ? "s" : ""}
           </Badge>
         )}
       </div>

@@ -61,3 +61,30 @@
     border-radius: 3px;
   }
 }
+
+/* ── Vértices de edición Geoman — estética ámbar (estilo "dibujar recorrido") ── */
+.leaflet-pane .marker-icon {
+  background-color: #f59e0b !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 1px 5px rgba(245, 158, 11, 0.55) !important;
+  width: 13px !important;
+  height: 13px !important;
+  margin-left: -6.5px !important;
+  margin-top: -6.5px !important;
+  border-radius: 50% !important;
+}
+.leaflet-pane .marker-icon-middle {
+  background-color: #ffffff !important;
+  border: 2px solid #f59e0b !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+  width: 11px !important;
+  height: 11px !important;
+  margin-left: -5.5px !important;
+  margin-top: -5.5px !important;
+  opacity: 0.9 !important;
+  border-radius: 50% !important;
+}
+.leaflet-pane .marker-icon:hover {
+  background-color: #d97706 !important;
+  transform: scale(1.15);
+}

@@ -3,7 +3,7 @@
 import "leaflet/dist/leaflet.css";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import { useEffect, useRef } from "react";
-import * as polyclip from "polyclip-ts";
+import * as turf from "@turf/turf";
 import { toast } from "sonner";
 import { MapContainer, TileLayer, GeoJSON, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import type { Zona } from "@/types/database.types";
@@ -83,6 +83,9 @@ interface GeomanEditorProps {
   onPolygonReemplazado?: () => void;
   herramientaActiva?: "lapiz" | "tijera" | null;
   onHerramientaFin?: () => void;
+  modoPluma?: "agregar" | "quitar" | null;
+  modoEditarNodos?: boolean;
+  vaciarTrigger?: number;
 }
 
 function GeomanAreaEditor({
@@ -94,27 +97,182 @@ function GeomanAreaEditor({
   onPolygonReemplazado,
   herramientaActiva,
   onHerramientaFin,
+  modoPluma,
+  modoEditarNodos,
+  vaciarTrigger,
 }: GeomanEditorProps) {
   const map = useMap();
   const onChangeRef = useRef(onGeometriaChange);
   const polyLayersRef = useRef<L.Polygon[]>([]);
   const editLayerRef = useRef<L.GeoJSON | null>(null);
-  // Ref para que el manejador de pm:create del setup principal sepa si
-  // la herramienta activa está procesando el evento
   const herramientaRef = useRef<"lapiz" | "tijera" | null>(null);
-  // Ref que siempre guarda la última geometría notificada al padre —
-  // usada como fallback defensivo en el lápiz si polyLayersRef está vacío
   const currentGeomRef = useRef<string | null>(recorrido.area_geojson ?? null);
+  // Handles custom para "Editar nodos" — L.Marker draggables, sin depender de Geoman
+  const vertexHandlesRef = useRef<L.Marker[]>([]);
+  const modoEditarNodosRef = useRef(false);
 
   useEffect(() => {
     onChangeRef.current = onGeometriaChange;
   });
+
+  // Helper: recolectar geometría actual de todas las capas → MultiPolygon plano.
+  // CRÍTICO: una capa de Leaflet puede ser Polygon (coords 3D) O MultiPolygon (coords 4D)
+  // cuando se cargó desde una unión turf. Hay que APLANAR ambos casos a un MultiPolygon
+  // de polígonos, sino la geometría se corrompe al guardar y se pierde lo anterior.
+  // NO filtramos por map.hasLayer() — pm.enable() puede mover la capa internamente.
+  function collect(): string | null {
+    const polys = polyLayersRef.current;
+    if (polys.length === 0) return null;
+    const multiCoords: number[][][][] = []; // lista de polígonos (cada uno = anillos)
+    for (const p of polys) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const geom = (p.toGeoJSON() as any).geometry;
+        if (!geom) continue;
+        if (geom.type === "Polygon") {
+          multiCoords.push(geom.coordinates as number[][][]);
+        } else if (geom.type === "MultiPolygon") {
+          for (const polyCoords of geom.coordinates as number[][][][]) {
+            multiCoords.push(polyCoords);
+          }
+        }
+      } catch { /* ignorar capa inválida */ }
+    }
+    if (multiCoords.length === 0) return null;
+    return JSON.stringify({ type: "MultiPolygon", coordinates: multiCoords });
+  }
 
   // Helper: notifica y trackea la geometría actual
   function emitGeom(geojson: string | null) {
     currentGeomRef.current = geojson;
     onChangeRef.current(geojson);
   }
+
+  // ── Handles custom para mover nodos ─────────────────────────────────────────
+  function crearVertexHandles() {
+    try {
+      // Limpiar handles viejos
+      vertexHandlesRef.current.forEach((m) => { try { m.remove(); } catch { /* ignorar */ } });
+      vertexHandlesRef.current = [];
+
+      if (!modoEditarNodosRef.current) return;
+
+      // NO filtrar por map.hasLayer — pm.enable() puede mover la capa internamente
+      const polys = polyLayersRef.current;
+      if (polys.length === 0) return;
+
+      polys.forEach((polygon) => {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          let rings: any = polygon.getLatLngs();
+          if (!rings || rings.length === 0) return;
+
+          // Normalizar: si rings[0] no es array, envolver en un array de rings
+          if (!Array.isArray(rings[0])) rings = [rings];
+          // Si es 3D (MultiPolygon interno de Leaflet), tomar el primer nivel
+          if (Array.isArray(rings[0]) && Array.isArray(rings[0][0]) && !('lat' in rings[0][0])) {
+            // rings = [[[LatLng,...]], ...]  → aplanar un nivel
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const flattened: any[] = [];
+            (rings as [][][]).forEach((p) => p.forEach((r) => flattened.push(r)));
+            rings = flattened;
+          }
+
+          (rings as L.LatLng[][]).forEach((ring: L.LatLng[], ringIdx: number) => {
+            if (!ring || ring.length < 2) return;
+
+            // Detectar si el anillo está cerrado (primer === último punto)
+            const firstPt = ring[0];
+            const lastPt = ring[ring.length - 1];
+            if (!firstPt || typeof firstPt.lat === 'undefined') return;
+
+            const isClosedRing =
+              ring.length > 1 &&
+              firstPt.lat === lastPt?.lat &&
+              firstPt.lng === lastPt?.lng;
+            const uniqueVerts = isClosedRing ? ring.slice(0, -1) : ring;
+
+            uniqueVerts.forEach((latlng: L.LatLng, vertIdx: number) => {
+              // Validar que el punto es un LatLng real
+              if (!latlng || typeof latlng.lat !== 'number' || typeof latlng.lng !== 'number') return;
+
+              try {
+                const handle = L.marker(latlng, {
+                  draggable: true,
+                  icon: L.divIcon({
+                    html: '<div style="width:22px;height:22px;border-radius:50%;background:white;border:3px solid #2563eb;box-shadow:0 2px 8px rgba(37,99,235,0.5);cursor:grab;"></div>',
+                    iconSize: [22, 22],
+                    iconAnchor: [11, 11],
+                    className: "",
+                  }),
+                  zIndexOffset: 1000,
+                }).addTo(map);
+
+                handle.on("dragstart", () => { map.dragging.disable(); });
+
+                handle.on("drag", () => {
+                  try {
+                    const newLatLng = handle.getLatLng();
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    let cur: any = polygon.getLatLngs();
+                    const flat = !Array.isArray(cur[0]);
+                    if (flat) {
+                      const newRing = [...(cur as L.LatLng[])];
+                      newRing[vertIdx] = newLatLng;
+                      if (isClosedRing && newRing.length > 1) newRing[newRing.length - 1] = newRing[0];
+                      polygon.setLatLngs(newRing);
+                    } else {
+                      cur = (cur as L.LatLng[][]).map((r: L.LatLng[], ri: number) => {
+                        if (ri !== ringIdx) return r;
+                        const newR = [...r];
+                        newR[vertIdx] = newLatLng;
+                        if (isClosedRing && newR.length > 1) newR[newR.length - 1] = newR[0];
+                        return newR;
+                      });
+                      polygon.setLatLngs(cur);
+                    }
+                  } catch { /* ignorar errores de drag */ }
+                });
+
+                handle.on("dragend", () => {
+                  map.dragging.enable();
+                  emitGeom(collect());
+                  if (modoEditarNodosRef.current) {
+                    requestAnimationFrame(() => crearVertexHandles());
+                  }
+                });
+
+                vertexHandlesRef.current.push(handle);
+              } catch { /* ignorar error al crear handle individual */ }
+            });
+          });
+        } catch { /* ignorar error al procesar un polígono */ }
+      });
+    } catch (err) {
+      console.error("[RutaMap] Error en crearVertexHandles:", err);
+    }
+  }
+
+  // Sincronizar ref del modo
+  useEffect(() => {
+    modoEditarNodosRef.current = modoEditarNodos ?? false;
+  }, [modoEditarNodos]);
+
+  // Activar/desactivar handles
+  useEffect(() => {
+    if (modoEditarNodos) {
+      crearVertexHandles();
+    } else {
+      vertexHandlesRef.current.forEach((m) => { try { m.remove(); } catch { /* ignorar */ } });
+      vertexHandlesRef.current = [];
+      map.dragging.enable();
+    }
+    return () => {
+      vertexHandlesRef.current.forEach((m) => { try { m.remove(); } catch { /* ignorar */ } });
+      vertexHandlesRef.current = [];
+      map.dragging.enable();
+    };
+  }, [modoEditarNodos]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Inyectar polígono llegado desde el buscador de localidades
   useEffect(() => {
@@ -132,25 +290,14 @@ function GeomanAreaEditor({
         if (sublayer instanceof L.Polygon) {
           polyLayersRef.current.push(sublayer);
           sublayer.pm.enable({ allowSelfIntersection: false });
-          sublayer.on("pm:edit", () => {
-            const polys = polyLayersRef.current.filter((p) => map.hasLayer(p));
-            if (polys.length === 0) { emitGeom(null); return; }
-            const coords = polys.map((p) =>
-              (p.toGeoJSON() as { geometry: { coordinates: number[][][] } }).geometry.coordinates
-            );
-            emitGeom(JSON.stringify({ type: "MultiPolygon", coordinates: coords }));
-          });
+          sublayer.on("pm:edit", () => emitGeom(collect()));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (sublayer as any).on("pm:dragend", () => emitGeom(collect()));
         }
       });
       const bounds = newLayer.getBounds();
       if (bounds.isValid()) map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
-      const allPolys = polyLayersRef.current.filter((p) => map.hasLayer(p));
-      if (allPolys.length > 0) {
-        const coords = allPolys.map((p) =>
-          (p.toGeoJSON() as { geometry: { coordinates: number[][][] } }).geometry.coordinates
-        );
-        emitGeom(JSON.stringify({ type: "MultiPolygon", coordinates: coords }));
-      }
+      emitGeom(collect());
     } catch {
       // GeoJSON inválido — ignorar
     }
@@ -189,27 +336,14 @@ function GeomanAreaEditor({
         if (sublayer instanceof L.Polygon) {
           polyLayersRef.current.push(sublayer);
           sublayer.pm.enable({ allowSelfIntersection: false });
-          sublayer.on("pm:edit", () => {
-            const polys = polyLayersRef.current.filter((p) => map.hasLayer(p));
-            if (polys.length === 0) { emitGeom(null); return; }
-            const coords = polys.map((p) =>
-              (p.toGeoJSON() as { geometry: { coordinates: number[][][] } }).geometry.coordinates
-            );
-            emitGeom(JSON.stringify({ type: "MultiPolygon", coordinates: coords }));
-          });
+          sublayer.on("pm:edit", () => emitGeom(collect()));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (sublayer as any).on("pm:dragend", () => emitGeom(collect()));
         }
       });
 
-      // 4. Actualizar geometría temporal con el resultado
-      const allPolys = polyLayersRef.current.filter((p) => map.hasLayer(p));
-      if (allPolys.length > 0) {
-        const coords = allPolys.map((p) =>
-          (p.toGeoJSON() as { geometry: { coordinates: number[][][] } }).geometry.coordinates
-        );
-        emitGeom(JSON.stringify({ type: "MultiPolygon", coordinates: coords }));
-      } else {
-        emitGeom(null);
-      }
+      // 4. Actualizar geometría temporal con el resultado (collect aplana Multi/Polygon)
+      emitGeom(collect());
 
       // 5. Encuadrar vista
       const bounds = newLayer.getBounds();
@@ -219,6 +353,10 @@ function GeomanAreaEditor({
     }
     // Siempre notificar aunque falle, para que el padre limpie el estado
     onPolygonReemplazado?.();
+    // Si "Editar nodos" estaba activo, refrescar los handles con la nueva geometría
+    if (modoEditarNodosRef.current) {
+      requestAnimationFrame(() => crearVertexHandles());
+    }
   }, [polygonReemplazar]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sincronizar herramientaRef con la prop para que el manejador principal lo vea
@@ -226,55 +364,98 @@ function GeomanAreaEditor({
     herramientaRef.current = herramientaActiva ?? null;
   }, [herramientaActiva]);
 
+  // ── Vaciar: borrar todas las capas y empezar de cero ────────────────────────
+  const vaciarInicialRef = useRef(true);
+  useEffect(() => {
+    if (vaciarInicialRef.current) { vaciarInicialRef.current = false; return; }
+    // Limpiar handles de nodos custom
+    vertexHandlesRef.current.forEach((m) => { try { m.remove(); } catch { /* ignorar */ } });
+    vertexHandlesRef.current = [];
+    // Limpiar todos los polígonos
+    polyLayersRef.current.forEach((layer) => {
+      layer.pm.disable();
+      layer.off("pm:edit");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (layer as any).off("pm:dragend");
+      if (map.hasLayer(layer)) layer.remove();
+    });
+    polyLayersRef.current = [];
+    if (editLayerRef.current) {
+      if (map.hasLayer(editLayerRef.current)) editLayerRef.current.remove();
+      editLayerRef.current = null;
+    }
+    currentGeomRef.current = null;
+    emitGeom(null);
+  }, [vaciarTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Pluma: cambiar cómo se quitan vértices según el modo.
+  // setOptions no toma efecto en tiempo real — hay que disable + enable.
+  useEffect(() => {
+    const removeOn = modoPluma === "quitar" ? "click" : "contextmenu";
+    // NO filtrar por map.hasLayer — pm.enable() puede mover la capa internamente
+    polyLayersRef.current
+      .forEach((layer) => {
+        layer.pm.disable();
+        layer.pm.enable({
+          allowSelfIntersection: false,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          removeVertexOn: removeOn as any,
+        });
+      });
+  }, [modoPluma]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Editar nodos: deshabilitar el pan del mapa para que el drag
+  // siempre vaya al vértice y no al mapa.
+  useEffect(() => {
+    if (modoEditarNodos) {
+      map.dragging.disable();
+    } else {
+      map.dragging.enable();
+    }
+    return () => { map.dragging.enable(); };
+  }, [modoEditarNodos, map]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Herramienta Lápiz (unión) / Tijera (diferencia) ─────────────────────────
   useEffect(() => {
     if (!herramientaActiva) return;
 
+    // Lápiz = ámbar (dibujar) · Tijera = naranja fuerte (recortar)
     const estilo = {
-      color: herramientaActiva === "tijera" ? "#f97316" : recorrido.color,
-      fillColor: herramientaActiva === "tijera" ? "#f97316" : recorrido.color,
-      fillOpacity: 0.25,
+      color: herramientaActiva === "tijera" ? "#f97316" : "#f59e0b",
+      fillColor: herramientaActiva === "tijera" ? "#f97316" : "#fbbf24",
+      fillOpacity: 0.2,
       weight: 2.5,
+      dashArray: herramientaActiva === "lapiz" ? "6 4" : undefined,
     };
 
-    // Activar modo dibujo con color apropiado
+    // Activar modo dibujo con estilo ámbar y líneas guía visibles
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (map.pm as any).setGlobalOptions({ pathOptions: estilo });
+    (map.pm as any).setGlobalOptions({
+      pathOptions: estilo,
+      templineStyle: { color: "#f59e0b", weight: 2, dashArray: "6 4" },
+      hintlineStyle: { color: "#f59e0b", weight: 2, dashArray: "4 4", opacity: 0.6 },
+    });
     map.pm.enableDraw("Polygon");
 
     function onDibujo(e: { layer: L.Layer }) {
       const drawnLayer = e.layer as L.Polygon;
 
-      // Quitar la capa dibujada del mapa — la reemplazaremos con el resultado
       if (map.hasLayer(drawnLayer)) drawnLayer.remove();
 
-      // Construir coords del polígono dibujado (Poly = Ring[])
+      // Geometría dibujada
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const drawnGeom = (drawnLayer.toGeoJSON() as any).geometry;
-      const drawnCoords: number[][][] =
-        drawnGeom.type === "Polygon" ? drawnGeom.coordinates : drawnGeom.coordinates[0];
+      const drawnGeojson = drawnLayer.toGeoJSON() as any;
 
-      // Construir coords del área actual (MultiPoly = Poly[])
-      const polys = polyLayersRef.current.filter((p) => map.hasLayer(p));
-      let existingCoords: number[][][][] = polys.map(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (p) => (p.toGeoJSON() as any).geometry.coordinates as number[][][]
-      );
-
-      // ── Fallback defensivo: si los layers no están en el ref, usar la
-      // última geometría conocida para no perder el área existente
-      if (existingCoords.length === 0 && currentGeomRef.current) {
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const gFallback: any = JSON.parse(currentGeomRef.current);
-          if (gFallback.type === "Polygon")
-            existingCoords = [gFallback.coordinates];
-          else if (gFallback.type === "MultiPolygon")
-            existingCoords = gFallback.coordinates;
-        } catch { /* ignorar */ }
+      // Geometría existente vía collect() (aplana correctamente Polygon y MultiPolygon)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let existingGeom: any = null;
+      const collected = collect();
+      if (collected) {
+        try { existingGeom = JSON.parse(collected); } catch { /* ignorar */ }
+      } else if (currentGeomRef.current) {
+        try { existingGeom = JSON.parse(currentGeomRef.current); } catch { /* ignorar */ }
       }
 
-      // Estilo base para capas editables
       const layerStyleBase = {
         color: recorrido.color,
         fillColor: recorrido.color,
@@ -282,80 +463,76 @@ function GeomanAreaEditor({
         weight: 2.5,
       };
 
-      // Helper: registrar una nueva capa editable en el ref y notificar al padre
       function registrarCapa(capa: L.Polygon) {
         polyLayersRef.current.push(capa);
-        capa.pm.enable({ allowSelfIntersection: false });
-        capa.on("pm:edit", () => {
-          const ps = polyLayersRef.current.filter((p) => map.hasLayer(p));
-          if (ps.length === 0) { emitGeom(null); return; }
+        capa.pm.enable({
+          allowSelfIntersection: false,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const cs = ps.map((p) => (p.toGeoJSON() as any).geometry.coordinates as number[][][]);
-          emitGeom(JSON.stringify({ type: "MultiPolygon", coordinates: cs }));
+          removeVertexOn: "contextmenu" as any,
         });
+        capa.on("pm:edit", () => emitGeom(collect()));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (capa as any).on("pm:dragend", () => emitGeom(collect()));
       }
 
       function notificarGeometria() {
-        const allPolys = polyLayersRef.current.filter((p) => map.hasLayer(p));
-        if (allPolys.length > 0) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const cs = allPolys.map((p) => (p.toGeoJSON() as any).geometry.coordinates as number[][][]);
-          emitGeom(JSON.stringify({ type: "MultiPolygon", coordinates: cs }));
-        } else {
-          emitGeom(null);
-        }
+        emitGeom(collect());
       }
 
-      let resultCoords: number[][][][] | null = null;
-      let polyclipFalló = false;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let resultGeom: any = null;
+      let fallo = false;
 
       try {
         if (herramientaActiva === "lapiz") {
-          if (existingCoords.length === 0) {
-            resultCoords = [drawnCoords];
+          if (!existingGeom) {
+            resultGeom = drawnGeojson.geometry;
           } else {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            resultCoords = (polyclip as any).union(existingCoords, [drawnCoords]) as number[][][][];
+            const existFeat = turf.feature(existingGeom);
+            const union = turf.union(turf.featureCollection([existFeat, drawnGeojson]));
+            if (union) {
+              // Simplificar el resultado para eliminar nodos extra en los bordes
+              const simplified = turf.simplify(union, { tolerance: 0.0003, highQuality: true });
+              resultGeom = simplified?.geometry ?? union.geometry;
+            }
           }
         } else {
           // tijera
-          if (existingCoords.length === 0) {
+          if (!existingGeom) {
             toast.error("No hay área para recortar.");
             onHerramientaFin?.();
             return;
           }
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          resultCoords = (polyclip as any).difference(existingCoords, [drawnCoords]) as number[][][][];
+          const existFeat = turf.feature(existingGeom);
+          const diff = turf.difference(turf.featureCollection([existFeat, drawnGeojson]));
+          if (!diff) {
+            toast.error("La zona recortada cubre todo el área — no quedaría nada.");
+            onHerramientaFin?.();
+            return;
+          }
+          // Simplificar el resultado de la diferencia también
+          const diffSimpl = turf.simplify(diff, { tolerance: 0.0003, highQuality: true });
+          resultGeom = diffSimpl?.geometry ?? diff.geometry;
         }
       } catch {
-        polyclipFalló = true;
+        fallo = true;
       }
 
-      // Si polyclip falló o devolvió vacío para tijera → manejar error
-      if (polyclipFalló || !resultCoords) {
+      if (fallo || !resultGeom) {
         if (herramientaActiva === "lapiz") {
-          // Fallback: agregar el polígono dibujado como pieza separada (sin unión)
-          toast.warning("La unión automática falló con esta geometría compleja. Se agregó como pieza separada. Probá Simplificar el área primero.", { duration: 6000 });
+          toast.warning("La unión falló con esta geometría. Se agregó como pieza separada. Simplificá primero.", { duration: 6000 });
           drawnLayer.setStyle(layerStyleBase);
           drawnLayer.addTo(map);
           registrarCapa(drawnLayer);
           notificarGeometria();
         } else {
-          toast.error("No se pudo recortar. El área puede ser demasiado compleja. Probá Simplificar primero.");
+          toast.error("No se pudo recortar. Probá Simplificar primero.");
         }
         onHerramientaFin?.();
         return;
       }
 
-      if (resultCoords.length === 0) {
-        if (herramientaActiva === "tijera") {
-          toast.error("La zona recortada cubre todo el área — no quedaría nada.");
-        }
-        onHerramientaFin?.();
-        return;
-      }
-
-      // Limpiar todas las capas editables existentes
+      // Limpiar capas existentes
       polyLayersRef.current.forEach((layer) => {
         layer.pm.disable();
         layer.off("pm:edit");
@@ -367,13 +544,7 @@ function GeomanAreaEditor({
         editLayerRef.current = null;
       }
 
-      // Construir geometría resultado y agregar como capas editables
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const resultGeom: any =
-        resultCoords.length === 1
-          ? { type: "Polygon", coordinates: resultCoords[0] }
-          : { type: "MultiPolygon", coordinates: resultCoords };
-
+      // Agregar resultado como capas editables
       const newLayer = L.geoJSON(resultGeom, { style: layerStyleBase }).addTo(map);
       newLayer.eachLayer((sublayer) => {
         if (sublayer instanceof L.Polygon) registrarCapa(sublayer);
@@ -381,15 +552,9 @@ function GeomanAreaEditor({
 
       notificarGeometria();
 
-      // Restaurar opciones de dibujo al color del recorrido
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (map.pm as any).setGlobalOptions({
-        pathOptions: {
-          color: recorrido.color,
-          fillColor: recorrido.color,
-          fillOpacity: 0.28,
-          weight: 2.5,
-        },
+        pathOptions: { color: recorrido.color, fillColor: recorrido.color, fillOpacity: 0.28, weight: 2.5 },
       });
 
       onHerramientaFin?.();
@@ -414,34 +579,21 @@ function GeomanAreaEditor({
   }, [herramientaActiva]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    function collect(): string | null {
-      const polys = polyLayersRef.current.filter((p) => map.hasLayer(p));
-      if (polys.length === 0) return null;
-      const multiCoords = polys.map((p) => {
-        const geom = (
-          p.toGeoJSON() as { geometry: { coordinates: number[][][] } }
-        ).geometry;
-        return geom.coordinates;
+    // collect() y emitGeom() definidos a nivel de componente (usan refs, no tienen closure stale)
+
+    // Helper centralizado para habilitar edición Geoman en una capa
+    function habilitarCapa(capa: L.Polygon) {
+      capa.pm.enable({
+        allowSelfIntersection: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        removeVertexOn: "contextmenu" as any,
       });
-      return JSON.stringify({ type: "MultiPolygon", coordinates: multiCoords });
+      capa.on("pm:edit", () => emitGeom(collect()));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (capa as any).on("pm:dragend", () => emitGeom(collect()));
     }
 
-    map.pm.addControls({
-      position: "topleft",
-      drawMarker: false,
-      drawCircle: false,
-      drawPolyline: false,
-      drawCircleMarker: false,
-      drawText: false,
-      drawRectangle: true,
-      drawPolygon: true,
-      editMode: true,
-      dragMode: true,
-      cutPolygon: true,
-      removalMode: true,
-      rotateMode: false,
-    });
-
+    // No agregamos el toolbar de Geoman — usamos nuestra propia barra inferior.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (map.pm as any).setGlobalOptions({
       pathOptions: {
@@ -456,7 +608,34 @@ function GeomanAreaEditor({
 
     if (recorrido.area_geojson) {
       try {
-        const parsed = JSON.parse(recorrido.area_geojson);
+        // ── Auto-simplificar antes de cargar en el editor ──────────────────
+        // Si el polígono tiene demasiados nodos, los handles de Geoman son
+        // inutilizables. Simplificamos aquí para que el editor sea fluido.
+        // El usuario guarda para persistirlo.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let geojsonToLoad = recorrido.area_geojson;
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const geomCheck: any = JSON.parse(geojsonToLoad);
+          let nTotal = 0;
+          if (geomCheck.type === "Polygon")
+            nTotal = (geomCheck.coordinates as number[][][]).reduce((a, r) => a + r.length, 0);
+          else if (geomCheck.type === "MultiPolygon")
+            nTotal = (geomCheck.coordinates as number[][][][]).reduce(
+              (a, p) => a + p.reduce((b, r) => b + r.length, 0), 0
+            );
+          if (nTotal > 100) {
+            const eps = nTotal > 500 ? 0.003 : nTotal > 250 ? 0.001 : 0.0003;
+            const simplified = turf.simplify(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              turf.feature(geomCheck as any),
+              { tolerance: eps, highQuality: true }
+            );
+            geojsonToLoad = JSON.stringify(simplified.geometry);
+          }
+        } catch { /* si falla la simplificación, usar original */ }
+
+        const parsed = JSON.parse(geojsonToLoad);
         const editLayer = L.geoJSON(parsed, {
           style: {
             color: recorrido.color,
@@ -469,8 +648,7 @@ function GeomanAreaEditor({
         editLayer.eachLayer((layer) => {
           if (layer instanceof L.Polygon) {
             polyLayersRef.current.push(layer);
-            layer.pm.enable({ allowSelfIntersection: false });
-            layer.on("pm:edit", () => onChangeRef.current(collect()));
+            habilitarCapa(layer);
           }
         });
 
@@ -494,14 +672,13 @@ function GeomanAreaEditor({
           weight: 2.5,
         });
         polyLayersRef.current.push(layer);
-        layer.on("pm:edit", () => emitGeom(collect()));
+        habilitarCapa(layer);
         emitGeom(collect());
       }
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     map.on("pm:cut", (e: any) => {
-      // Geoman reemplaza el polígono original con uno recortado — actualizar refs
       const origLayer = e.originalLayer as L.Polygon;
       const newLayer = e.layer as L.Polygon;
       polyLayersRef.current = polyLayersRef.current.filter((p) => p !== origLayer);
@@ -513,8 +690,7 @@ function GeomanAreaEditor({
           weight: 2.5,
         });
         polyLayersRef.current.push(newLayer);
-        newLayer.pm.enable({ allowSelfIntersection: false });
-        newLayer.on("pm:edit", () => emitGeom(collect()));
+        habilitarCapa(newLayer);
       }
       emitGeom(collect());
     });
@@ -527,7 +703,7 @@ function GeomanAreaEditor({
     });
 
     return () => {
-      map.pm.removeControls();
+      // No llamamos removeControls() porque no agregamos controles
       map.off("pm:create");
       map.off("pm:cut");
       map.off("pm:remove");
@@ -546,6 +722,8 @@ function GeomanAreaEditor({
       polyLayersRef.current.forEach((layer) => {
         layer.pm.disable();
         layer.off("pm:edit");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (layer as any).off("pm:dragend");
         if (map.hasLayer(layer)) layer.remove();
       });
       polyLayersRef.current = [];
@@ -784,6 +962,10 @@ interface MapaLeafletProps {
   onClickMapa?: () => void;
   trazaReemplazar?: string | null;
   onTrazaReemplazada?: () => void;
+  modoPluma?: "agregar" | "quitar" | null;
+  onModoPluma?: (modo: "agregar" | "quitar" | null) => void;
+  modoEditarNodos?: boolean;
+  vaciarTrigger?: number;
 }
 
 export function MapaLeaflet({
@@ -805,6 +987,9 @@ export function MapaLeaflet({
   onClickMapa,
   trazaReemplazar,
   onTrazaReemplazada,
+  modoPluma,
+  modoEditarNodos,
+  vaciarTrigger,
 }: MapaLeafletProps) {
   const editando = modoEdicion !== null;
 
@@ -855,6 +1040,9 @@ export function MapaLeaflet({
           onPolygonReemplazado={onPolygonReemplazado}
           herramientaActiva={herramientaActiva}
           onHerramientaFin={onHerramientaFin}
+          modoPluma={modoPluma}
+          modoEditarNodos={modoEditarNodos}
+          vaciarTrigger={vaciarTrigger}
         />
       )}
 

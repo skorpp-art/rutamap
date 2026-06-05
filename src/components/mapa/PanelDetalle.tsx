@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   X, MapPin, Tag, Calendar, Pencil, Route,
-  Settings2, PowerOff, Power, Check, Copy, Printer,
+  Settings2, PowerOff, Power, Check, Copy, Printer, Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { DialogRecorrido } from "./DialogRecorrido";
 import { HistorialRecorrido } from "./HistorialRecorrido";
-import { toggleActivoRecorrido, actualizarCamposRecorrido, duplicarRecorrido } from "@/app/actions/recorridos";
+import { toggleActivoRecorrido, actualizarCamposRecorrido, duplicarRecorrido, eliminarRecorrido } from "@/app/actions/recorridos";
 import type { ModoEdicion } from "./MapaLeaflet";
 import type { RecorridoGeo } from "@/types/database.types";
 
@@ -24,6 +24,7 @@ interface PanelDetalleProps {
   onIniciarEdicionTraza?: () => void;
   modoEdicion?: ModoEdicion;
   onImprimirRecorrido?: () => void;
+  puedeEditar?: boolean;
 }
 
 function Campo({ label, children }: { label: string; children: React.ReactNode }) {
@@ -150,10 +151,12 @@ export function PanelDetalle({
   onIniciarEdicionTraza,
   modoEdicion = null,
   onImprimirRecorrido,
+  puedeEditar = true,
 }: PanelDetalleProps) {
   const router = useRouter();
   const [dialogEditarOpen, setDialogEditarOpen] = useState(false);
   const [togglando, setTogglando] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
   const [duplicando, setDuplicando] = useState(false);
   const [mostrarDuplicar, setMostrarDuplicar] = useState(false);
   const [codigoCopia, setCodigoCopia] = useState("");
@@ -211,6 +214,23 @@ export function PanelDetalle({
     onImprimirRecorrido?.();
   }
 
+  async function handleEliminar() {
+    if (!confirm(`¿Eliminar permanentemente el recorrido ${recorrido.codigo}?\n\nEsta acción NO se puede deshacer.`)) return;
+    setEliminando(true);
+    try {
+      const result = await eliminarRecorrido(recorrido.id);
+      if (!result.ok) {
+        toast.error("Error al eliminar", { description: result.error });
+      } else {
+        toast.success(`Recorrido ${recorrido.codigo} eliminado`);
+        onCerrar();
+        router.refresh();
+      }
+    } finally {
+      setEliminando(false);
+    }
+  }
+
   async function handleToggleActivo() {
     const accion = recorrido.activo ? "desactivar" : "activar";
     if (!confirm(`¿Seguro que querés ${accion} el recorrido ${recorrido.codigo}?`)) return;
@@ -220,7 +240,11 @@ export function PanelDetalle({
       if (!result.ok) {
         toast.error(`Error al ${accion}`, { description: result.error });
       } else {
-        toast.success(`Recorrido ${recorrido.activo ? "desactivado" : "activado"}`);
+        if (recorrido.activo) {
+          toast.success(`Recorrido desactivado. Para reactivarlo: en el panel izquierdo tocá "activos" para ver todos.`, { duration: 8000 });
+        } else {
+          toast.success(`Recorrido activado correctamente`);
+        }
         router.refresh();
       }
     } finally {
@@ -363,6 +387,14 @@ export function PanelDetalle({
 
       {/* ── Acciones ── */}
       <div className="px-3 py-2.5 border-t space-y-1.5">
+        {!puedeEditar && (
+          <div className="text-[11px] text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 mb-1">
+            👁 Modo invitado — solo lectura. Iniciá sesión para editar recorridos.
+          </div>
+        )}
+
+        {puedeEditar && (
+        <>
         <Button
           variant="outline" size="sm"
           className={cn("w-full text-xs gap-1.5", modoEdicion === "area" && "border-amber-400 text-amber-700 bg-amber-50")}
@@ -463,8 +495,10 @@ export function PanelDetalle({
             </div>
           </div>
         )}
+        </>
+        )}
 
-        {/* Imprimir */}
+        {/* Imprimir — disponible también para invitados */}
         <Button
           variant="outline" size="sm"
           className="w-full text-xs gap-1.5"
@@ -475,6 +509,23 @@ export function PanelDetalle({
           <Printer className="h-3 w-3" />
           Imprimir / PDF
         </Button>
+
+        {puedeEditar && (
+          <>
+            <Separator />
+            {/* Eliminar */}
+            <Button
+              variant="outline" size="sm"
+              className="w-full text-xs gap-1.5 text-destructive hover:bg-destructive/10 border-destructive/20"
+              disabled={editandoGeometria || eliminando}
+              onClick={handleEliminar}
+              title="Eliminar el recorrido permanentemente"
+            >
+              <Trash2 className="h-3 w-3" />
+              {eliminando ? "Eliminando…" : "Eliminar recorrido"}
+            </Button>
+          </>
+        )}
       </div>
     </aside>
   );

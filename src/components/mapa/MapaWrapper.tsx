@@ -40,6 +40,10 @@ interface MapaWrapperProps {
   onClickMapa?: () => void;
   trazaReemplazar?: string | null;
   onTrazaReemplazada?: () => void;
+  modoPluma?: "agregar" | "quitar" | null;
+  onModoPluma?: (modo: "agregar" | "quitar" | null) => void;
+  modoEditarNodos?: boolean;
+  vaciarTrigger?: number;
 }
 
 export function MapaWrapper(props: MapaWrapperProps) {

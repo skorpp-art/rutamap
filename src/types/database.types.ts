@@ -3,7 +3,7 @@
 //   npx supabase gen types typescript --project-id TU_PROJECT_ID > src/types/database.types.ts
 
 export type Zona = "CABA" | "Norte" | "Sur" | "Oeste";
-export type TipoRecorrido = "fijo" | "suplencia";
+export type TipoRecorrido = "fijo" | "suplencia" | "corte" | "pre_turno";
 export type Rol = "supervisor" | "coordinador" | "lector";
 export type AccionHistorial =
   | "edicion"

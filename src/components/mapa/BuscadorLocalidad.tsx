@@ -204,10 +204,11 @@ export function BuscadorLocalidad({
                       {onPolygonEliminar && (
                         <button
                           onClick={() => eliminar(f)}
-                          className="flex-1 flex items-center justify-center gap-1 text-[11px] font-medium py-1 px-2 rounded-md bg-red-50 text-red-700 hover:bg-red-100 transition-colors border border-red-200"
+                          className="flex items-center justify-center gap-1 text-[11px] font-medium py-1 px-2 rounded-md bg-slate-50 text-slate-500 hover:bg-red-50 hover:text-red-700 transition-colors border border-slate-200 hover:border-red-200"
+                          title="Resta geométrica: quita la parte de esta zona que se superpone al área del recorrido. Usá Ctrl+Z para deshacer."
                         >
                           <Scissors className="h-3 w-3" />
-                          Quitar del área
+                          Restar zona
                         </button>
                       )}
                     </div>

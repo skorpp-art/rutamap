@@ -1,7 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const RUTAS_PUBLICAS = ["/login", "/registro"];
+// Solo estas rutas requieren sesión. Todo lo demás (incluido el mapa "/") es público.
+const RUTAS_PROTEGIDAS = ["/volumenes"];
+const RUTAS_AUTH = ["/login", "/registro"];
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -33,24 +35,26 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const esRutaPublica = RUTAS_PUBLICAS.some((ruta) =>
-    request.nextUrl.pathname.startsWith(ruta)
-  );
+  const path = request.nextUrl.pathname;
+  const esRutaProtegida = RUTAS_PROTEGIDAS.some((r) => path.startsWith(r));
+  const esRutaAuth = RUTAS_AUTH.some((r) => path.startsWith(r));
 
-  // Sin sesión → redirigir a login (excepto rutas públicas)
-  if (!user && !esRutaPublica) {
+  // Sin sesión en una ruta protegida (volúmenes) → redirigir a login
+  if (!user && esRutaProtegida) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    url.searchParams.set("next", path); // recordar a dónde quería ir
     return NextResponse.redirect(url);
   }
 
-  // Con sesión en ruta pública → redirigir al mapa
-  if (user && esRutaPublica) {
+  // Con sesión en página de login/registro → ir al mapa
+  if (user && esRutaAuth) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);
   }
 
+  // Todo lo demás (mapa "/") es público — invitados pueden ver
   return supabaseResponse;
 }
 

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import * as polyclip from "polyclip-ts";
+import * as turf from "@turf/turf";
 import { PanelLateral } from "./PanelLateral";
 import { PanelDetalle } from "./PanelDetalle";
 import { MapaWrapper } from "./MapaWrapper";
@@ -14,7 +14,7 @@ import { DashboardCobertura } from "./DashboardCobertura";
 import { Button } from "@/components/ui/button";
 import {
   Pencil, Scissors, Undo2, Satellite, Map as MapIcon,
-  Layers, BarChart2, ZoomIn, Wand2,
+  Layers, BarChart2, ZoomIn, Wand2, Trash2, PenTool,
 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
@@ -26,6 +26,7 @@ import { ZONAS } from "@/types/database.types";
 
 interface VistaMapaClientProps {
   recorridos: RecorridoGeo[];
+  puedeEditar?: boolean;
 }
 
 const LABELS_MODO: Record<NonNullable<ModoEdicion>, string> = {
@@ -126,9 +127,60 @@ function contarNodos(geoStr: string | null | undefined): number {
   return 0;
 }
 
+// ─── Turf helpers ─────────────────────────────────────────────────────────────
+
+/** Simplifica una geometría GeoJSON con turf.simplify. Devuelve el string de la geometría. */
+function simplificarConTurf(geojsonStr: string, tolerance = 0.001): string {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const geom: any = JSON.parse(geojsonStr);
+    const feature = geom.type === "Feature" ? geom : turf.feature(geom);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const simplified = turf.simplify(feature as any, {
+      tolerance,
+      highQuality: true,
+    });
+    return JSON.stringify(simplified.geometry);
+  } catch {
+    return geojsonStr;
+  }
+}
+
+/** Unifica dos geometrías GeoJSON con turf.union. Devuelve null si falla. */
+function unionConTurf(strA: string, strB: string): string | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const geomA: any = JSON.parse(strA);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const geomB: any = JSON.parse(strB);
+    const featA = geomA.type === "Feature" ? geomA : turf.feature(geomA);
+    const featB = geomB.type === "Feature" ? geomB : turf.feature(geomB);
+    const result = turf.union(turf.featureCollection([featA, featB]));
+    if (!result) return null;
+    return JSON.stringify(result.geometry);
+  } catch {
+    return null;
+  }
+}
+
+/** Resta strB de strA con turf.difference. Devuelve null si falla o queda vacío. */
+function diferenciaTurf(strA: string, strB: string): string | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const geomA: any = JSON.parse(strA);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const geomB: any = JSON.parse(strB);
+    const featA = geomA.type === "Feature" ? geomA : turf.feature(geomA);
+    const featB = geomB.type === "Feature" ? geomB : turf.feature(geomB);
+    const result = turf.difference(turf.featureCollection([featA, featB]));
+    if (!result) return null;
+    return JSON.stringify(result.geometry);
+  } catch {
+    return null;
+  }
+}
+
 // ─── Simplificación para display (no modifica datos guardados) ───────────────
-// Aplica RDP cuando el geometry tiene muchos nodos para que el mapa sea fluido.
-// > 80 nodos → Fuerte (~111 m) para visualización rápida.
 const CACHE_DISPLAY = new Map<string, string>();
 function simplParaDisplay(geojsonStr: string): string {
   if (!geojsonStr) return geojsonStr;
@@ -136,18 +188,10 @@ function simplParaDisplay(geojsonStr: string): string {
   if (nodos <= 80) return geojsonStr;
   const cached = CACHE_DISPLAY.get(geojsonStr);
   if (cached) return cached;
-  const eps = nodos > 500 ? 0.003 : nodos > 200 ? 0.001 : 0.0003; // Máxima / Fuerte / Media
-  const { result } = simplificarGeometria(geojsonStr, eps);
+  const tolerance = nodos > 500 ? 0.003 : nodos > 200 ? 0.001 : 0.0003;
+  const result = simplificarConTurf(geojsonStr, tolerance);
   CACHE_DISPLAY.set(geojsonStr, result);
   return result;
-}
-
-// ─── Helpers polyclip ─────────────────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toMultiCoords(geom: any): number[][][][] {
-  if (geom.type === "Polygon") return [geom.coordinates];
-  if (geom.type === "MultiPolygon") return geom.coordinates;
-  throw new Error(`Tipo no soportado: ${geom.type}`);
 }
 
 function computarSolapamientos(recorridos: RecorridoGeo[]): string[] {
@@ -156,18 +200,15 @@ function computarSolapamientos(recorridos: RecorridoGeo[]): string[] {
   for (let i = 0; i < conArea.length; i++) {
     for (let j = i + 1; j < conArea.length; j++) {
       try {
-        const geomA = JSON.parse(conArea[i].area_geojson!);
-        const geomB = JSON.parse(conArea[j].area_geojson!);
-        const coordsA = toMultiCoords(geomA);
-        const coordsB = toMultiCoords(geomB);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const interseccion = (polyclip as any).intersection(coordsA, coordsB) as number[][][][];
-        if (interseccion && interseccion.length > 0) {
-          const geom =
-            interseccion.length === 1
-              ? { type: "Polygon", coordinates: interseccion[0] }
-              : { type: "MultiPolygon", coordinates: interseccion };
-          resultados.push(JSON.stringify(geom));
+        const geomA: any = JSON.parse(conArea[i].area_geojson!);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const geomB: any = JSON.parse(conArea[j].area_geojson!);
+        const featA = geomA.type === "Feature" ? geomA : turf.feature(geomA);
+        const featB = geomB.type === "Feature" ? geomB : turf.feature(geomB);
+        const interseccion = turf.intersect(turf.featureCollection([featA, featB]));
+        if (interseccion) {
+          resultados.push(JSON.stringify(interseccion.geometry));
         }
       } catch { /* ignorar pares problemáticos */ }
     }
@@ -175,10 +216,13 @@ function computarSolapamientos(recorridos: RecorridoGeo[]): string[] {
   return resultados;
 }
 
-export function VistaMapaClient({ recorridos }: VistaMapaClientProps) {
+export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaClientProps) {
   const router = useRouter();
   const [recorridoActivoId, setRecorridoActivoId] = useState<string | null>(null);
   const [modoEdicion, setModoEdicion] = useState<ModoEdicion>(null);
+  const [visibles, setVisibles] = useState<Set<string>>(new Set());
+  const [modoPluma, setModoPluma] = useState<"agregar" | "quitar" | null>(null);
+  const [modoEditarNodos, setModoEditarNodos] = useState(false);
   const [geometriaTemporal, setGeometriaTemporal] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [polygonBuscado, setPolygonBuscado] = useState<string | null>(null);
@@ -186,6 +230,8 @@ export function VistaMapaClient({ recorridos }: VistaMapaClientProps) {
   const [herramientaActiva, setHerramientaActiva] = useState<"lapiz" | "tijera" | null>(null);
   const [trazaReemplazar, setTrazaReemplazar] = useState<string | null>(null);
   const [mostrarNiveles, setMostrarNiveles] = useState(false);
+  // Trigger para "Vaciar" — incrementar fuerza al editor a limpiar todo
+  const [vaciarTrigger, setVaciarTrigger] = useState(0);
 
   // Nuevos estados — mejoras
   const [capaSatelite, setCapaSatelite] = useState(false);
@@ -199,45 +245,80 @@ export function VistaMapaClient({ recorridos }: VistaMapaClientProps) {
   // Undo: historial de geometrías temporales
   const historialGeometria = useRef<string[]>([]);
   const undoEnCurso = useRef(false);
+  // Ref de seguridad: última geometría válida conocida (backup ante race conditions)
+  const ultimaGeometriaRef = useRef<string | null>(null);
+  // Espejo síncrono de geometriaTemporal — para apilar historial sin depender
+  // del updater de React (que puede ejecutarse 2 veces o batchear).
+  const geometriaTemporalRef = useRef<string | null>(null);
 
   const recorridoActivo = recorridos.find((r) => r.id === recorridoActivoId) ?? null;
   const editando = modoEdicion !== null;
 
-  // Recorridos con geometrías simplificadas para display (mejora fluidez)
-  const recorridosDisplay = recorridos.map((r) => ({
-    ...r,
-    area_geojson: r.area_geojson ? simplParaDisplay(r.area_geojson) : r.area_geojson,
-    traza_geojson: r.traza_geojson ? simplParaDisplay(r.traza_geojson) : r.traza_geojson,
-  }));
+  // Recorridos con geometrías simplificadas para display (memoizado — evita
+  // re-simplificar TODO el array en cada render)
+  const recorridosDisplay = useMemo(
+    () => recorridos.map((r) => ({
+      ...r,
+      area_geojson: r.area_geojson ? simplParaDisplay(r.area_geojson) : r.area_geojson,
+      traza_geojson: r.traza_geojson ? simplParaDisplay(r.traza_geojson) : r.traza_geojson,
+    })),
+    [recorridos]
+  );
 
-  // ── Wrapper de onGeometriaChange con historial ──────────────────────────────
+  // Recorridos a mostrar en el mapa: siempre el activo + los marcados como visibles
+  const recorridosParaMapa = useMemo(
+    () => recorridosDisplay.filter((r) => r.id === recorridoActivoId || visibles.has(r.id)),
+    [recorridosDisplay, recorridoActivoId, visibles]
+  );
+
+  // ── Wrapper de onGeometriaChange con historial robusto ──────────────────────
   const handleGeometriaChange = useCallback((geojson: string | null) => {
-    if (!undoEnCurso.current) {
-      setGeometriaTemporal((prev) => {
-        if (prev !== null) {
-          historialGeometria.current = [...historialGeometria.current, prev].slice(-25);
-        }
-        return geojson;
-      });
-    } else {
+    // Guardar la última geometría válida en ref (backup ante lag de estado)
+    if (geojson !== null) ultimaGeometriaRef.current = geojson;
+
+    if (undoEnCurso.current) {
+      // Esta emisión proviene de un "deshacer": no apilar en el historial
       undoEnCurso.current = false;
-      setGeometriaTemporal(geojson);
+    } else {
+      const prev = geometriaTemporalRef.current;
+      // Apilar el estado anterior SOLO si realmente cambió (dedup: evita
+      // entradas dobles cuando Geoman + handle custom emiten lo mismo)
+      if (prev !== null && prev !== geojson) {
+        historialGeometria.current = [...historialGeometria.current, prev].slice(-30);
+      }
     }
+    geometriaTemporalRef.current = geojson;
+    setGeometriaTemporal(geojson);
   }, []);
 
-  // ── Ctrl+Z listener ─────────────────────────────────────────────────────────
+  // ── Atajos de teclado: Ctrl+Z deshacer · Esc cerrar ─────────────────────────
   useEffect(() => {
     if (!editando) return;
     function onKeyDown(e: KeyboardEvent) {
-      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+      // Ignorar si el foco está en un input (buscador de localidades)
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
         e.preventDefault();
         deshacerEdicion();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        cancelarEdicion();
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editando]);
+
+  function handleVaciar() {
+    historialGeometria.current = [];
+    geometriaTemporalRef.current = null;
+    ultimaGeometriaRef.current = null;
+    setGeometriaTemporal(null);
+    setVaciarTrigger((v) => v + 1);
+    toast.info("Área vaciada. Dibujá o buscá localidades para empezar de nuevo.");
+  }
 
   // ── Solapamientos: calcular cuando se activa ─────────────────────────────────
   useEffect(() => {
@@ -264,36 +345,37 @@ export function VistaMapaClient({ recorridos }: VistaMapaClientProps) {
   function seleccionarRecorrido(id: string) {
     if (editando) return;
     setRecorridoActivoId((prev) => (prev === id ? null : id));
+    // Show selected route on map automatically
+    setVisibles((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
   }
 
   function iniciarEdicion(modo: NonNullable<ModoEdicion>) {
     if (!recorridoActivoId) return;
     historialGeometria.current = [];
+    // CRÍTICO: resetear refs para no contaminar con la geometría del recorrido anterior
+    ultimaGeometriaRef.current = null;
+    geometriaTemporalRef.current = null;
+    undoEnCurso.current = false;
     setModoEdicion(modo);
     setGeometriaTemporal(null);
     // Limpiar estados residuales de sesiones previas
     setPolygonReemplazar(null);
     setTrazaReemplazar(null);
 
-    // Auto-simplificar si la geometría tiene demasiados nodos para editar
+    // Informar si hay muchos nodos (la simplificación la hace el editor directamente)
     const geoStr = modo === "traza"
       ? recorridoActivo?.traza_geojson
       : recorridoActivo?.area_geojson;
     const nodos = contarNodos(geoStr);
-
-    if (nodos > 200 && geoStr) {
-      // Elegir nivel de simplificación según cantidad de nodos
-      const eps = nodos > 600 ? 0.003   // Máxima — polígonos enormes de Nominatim
-                : nodos > 300 ? 0.001   // Fuerte
-                              : 0.0003; // Media
-      const { result, despues } = simplificarGeometria(geoStr, eps);
+    if (nodos > 100) {
       toast.info(
-        `Geometría simplificada automáticamente: ${nodos} → ${despues} nodos. Guardá para aplicarlo.`,
-        { duration: 6000 }
+        `Geometría simplificada para edición (${nodos} nodos originales). Guardá para aplicarlo permanentemente.`,
+        { duration: 5000 }
       );
-      // Cargar versión simplificada en el editor
-      if (modo === "traza") setTrazaReemplazar(result);
-      else setPolygonReemplazar(result);
     }
   }
 
@@ -301,19 +383,32 @@ export function VistaMapaClient({ recorridos }: VistaMapaClientProps) {
     setModoEdicion(null);
     setGeometriaTemporal(null);
     setHerramientaActiva(null);
+    setModoPluma(null);
+    setModoEditarNodos(false);
     setPolygonReemplazar(null);
     setTrazaReemplazar(null);
     historialGeometria.current = [];
+    ultimaGeometriaRef.current = null;
+    geometriaTemporalRef.current = null;
+    undoEnCurso.current = false;
   }
 
   function deshacerEdicion() {
     const hist = historialGeometria.current;
-    if (hist.length === 0) return;
+    if (hist.length === 0) {
+      toast.info("No hay más pasos para deshacer");
+      return;
+    }
     const prev = hist[hist.length - 1];
     historialGeometria.current = hist.slice(0, -1);
     undoEnCurso.current = true;
+    // Sincronizar el espejo para que el próximo cambio apile bien
+    geometriaTemporalRef.current = prev;
+    // NO desactivamos modoEditarNodos: el efecto de polygonReemplazar refresca
+    // los handles de nodos automáticamente, manteniendo el modo de edición activo.
     setPolygonReemplazar(prev);
     setGeometriaTemporal(prev);
+    toast.success(`Deshecho · quedan ${hist.length - 1} paso${hist.length - 1 === 1 ? "" : "s"}`, { duration: 1500 });
   }
 
   function handleSimplificar(eps: number) {
@@ -339,12 +434,19 @@ export function VistaMapaClient({ recorridos }: VistaMapaClientProps) {
   }
 
   async function guardarEdicion() {
-    if (!recorridoActivoId || !geometriaTemporal || !modoEdicion) return;
+    if (!recorridoActivoId || !modoEdicion) return;
+    // Preferir el ref síncrono (siempre actual) sobre el state (puede tener lag),
+    // y caer al backup solo si ninguno está disponible.
+    const geoAGuardar = geometriaTemporalRef.current ?? geometriaTemporal ?? ultimaGeometriaRef.current;
+    if (!geoAGuardar) {
+      toast.error("No hay área para guardar. Dibujá o agregá una zona primero.");
+      return;
+    }
     setGuardando(true);
     try {
       const fn =
         modoEdicion === "area" ? actualizarAreaRecorrido : actualizarTrazaRecorrido;
-      const result = await fn(recorridoActivoId, geometriaTemporal);
+      const result = await fn(recorridoActivoId, geoAGuardar);
 
       if (!result.ok) {
         toast.error(`Error al guardar ${LABELS_MODO[modoEdicion]}`, {
@@ -354,9 +456,14 @@ export function VistaMapaClient({ recorridos }: VistaMapaClientProps) {
         toast.success(`${LABELS_MODO[modoEdicion].charAt(0).toUpperCase() + LABELS_MODO[modoEdicion].slice(1)} guardada correctamente`);
         setModoEdicion(null);
         setGeometriaTemporal(null);
+        setModoPluma(null);
+        setModoEditarNodos(false);
         setPolygonReemplazar(null);
         setTrazaReemplazar(null);
         historialGeometria.current = [];
+        ultimaGeometriaRef.current = null;
+        geometriaTemporalRef.current = null;
+        undoEnCurso.current = false;
         router.refresh();
       }
     } finally {
@@ -365,37 +472,19 @@ export function VistaMapaClient({ recorridos }: VistaMapaClientProps) {
   }
 
   function handleEliminarZona(geojsonStrRestar: string) {
-    const currentGeoStr = geometriaTemporal ?? recorridoActivo?.area_geojson;
+    const currentGeoStr = geometriaTemporal ?? ultimaGeometriaRef.current ?? recorridoActivo?.area_geojson;
     if (!currentGeoStr) {
       toast.error("No hay área cargada para restarle una zona");
       return;
     }
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const currentGeom = JSON.parse(currentGeoStr) as any;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const subtractGeom = JSON.parse(geojsonStrRestar) as any;
-
-      const baseCoords = toMultiCoords(currentGeom);
-      const subtractCoords = toMultiCoords(subtractGeom);
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const resultCoords = (polyclip as any).difference(baseCoords, subtractCoords) as number[][][][];
-
-      if (!resultCoords || resultCoords.length === 0) {
-        toast.error("La zona seleccionada cubre toda el área — no quedaría nada.");
-        return;
-      }
-
-      const resultGeom =
-        resultCoords.length === 1
-          ? { type: "Polygon", coordinates: resultCoords[0] }
-          : { type: "MultiPolygon", coordinates: resultCoords };
-
-      setPolygonReemplazar(JSON.stringify(resultGeom));
-    } catch (e) {
-      toast.error(`Error al calcular la diferencia: ${String(e)}`);
+    const simplificado = simplificarConTurf(geojsonStrRestar, 0.001);
+    const result = diferenciaTurf(currentGeoStr, simplificado);
+    if (!result) {
+      toast.error("La zona seleccionada cubre toda el área. Si la agregaste recién, usá Ctrl+Z o el botón Deshacer para recuperarla.");
+      return;
     }
+    setPolygonReemplazar(result);
+    toast.info("Zona restada. Si fue sin querer → Ctrl+Z o botón Deshacer ↩", { duration: 6000 });
   }
 
   async function handleImprimirRecorrido() {
@@ -462,17 +551,80 @@ export function VistaMapaClient({ recorridos }: VistaMapaClientProps) {
     setTimeout(() => setZoomarAZona(zona), 10);
   }
 
+  const toggleVisible = useCallback((id: string) => {
+    setVisibles((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const mostrarZonaEnMapa = useCallback((zona: Zona) => {
+    const ids = recorridos.filter((r) => r.zona === zona).map((r) => r.id);
+    setVisibles((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => next.add(id));
+      return next;
+    });
+  }, [recorridos]);
+
+  const mostrarTodo = useCallback((ids?: string[]) => {
+    // Si llegan IDs (los filtrados del panel), mostrar solo esos. Si no, todos.
+    setVisibles(new Set(ids ?? recorridos.map((r) => r.id)));
+  }, [recorridos]);
+
+  const ocultarTodo = useCallback(() => {
+    setVisibles(new Set());
+  }, []);
+
+  function handleAgregarLocalidad(geojsonStr: string) {
+    // 1. Simplificar agresivamente la localidad entrante (GBA ~100 m)
+    const simplificado = simplificarConTurf(geojsonStr, 0.001);
+    const nodosBefore = contarNodos(geojsonStr);
+    const nodosAfter = contarNodos(simplificado);
+    console.log(`[RutaMap] Localidad: ${nodosBefore} → ${nodosAfter} nodos`);
+
+    // 2. Si ya hay geometría, unir con turf.union para eliminar la línea del medio
+    // IMPORTANTE: usar ultimaGeometriaRef como fallback intermedio para no perder
+    // cambios recientes que aún no se reflejaron en geometriaTemporal (state lag).
+    const existingStr = geometriaTemporal ?? ultimaGeometriaRef.current ?? recorridoActivo?.area_geojson;
+    if (existingStr) {
+      const unido = unionConTurf(existingStr, simplificado);
+      if (unido) {
+        // 3. Simplificar el resultado de la unión para eliminar nodos extra
+        //    que turf genera en los bordes donde se tocan los polígonos
+        const unidoSimpl = simplificarConTurf(unido, 0.0003);
+        const nodosFinales = contarNodos(unidoSimpl);
+        console.log(`[RutaMap] Unión resultado: ${nodosFinales} nodos`);
+        toast.success(`Localidad fusionada (${nodosFinales} nodos)`);
+        setPolygonReemplazar(unidoSimpl);
+        return;
+      }
+      toast.warning("No se pudo fusionar — se agregó como pieza separada.");
+    } else {
+      toast.success(`Localidad cargada (${nodosAfter} nodos)`);
+    }
+    setPolygonBuscado(simplificado);
+  }
+
   return (
     <div className="flex h-full w-full overflow-hidden">
       <PanelLateral
         recorridos={recorridos}
         recorridoActivoId={recorridoActivoId}
         onSelectRecorrido={seleccionarRecorrido}
+        visibles={visibles}
+        onToggleVisible={toggleVisible}
+        onMostrarZona={mostrarZonaEnMapa}
+        onOcultarTodo={ocultarTodo}
+        onMostrarTodo={mostrarTodo}
+        puedeEditar={puedeEditar}
       />
 
       <div id="mapa-contenedor" className="flex-1 relative">
         <MapaWrapper
-          recorridos={recorridosDisplay}
+          recorridos={recorridosParaMapa}
           recorridoActivo={recorridoActivo}
           onSelectRecorrido={seleccionarRecorrido}
           modoEdicion={modoEdicion}
@@ -490,13 +642,16 @@ export function VistaMapaClient({ recorridos }: VistaMapaClientProps) {
           zoomarAZona={zoomarAZona}
           solapamientos={mostrarSolapamientos ? solapamientos : []}
           onClickMapa={() => { setMostrarZonas(false); setMostrarDashboard(false); }}
+          modoPluma={modoPluma}
+          modoEditarNodos={modoEditarNodos}
+          vaciarTrigger={vaciarTrigger}
         />
 
         {/* Buscador de localidades — solo visible al editar área */}
         {modoEdicion === "area" && (
           <BuscadorLocalidad
-            onPolygonEncontrado={(geojsonStr) => setPolygonBuscado(geojsonStr)}
-            onPolygonEliminar={(geojsonStr) => handleEliminarZona(geojsonStr)}
+            onPolygonEncontrado={handleAgregarLocalidad}
+            onPolygonEliminar={handleEliminarZona}
           />
         )}
 
@@ -595,138 +750,163 @@ export function VistaMapaClient({ recorridos }: VistaMapaClientProps) {
           />
         )}
 
-        {/* Barra flotante de guardado — visible solo en modo edición */}
+        {/* ══════ Barra flotante de edición — estética ámbar ══════ */}
         {editando && recorridoActivo && (() => {
-          const geoActual = geometriaTemporal ?? (modoEdicion === "traza" ? recorridoActivo.traza_geojson : recorridoActivo.area_geojson);
+          const geoActual = geometriaTemporalRef.current ?? geometriaTemporal ?? (modoEdicion === "traza" ? recorridoActivo.traza_geojson : recorridoActivo.area_geojson);
           const nodos = contarNodos(geoActual);
+
+          // Instrucción contextual según el modo activo
+          let instruccion: string;
+          if (herramientaActiva === "lapiz") instruccion = "Hacé clic en el mapa para marcar cada punto · doble clic para cerrar · se unirá con el área existente";
+          else if (herramientaActiva === "tijera") instruccion = "Dibujá una zona sobre el área para recortarla";
+          else if (modoPluma === "agregar") instruccion = "Clic sobre la LÍNEA del polígono (entre dos puntos) para insertar un nodo";
+          else if (modoPluma === "quitar") instruccion = "Clic sobre un punto para eliminarlo";
+          else if (modoEditarNodos) instruccion = "Arrastrá los puntos para moverlos · el resultado queda donde lo dejes";
+          else instruccion = "Arrastrá vértices = mover · clic derecho vértice = borrar · clic derecho línea = insertar · Ctrl+Z deshacer · Esc cerrar";
+
           return (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[900] flex items-center gap-2 rounded-xl bg-background/95 backdrop-blur-sm border shadow-lg px-4 py-2.5">
-            {/* Indicador */}
-            <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-amber-400 animate-pulse" />
-              <span className="text-sm text-foreground">
-                Editando <span className="font-medium">{LABELS_MODO[modoEdicion!]}</span>:{" "}
-                <span className="font-semibold">{recorridoActivo.codigo}</span>
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[900] w-[min(94vw,640px)] rounded-2xl bg-amber-50/97 backdrop-blur-sm border-2 border-amber-300 shadow-xl overflow-hidden">
+
+            {/* ── Cabecera ── */}
+            <div className="px-4 pt-2.5 pb-1.5 flex items-center gap-2">
+              <Pencil className="h-4 w-4 text-amber-600 shrink-0" />
+              <span className="text-sm font-bold text-amber-900 truncate">
+                {modoEdicion === "traza" ? "Editando traza" : "Editando"} {recorridoActivo.codigo}
+                <span className="text-amber-700/70 font-normal"> — {recorridoActivo.nombre}</span>
               </span>
               {nodos > 0 && (
-                <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full tabular-nums">
-                  {nodos} nodos
+                <span className="ml-auto text-[10px] font-semibold text-amber-700 bg-amber-200/60 px-2 py-0.5 rounded-full tabular-nums shrink-0">
+                  {nodos} puntos
                 </span>
               )}
             </div>
 
-            {/* Herramientas lápiz/tijera — solo en modo área */}
-            {modoEdicion === "area" && (
-              <>
-                <div className="w-px h-5 bg-border mx-1" />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={guardando || herramientaActiva === "tijera"}
-                  onClick={() => setHerramientaActiva(herramientaActiva === "lapiz" ? null : "lapiz")}
-                  className={cn(
-                    "h-8 gap-1.5 text-xs",
-                    herramientaActiva === "lapiz" && "border-blue-400 bg-blue-50 text-blue-700"
-                  )}
-                  title="Dibujá una zona en el mapa para agregarla al área"
-                >
-                  <Pencil className="h-3 w-3" />
-                  {herramientaActiva === "lapiz" ? "Dibujando…" : "Dibujar zona"}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={guardando || herramientaActiva === "lapiz"}
-                  onClick={() => setHerramientaActiva(herramientaActiva === "tijera" ? null : "tijera")}
-                  className={cn(
-                    "h-8 gap-1.5 text-xs",
-                    herramientaActiva === "tijera" && "border-orange-400 bg-orange-50 text-orange-700"
-                  )}
-                  title="Dibujá una zona en el mapa para recortarla del área"
-                >
-                  <Scissors className="h-3 w-3" />
-                  {herramientaActiva === "tijera" ? "Recortando…" : "Recortar zona"}
-                </Button>
+            {/* ── Instrucción contextual ── */}
+            <p className="px-4 pb-2 text-[11px] text-amber-700/80 leading-snug">
+              {instruccion}
+            </p>
 
-                {/* Importar desde archivo */}
-                <div className="w-px h-5 bg-border mx-1" />
-                <ImportarArea
-                  onGeometriaImportada={(geojsonStr) => setPolygonBuscado(geojsonStr)}
-                />
-              </>
-            )}
+            {/* ── Fila de acciones ── */}
+            <div className="px-3 py-2 bg-white/60 border-t border-amber-200/70 flex items-center gap-1 flex-wrap">
 
-            {/* Simplificar geometría — área Y traza */}
-            <div className="w-px h-5 bg-border mx-1" />
-            <div className="relative">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setMostrarNiveles((v) => !v)}
-                disabled={guardando}
-                className={cn(
-                  "h-8 gap-1.5 text-xs border-violet-300 text-violet-700 hover:bg-violet-50",
-                  mostrarNiveles && "bg-violet-50 border-violet-400"
-                )}
-                title="Reducir vértices. Clic para elegir intensidad. Clic derecho sobre un nodo para eliminarlo."
-              >
-                <Wand2 className="h-3 w-3" />
-                Simplificar
-              </Button>
-              {mostrarNiveles && (
-                <div className="absolute bottom-9 left-0 z-50 bg-background border rounded-lg shadow-lg py-1 min-w-[210px]">
-                  <p className="px-3 pt-1 pb-1.5 text-[10px] text-muted-foreground border-b">
-                    Elegí la intensidad de reducción:
-                  </p>
-                  {NIVELES_SIMPLIF.map((n) => (
-                    <button
-                      key={n.label}
-                      onClick={() => handleSimplificar(n.eps)}
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-accent transition-colors flex items-center gap-2"
-                    >
-                      <span className="font-semibold text-violet-700 w-12">{n.label}</span>
-                      <span className="text-muted-foreground">{n.desc}</span>
-                    </button>
-                  ))}
-                  <p className="px-3 pt-1.5 pb-1 text-[10px] text-muted-foreground border-t">
-                    💡 Clic derecho en un nodo para eliminarlo
-                  </p>
-                </div>
+              {modoEdicion === "area" && (
+                <>
+                  {/* Dibujar zona (punto por punto) */}
+                  <Button
+                    variant={herramientaActiva === "lapiz" ? "default" : "outline"}
+                    size="sm"
+                    disabled={guardando || herramientaActiva === "tijera" || modoPluma !== null}
+                    onClick={() => { setModoEditarNodos(false); setHerramientaActiva(herramientaActiva === "lapiz" ? null : "lapiz"); }}
+                    className={cn("h-7 px-2.5 text-xs gap-1 font-semibold",
+                      herramientaActiva === "lapiz" ? "bg-amber-500 hover:bg-amber-600 text-white border-amber-500" : "border-amber-300 text-amber-700 hover:bg-amber-100")}
+                    title="Dibujar zona punto por punto">
+                    <Pencil className="h-3.5 w-3.5" />
+                    {herramientaActiva === "lapiz" ? "Dibujando…" : "Dibujar"}
+                  </Button>
+
+                  {/* Editar nodos */}
+                  <Button
+                    variant={modoEditarNodos ? "default" : "outline"}
+                    size="sm"
+                    disabled={guardando || herramientaActiva !== null || modoPluma !== null}
+                    onClick={() => { setModoPluma(null); setModoEditarNodos(v => !v); }}
+                    className={cn("h-7 px-2.5 text-xs gap-1 font-semibold",
+                      modoEditarNodos ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : "border-amber-300 text-amber-700 hover:bg-amber-100")}
+                    title="Mover los puntos libremente">
+                    ✎ Editar puntos
+                  </Button>
+
+                  {/* Pluma — agregar / quitar nodos */}
+                  <div className="flex items-center rounded-md border border-amber-300 overflow-hidden">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={guardando || herramientaActiva !== null || modoEditarNodos}
+                      onClick={() => { setModoEditarNodos(false); setModoPluma(modoPluma === "agregar" ? null : "agregar"); }}
+                      className={cn("h-7 px-2 text-xs gap-1 rounded-none font-semibold",
+                        modoPluma === "agregar" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "text-amber-700 hover:bg-amber-100")}
+                      title="Pluma: clic sobre la línea (entre dos puntos) para agregar un nodo">
+                      <PenTool className="h-3.5 w-3.5" />+
+                    </Button>
+                    <div className="w-px h-5 bg-amber-300" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={guardando || herramientaActiva !== null || modoEditarNodos}
+                      onClick={() => { setModoEditarNodos(false); setModoPluma(modoPluma === "quitar" ? null : "quitar"); }}
+                      className={cn("h-7 px-2 text-xs gap-1 rounded-none font-semibold",
+                        modoPluma === "quitar" ? "bg-red-600 hover:bg-red-700 text-white" : "text-amber-700 hover:bg-amber-100")}
+                      title="Pluma: clic sobre un punto para eliminarlo">
+                      <PenTool className="h-3.5 w-3.5" />−
+                    </Button>
+                  </div>
+
+                  {/* Recortar (tijera) */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={guardando || herramientaActiva === "lapiz" || modoPluma !== null}
+                    onClick={() => { setModoEditarNodos(false); setHerramientaActiva(herramientaActiva === "tijera" ? null : "tijera"); }}
+                    className={cn("h-7 w-7 p-0",
+                      herramientaActiva === "tijera" ? "bg-orange-500 hover:bg-orange-600 text-white border-orange-500" : "border-amber-300 text-amber-700 hover:bg-amber-100")}
+                    title="Recortar zona del área">
+                    <Scissors className="h-3.5 w-3.5" />
+                  </Button>
+
+                  {/* Simplificar */}
+                  <div className="relative">
+                    <Button variant="outline" size="sm" onClick={() => setMostrarNiveles((v) => !v)} disabled={guardando}
+                      className={cn("h-7 px-2 text-xs gap-1 border-amber-300 text-violet-700 hover:bg-violet-50", mostrarNiveles && "bg-violet-50")}
+                      title="Reducir cantidad de puntos">
+                      <Wand2 className="h-3 w-3" />Simplif.
+                    </Button>
+                    {mostrarNiveles && (
+                      <div className="absolute bottom-9 left-0 z-50 bg-background border rounded-lg shadow-lg py-1 min-w-[190px]">
+                        <p className="px-3 pt-1 pb-1.5 text-[10px] text-muted-foreground border-b">Intensidad:</p>
+                        {NIVELES_SIMPLIF.map((n) => (
+                          <button key={n.label} onClick={() => handleSimplificar(n.eps)}
+                            className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors flex gap-2">
+                            <span className="font-semibold text-violet-700 w-12">{n.label}</span>
+                            <span className="text-muted-foreground">{n.desc}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="w-px h-5 bg-amber-200 mx-0.5" />
+                </>
               )}
+
+              {/* Deshacer */}
+              <Button variant="outline" size="sm" onClick={deshacerEdicion}
+                disabled={guardando || historialGeometria.current.length === 0}
+                className="h-7 px-2 text-xs gap-1 border-amber-300 text-amber-700 hover:bg-amber-100"
+                title="Deshacer último cambio (Ctrl+Z)">
+                <Undo2 className="h-3.5 w-3.5" /> Deshacer
+              </Button>
+
+              {/* Vaciar */}
+              {modoEdicion === "area" && (
+                <Button variant="outline" size="sm" onClick={handleVaciar} disabled={guardando}
+                  className="h-7 px-2 text-xs gap-1 border-amber-300 text-red-600 hover:bg-red-50"
+                  title="Borrar todo y empezar de cero">
+                  <Trash2 className="h-3.5 w-3.5" /> Vaciar
+                </Button>
+              )}
+
+              <div className="ml-auto flex items-center gap-1.5">
+                <Button variant="ghost" size="sm" onClick={cancelarEdicion} disabled={guardando}
+                  className="h-7 px-3 text-xs text-amber-700 hover:bg-amber-100">
+                  Cancelar
+                </Button>
+                <Button size="sm" onClick={guardarEdicion}
+                  disabled={guardando || (!geometriaTemporalRef.current && !geometriaTemporal && !ultimaGeometriaRef.current)}
+                  className="h-7 px-4 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white gap-1">
+                  {guardando ? "Guardando…" : <>✓ Guardar</>}
+                </Button>
+              </div>
             </div>
-
-            <div className="w-px h-5 bg-border mx-1" />
-
-            {/* Deshacer */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={deshacerEdicion}
-              disabled={guardando || historialGeometria.current.length === 0}
-              className="h-8 gap-1.5 text-xs"
-              title="Deshacer último cambio (Ctrl+Z)"
-            >
-              <Undo2 className="h-3 w-3" />
-              Deshacer
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={cancelarEdicion}
-              disabled={guardando}
-              className="h-8"
-            >
-              Cancelar
-            </Button>
-            <Button
-              size="sm"
-              onClick={guardarEdicion}
-              disabled={guardando || !geometriaTemporal}
-              className="h-8 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
-            >
-              {guardando ? "Guardando…" : "Guardar cambios"}
-            </Button>
           </div>
           );
         })()}
@@ -742,6 +922,7 @@ export function VistaMapaClient({ recorridos }: VistaMapaClientProps) {
           onIniciarEdicionTraza={() => iniciarEdicion("traza")}
           modoEdicion={modoEdicion}
           onImprimirRecorrido={handleImprimirRecorrido}
+          puedeEditar={puedeEditar}
         />
       )}
     </div>
