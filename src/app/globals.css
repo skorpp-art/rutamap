@@ -88,3 +88,12 @@
   background-color: #d97706 !important;
   transform: scale(1.15);
 }
+
+/* Ocultar scrollbar manteniendo el scroll (barras de pestañas en móvil) */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

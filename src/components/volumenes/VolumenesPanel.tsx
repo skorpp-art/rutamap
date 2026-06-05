@@ -425,10 +425,10 @@ export function VolumenesPanel() {
       </div>
 
       {/* ── Tabs ── */}
-      <div className="border-b px-6 flex gap-1">
+      <div className="border-b px-3 sm:px-6 flex gap-1 overflow-x-auto no-scrollbar">
         {([["proyeccion", "1 · Proyección"], ["planificacion", "2 · Planificación"], ["operacion", "3 · Operación del Día"], ["plantillas", "🗓 Plantillas"], ["kpis", "📈 Monitoreo"], ["analisis", "📊 Análisis"], ["dashboard", "Dashboard"], ["historial", "Historial"], ["importar", "Importar Excel"]] as const).map(([t, lbl]) => (
           <button key={t} onClick={() => setTab(t as typeof tab)}
-            className={cn("px-4 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors",
+            className={cn("px-3 sm:px-4 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0",
               tab === t ? "border-blue-600 text-blue-600" : "border-transparent text-muted-foreground hover:text-foreground")}>
             {lbl}
           </button>
