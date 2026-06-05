@@ -536,3 +536,27 @@ export async function seedPlantillasDesdeHistorico(): Promise<{
     return { ok: false, error: String(e) };
   }
 }
+
+// ─── Calor de volumen por recorrido (mapa privado) ─────────────────────────────
+export interface CalorRecorrido {
+  recorrido_id: string;
+  codigo: string;
+  prom_paquetes: number;
+  dias: number;
+  max_paquetes: number;
+  ultimo_paquetes: number;
+}
+
+export async function getCalorRecorridos(dias = 30): Promise<{
+  ok: boolean; data?: CalorRecorrido[]; error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("get_calor_recorridos", { p_dias: dias });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, data: (data ?? []) as CalorRecorrido[] };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}

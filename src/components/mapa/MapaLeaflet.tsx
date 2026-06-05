@@ -1069,7 +1069,7 @@ export function MapaLeaflet({
         }
         return (
           <GeoJSON
-            key={`area-${r.id}-${r.actualizado_en}-${seleccionado}`}
+            key={`area-${r.id}-${r.actualizado_en}-${seleccionado}-${r.color}`}
             data={geom as GeoJSON.GeoJsonObject}
             style={{
               color: r.color,

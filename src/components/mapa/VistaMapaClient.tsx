@@ -14,15 +14,31 @@ import { DashboardCobertura } from "./DashboardCobertura";
 import { Button } from "@/components/ui/button";
 import {
   Pencil, Scissors, Undo2, Satellite, Map as MapIcon,
-  Layers, BarChart2, ZoomIn, Wand2, Trash2, PenTool,
+  Layers, BarChart2, ZoomIn, Wand2, Trash2, PenTool, Flame,
 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 import { cn } from "@/lib/utils";
 import { actualizarAreaRecorrido, actualizarTrazaRecorrido } from "@/app/actions/recorridos";
+import { getCalorRecorridos, type CalorRecorrido } from "@/app/actions/volumenes";
 import type { ModoEdicion } from "./MapaLeaflet";
 import type { RecorridoGeo, Zona } from "@/types/database.types";
 import { ZONAS } from "@/types/database.types";
+
+// ── Calor de volumen: color por promedio de paquetes del recorrido ──────────
+// Bandas alineadas con la operación (objetivo ~30 pkg/chofer)
+const CALOR_BANDAS = [
+  { max: 0,        color: "#cbd5e1", label: "Sin datos" },
+  { max: 24.999,   color: "#2563eb", label: "Bajo (<25)" },
+  { max: 35,       color: "#22c55e", label: "Óptimo (25–35)" },
+  { max: 40,       color: "#f59e0b", label: "Alto (35–40)" },
+  { max: Infinity, color: "#ef4444", label: "Sobrecarga (>40)" },
+];
+function colorCalor(prom: number | undefined): string {
+  if (!prom || prom <= 0) return "#cbd5e1";
+  for (const b of CALOR_BANDAS) if (prom <= b.max) return b.color;
+  return "#ef4444";
+}
 
 interface VistaMapaClientProps {
   recorridos: RecorridoGeo[];
@@ -242,6 +258,11 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
   const [calculandoSolap, setCalculandoSolap] = useState(false);
   const [mostrarDashboard, setMostrarDashboard] = useState(false);
 
+  // Calor de volumen (solo logueados — dato operativo privado)
+  const [mostrarCalor, setMostrarCalor] = useState(false);
+  const [calorMap, setCalorMap] = useState<Record<string, CalorRecorrido>>({});
+  const [cargandoCalor, setCargandoCalor] = useState(false);
+
   // Undo: historial de geometrías temporales
   const historialGeometria = useRef<string[]>([]);
   const undoEnCurso = useRef(false);
@@ -265,11 +286,44 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
     [recorridos]
   );
 
-  // Recorridos a mostrar en el mapa: siempre el activo + los marcados como visibles
-  const recorridosParaMapa = useMemo(
-    () => recorridosDisplay.filter((r) => r.id === recorridoActivoId || visibles.has(r.id)),
-    [recorridosDisplay, recorridoActivoId, visibles]
-  );
+  // Recorridos a mostrar en el mapa: siempre el activo + los marcados como visibles.
+  // En modo calor: TODOS los que tienen área, recoloreados por volumen.
+  const recorridosParaMapa = useMemo(() => {
+    if (mostrarCalor) {
+      return recorridosDisplay
+        .filter((r) => r.area_geojson)
+        .map((r) => {
+          const prom = calorMap[r.id]?.prom_paquetes;
+          return {
+            ...r,
+            color: colorCalor(prom),
+            // El tooltip muestra el código; le sumo el promedio de paquetes
+            codigo: prom && prom > 0 ? `${r.codigo} · ${prom}` : `${r.codigo} · s/d`,
+          };
+        });
+    }
+    return recorridosDisplay.filter((r) => r.id === recorridoActivoId || visibles.has(r.id));
+  }, [recorridosDisplay, recorridoActivoId, visibles, mostrarCalor, calorMap]);
+
+  // ── Cargar datos de calor al activar ────────────────────────────────────────
+  useEffect(() => {
+    if (!mostrarCalor) return;
+    let cancel = false;
+    setCargandoCalor(true);
+    getCalorRecorridos(30)
+      .then((res) => {
+        if (cancel) return;
+        if (!res.ok) { toast.error("No se pudo cargar el calor de volumen", { description: res.error }); return; }
+        const m: Record<string, CalorRecorrido> = {};
+        (res.data ?? []).forEach((c) => { m[c.recorrido_id] = c; });
+        setCalorMap(m);
+        if ((res.data ?? []).length === 0) {
+          toast.info("Todavía no hay datos de operación cargados para mostrar el calor");
+        }
+      })
+      .finally(() => { if (!cancel) setCargandoCalor(false); });
+    return () => { cancel = true; };
+  }, [mostrarCalor]);
 
   // ── Wrapper de onGeometriaChange con historial robusto ──────────────────────
   const handleGeometriaChange = useCallback((geojson: string | null) => {
@@ -739,6 +793,51 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
               <BarChart2 className="h-3.5 w-3.5" />
               Stats
             </Button>
+
+            {/* Calor de volumen — solo usuarios logueados (dato operativo privado) */}
+            {puedeEditar && (
+              <Button
+                size="sm"
+                variant="secondary"
+                className={cn(
+                  "shadow-md gap-1.5 h-8 text-xs",
+                  mostrarCalor && "bg-orange-600 text-white hover:bg-orange-700"
+                )}
+                onClick={() => setMostrarCalor((v) => !v)}
+                disabled={cargandoCalor}
+                title="Colorear los recorridos según el volumen de paquetes (últimos 30 días)"
+              >
+                <Flame className="h-3.5 w-3.5" />
+                {cargandoCalor ? "Cargando…" : mostrarCalor ? "Ocultar calor" : "Calor volumen"}
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* ══════ Leyenda del calor de volumen ══════ */}
+        {mostrarCalor && !editando && (
+          <div
+            data-no-export
+            className="absolute bottom-6 left-3 z-[900] bg-background/97 backdrop-blur-sm border rounded-xl shadow-lg p-3 w-56"
+          >
+            <div className="flex items-center gap-1.5 mb-2">
+              <Flame className="h-3.5 w-3.5 text-orange-600" />
+              <p className="text-xs font-bold">Calor de volumen</p>
+            </div>
+            <p className="text-[10px] text-muted-foreground mb-2 leading-snug">
+              Promedio de paquetes por recorrido — últimos 30 días de operación.
+            </p>
+            <div className="space-y-1">
+              {CALOR_BANDAS.map((b) => (
+                <div key={b.label} className="flex items-center gap-2 text-[10px]">
+                  <span className="inline-block w-3.5 h-3.5 rounded shrink-0" style={{ backgroundColor: b.color }} />
+                  <span className="text-muted-foreground">{b.label}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground border-t pt-1.5 mt-2 tabular-nums">
+              {Object.keys(calorMap).length} recorridos con datos
+            </p>
           </div>
         )}
 
