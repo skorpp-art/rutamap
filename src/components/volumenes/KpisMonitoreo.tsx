@@ -16,6 +16,7 @@ import {
 import { PALETA } from "@/lib/estados";
 import { SkeletonCards, SkeletonChart } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { MetricCard } from "@/components/ui/metric-card";
 
 function hoy() { return new Date().toISOString().slice(0, 10); }
 
@@ -239,17 +240,15 @@ export function KpisMonitoreo() {
 function KpiCard({ icon, label, valor, estado, objetivo, index = 0 }: {
   icon: React.ReactNode; label: string; valor: string; estado: Estado; objetivo: string; index?: number;
 }) {
-  const c = colorEstado(estado);
   return (
-    <div className="border rounded-xl p-3 bg-background animate-fade-up"
-      style={{ borderColor: estado === "sin" ? undefined : c + "55", animationDelay: `${index * 70}ms` }}>
-      <div className="flex items-center gap-1.5 text-muted-foreground" style={{ color: estado === "sin" ? undefined : c }}>
-        {icon}
-        <span className="text-[10px] uppercase font-bold tracking-wide">{label}</span>
-      </div>
-      <p className="text-2xl font-black tabular-nums mt-1" style={{ color: estado === "sin" ? undefined : c }}>{valor}</p>
-      <p className="text-[10px] text-muted-foreground mt-0.5">{objetivo}</p>
-    </div>
+    <MetricCard
+      icon={icon}
+      label={label}
+      value={valor}
+      sub={objetivo}
+      accent={estado === "sin" ? undefined : colorEstado(estado)}
+      index={index}
+    />
   );
 }
 

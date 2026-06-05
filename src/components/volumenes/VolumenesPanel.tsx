@@ -10,7 +10,7 @@ import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
-  RefreshCw, TrendingUp, TrendingDown, Users,
+  RefreshCw, Users,
   Package, Upload, FileSpreadsheet, ChevronLeft, ChevronRight,
   CheckCircle,
 } from "lucide-react";
@@ -38,6 +38,7 @@ import { PALETA, ESTADO, clasificarRiesgo } from "@/lib/estados";
 import { EstadoBadge } from "@/components/ui/estado-badge";
 import { NumeroAnimado } from "@/components/ui/numero-animado";
 import { SkeletonCards, SkeletonChart } from "@/components/ui/skeleton";
+import { MetricCard } from "@/components/ui/metric-card";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function hoy(): string { return new Date().toISOString().slice(0, 10); }
@@ -86,21 +87,14 @@ function StatCard({ label, valor, sub, delta, color, index = 0 }: {
   label: string; valor: string; sub: string; delta?: number; color?: string; index?: number;
 }) {
   return (
-    <div className="bg-background border rounded-xl p-4 space-y-1 animate-fade-up"
-      style={{ animationDelay: `${index * 70}ms` }}>
-      <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</p>
-      <div className="flex items-end gap-2">
-        <p className={cn("text-3xl font-bold tabular-nums", color ?? "text-foreground")}>{valor}</p>
-        {delta !== undefined && delta !== 0 && (
-          <span className={cn("text-sm font-semibold flex items-center gap-0.5 mb-1",
-            delta > 0 ? "text-emerald-600" : "text-red-500")}>
-            {delta > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-            {Math.abs(delta)}%
-          </span>
-        )}
-      </div>
-      <p className="text-xs text-muted-foreground">{sub}</p>
-    </div>
+    <MetricCard
+      label={label}
+      value={valor}
+      sub={sub}
+      delta={delta}
+      valueClassName={color}
+      index={index}
+    />
   );
 }
 
