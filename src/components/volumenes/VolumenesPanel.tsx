@@ -28,6 +28,7 @@ import { OperacionDia } from "./OperacionDia";
 import { AnalisisOperaciones } from "./AnalisisOperaciones";
 import { HistorialDias } from "./HistorialDias";
 import { PlantillasSemanales } from "./PlantillasSemanales";
+import { KpisMonitoreo } from "./KpisMonitoreo";
 import type {
   DashboardDiaV2, ResumenSemanalV2, ClienteDia,
   ProyeccionDiaV2, BandaControl, CalidadDatos, ClienteManual,
@@ -172,7 +173,7 @@ function CalidadDatosCard({ calidad }: { calidad: CalidadDatos[] }) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 export function VolumenesPanel() {
-  const [tab, setTab] = useState<"dashboard" | "proyeccion" | "planificacion" | "operacion" | "analisis" | "historial" | "plantillas" | "importar">("proyeccion");
+  const [tab, setTab] = useState<"dashboard" | "proyeccion" | "planificacion" | "operacion" | "analisis" | "historial" | "plantillas" | "kpis" | "importar">("proyeccion");
   const [dashboard, setDashboard] = useState<DashboardDiaV2[]>([]);
   const [resumen, setResumen] = useState<ResumenSemanalV2 | null>(null);
   const [topClientes, setTopClientes] = useState<ClienteDia[]>([]);
@@ -425,7 +426,7 @@ export function VolumenesPanel() {
 
       {/* ── Tabs ── */}
       <div className="border-b px-6 flex gap-1">
-        {([["proyeccion", "1 · Proyección"], ["planificacion", "2 · Planificación"], ["operacion", "3 · Operación del Día"], ["plantillas", "🗓 Plantillas"], ["analisis", "📊 Análisis"], ["dashboard", "Dashboard"], ["historial", "Historial"], ["importar", "Importar Excel"]] as const).map(([t, lbl]) => (
+        {([["proyeccion", "1 · Proyección"], ["planificacion", "2 · Planificación"], ["operacion", "3 · Operación del Día"], ["plantillas", "🗓 Plantillas"], ["kpis", "📈 Monitoreo"], ["analisis", "📊 Análisis"], ["dashboard", "Dashboard"], ["historial", "Historial"], ["importar", "Importar Excel"]] as const).map(([t, lbl]) => (
           <button key={t} onClick={() => setTab(t as typeof tab)}
             className={cn("px-4 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors",
               tab === t ? "border-blue-600 text-blue-600" : "border-transparent text-muted-foreground hover:text-foreground")}>
@@ -435,6 +436,9 @@ export function VolumenesPanel() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
+
+        {/* ══════════════ TAB MONITOREO / KPIs ══════════════ */}
+        {tab === "kpis" && <KpisMonitoreo />}
 
         {/* ══════════════ TAB ANÁLISIS ══════════════ */}
         {tab === "analisis" && <AnalisisOperaciones />}
