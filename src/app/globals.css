@@ -97,3 +97,30 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* ── Animaciones de entrada y fluidez ──────────────────────────────────────── */
+@keyframes rm-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes rm-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes rm-pop-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in { animation: rm-fade-in 0.25s ease both; }
+.animate-fade-up { animation: rm-fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-pop-in  { animation: rm-pop-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in, .animate-fade-up, .animate-pop-in { animation: none !important; }
+}
+
+/* Recoloreo y hover suaves en los poligonos del mapa (heatmap, seleccion) */
+.leaflet-interactive {
+  transition: fill 0.35s ease, fill-opacity 0.3s ease, stroke 0.35s ease, stroke-width 0.15s ease;
+}

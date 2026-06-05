@@ -146,16 +146,16 @@ export function KpisMonitoreo() {
       {/* Tarjetas del último día */}
       {ultimo && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard icon={<Timer className="h-4 w-4" />} label="Carga playón"
+          <KpiCard index={0} icon={<Timer className="h-4 w-4" />} label="Carga playón"
             valor={num(ultimo.carga_playon_min, " min")} estado={estCarga(ultimo.carga_playon_min)}
             objetivo={`obj ≤ ${targets.carga} min`} />
-          <KpiCard icon={<CheckCircle2 className="h-4 w-4" />} label="En término"
+          <KpiCard index={1} icon={<CheckCircle2 className="h-4 w-4" />} label="En término"
             valor={num(ultimo.pct_en_termino, "%")} estado={estTermino(ultimo.pct_en_termino)}
             objetivo={`obj ≥ ${targets.termino}%`} />
-          <KpiCard icon={<RotateCcw className="h-4 w-4" />} label="Devoluciones"
+          <KpiCard index={2} icon={<RotateCcw className="h-4 w-4" />} label="Devoluciones"
             valor={num(ultimo.pct_devoluciones, "%")} estado={estDevol(ultimo.pct_devoluciones)}
             objetivo={`obj ≤ ${targets.devol}% · ${num(ultimo.devoluciones)} dev`} />
-          <KpiCard icon={<AlertTriangle className="h-4 w-4" />} label="Incidencias"
+          <KpiCard index={3} icon={<AlertTriangle className="h-4 w-4" />} label="Incidencias"
             valor={num(ultimo.incidencias)} estado={ultimo.incidencias == null ? "sin" : ultimo.incidencias === 0 ? "ok" : ultimo.incidencias <= 3 ? "alerta" : "malo"}
             objetivo={ultimo.fecha} />
         </div>
@@ -222,12 +222,13 @@ export function KpisMonitoreo() {
 }
 
 // ── Sub-componentes ──────────────────────────────────────────────────────────
-function KpiCard({ icon, label, valor, estado, objetivo }: {
-  icon: React.ReactNode; label: string; valor: string; estado: Estado; objetivo: string;
+function KpiCard({ icon, label, valor, estado, objetivo, index = 0 }: {
+  icon: React.ReactNode; label: string; valor: string; estado: Estado; objetivo: string; index?: number;
 }) {
   const c = colorEstado(estado);
   return (
-    <div className="border rounded-xl p-3 bg-background" style={{ borderColor: estado === "sin" ? undefined : c + "55" }}>
+    <div className="border rounded-xl p-3 bg-background animate-fade-up"
+      style={{ borderColor: estado === "sin" ? undefined : c + "55", animationDelay: `${index * 70}ms` }}>
       <div className="flex items-center gap-1.5 text-muted-foreground" style={{ color: estado === "sin" ? undefined : c }}>
         {icon}
         <span className="text-[10px] uppercase font-bold tracking-wide">{label}</span>

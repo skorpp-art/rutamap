@@ -36,6 +36,7 @@ import type {
 } from "@/app/actions/volumenes";
 import { PALETA, ESTADO, clasificarRiesgo } from "@/lib/estados";
 import { EstadoBadge } from "@/components/ui/estado-badge";
+import { NumeroAnimado } from "@/components/ui/numero-animado";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function hoy(): string { return new Date().toISOString().slice(0, 10); }
@@ -80,11 +81,12 @@ function TooltipGrafico({ active, payload, label }: any) {
 }
 
 // ─── Card stat ────────────────────────────────────────────────────────────────
-function StatCard({ label, valor, sub, delta, color }: {
-  label: string; valor: string; sub: string; delta?: number; color?: string;
+function StatCard({ label, valor, sub, delta, color, index = 0 }: {
+  label: string; valor: string; sub: string; delta?: number; color?: string; index?: number;
 }) {
   return (
-    <div className="bg-background border rounded-xl p-4 space-y-1">
+    <div className="bg-background border rounded-xl p-4 space-y-1 animate-fade-up"
+      style={{ animationDelay: `${index * 70}ms` }}>
       <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</p>
       <div className="flex items-end gap-2">
         <p className={cn("text-3xl font-bold tabular-nums", color ?? "text-foreground")}>{valor}</p>
@@ -421,7 +423,7 @@ export function VolumenesPanel() {
         ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div key={tab} className="flex-1 overflow-y-auto animate-fade-in">
 
         {/* ══════════════ TAB MONITOREO / KPIs ══════════════ */}
         {tab === "kpis" && <KpisMonitoreo />}
@@ -469,12 +471,12 @@ export function VolumenesPanel() {
             {/* Fila principal: Choferes hoy MUY prominente + stats */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
               {/* Choferes hoy — protagonista */}
-              <div className="border-2 border-blue-200 rounded-xl p-5 bg-blue-50/60 flex items-center gap-4 lg:col-span-1">
+              <div className="border-2 border-blue-200 rounded-xl p-5 bg-blue-50/60 flex items-center gap-4 lg:col-span-1 animate-fade-up">
                 <Users className="h-10 w-10 text-blue-600 shrink-0" />
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-blue-600 font-bold">Choferes hoy</p>
                   <p className="text-5xl font-black text-blue-700 tabular-nums leading-none mt-1">
-                    {choferesHoy || "—"}
+                    {choferesHoy > 0 ? <NumeroAnimado value={choferesHoy} /> : "—"}
                   </p>
                   <p className="text-xs text-blue-600 mt-1">
                     {resumen?.hoy_total ? `${resumen.hoy_total.toLocaleString("es-AR")} paq · ${promDiaActual.toFixed(1)} pkg/ruta` : "Sin datos de hoy"}
@@ -483,15 +485,15 @@ export function VolumenesPanel() {
               </div>
 
               {/* Stats secundarios */}
-              <StatCard label="Hoy / Último día"
+              <StatCard index={1} label="Hoy / Último día"
                 valor={(resumen?.hoy_total ?? 0).toLocaleString("es-AR")}
                 sub={`${resumen?.hoy_clientes ?? 0} clientes`} />
-              <StatCard label="Semana actual"
+              <StatCard index={2} label="Semana actual"
                 valor={(resumen?.semana_total ?? 0).toLocaleString("es-AR")}
                 sub={`${resumen?.semana_dias ?? 0} días cargados`}
                 delta={resumen && resumen.vs_anterior_pct !== 0 ? Number(resumen.vs_anterior_pct) : undefined}
                 color={(resumen?.vs_anterior_pct ?? 0) < 0 ? "text-red-500" : "text-foreground"} />
-              <StatCard label="VS semana anterior"
+              <StatCard index={3} label="VS semana anterior"
                 valor={resumen ? `${resumen.vs_anterior_pct > 0 ? "+" : ""}${resumen.vs_anterior_pct}%` : "—"}
                 sub={`Anterior: ${(resumen?.anterior_total ?? 0).toLocaleString("es-AR")}`}
                 color={(resumen?.vs_anterior_pct ?? 0) < 0 ? "text-red-500" : "text-emerald-600"} />
@@ -662,11 +664,11 @@ export function VolumenesPanel() {
 
                 {/* Resultados en vivo */}
                 {calcPaquetes > 0 && (
-                  <div className="border rounded-xl overflow-hidden bg-background">
+                  <div className="border rounded-xl overflow-hidden bg-background animate-pop-in">
                     {/* Resultado principal */}
                     <div className="px-5 py-4 bg-blue-600 text-white text-center">
                       <p className="text-[10px] uppercase tracking-widest opacity-80 font-semibold">Choferes necesarios</p>
-                      <p className="text-6xl font-black tabular-nums mt-1">{choferesCalc}</p>
+                      <p className="text-6xl font-black tabular-nums mt-1"><NumeroAnimado value={choferesCalc} /></p>
                       <p className="text-sm opacity-90 mt-1">
                         {calcPaquetes.toLocaleString("es-AR")} paq ÷ {targetPkg} pkg/chofer
                       </p>
@@ -746,7 +748,7 @@ export function VolumenesPanel() {
                 </div>
 
                 {proyeccion && (
-                  <div className="border rounded-xl p-4 bg-background space-y-3">
+                  <div className="border rounded-xl p-4 bg-background space-y-3 animate-fade-up">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div>
                         <p className="text-xs font-bold text-blue-700">{proyeccion.dia_nombre} · Semana {proyeccion.semana_mes}: {proyeccion.tipo_semana}</p>
