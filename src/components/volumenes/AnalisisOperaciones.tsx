@@ -26,6 +26,7 @@ import type {
 import { PALETA } from "@/lib/estados";
 import { SkeletonCards, SkeletonChart } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ImportarClientes } from "./ImportarClientes";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function inferirZona(codigo: string) {
@@ -207,7 +208,7 @@ function DiaDetalleInline({ fecha }: { fecha: string }) {
 
 // ── Componente principal ──────────────────────────────────────────────────────
 export function AnalisisOperaciones() {
-  const [vista, setVista] = useState<"dashboard" | "importar" | "rutas">("dashboard");
+  const [vista, setVista] = useState<"dashboard" | "clientes" | "importar" | "rutas">("dashboard");
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
   const [archivos, setArchivos] = useState<{
     nombre: string; turno: "tarde" | "preturno"; filas: FilaOperacion[];
@@ -338,10 +339,11 @@ export function AnalisisOperaciones() {
         <div className="flex gap-1">
           {([
             ["dashboard", "📊 Visión general"],
+            ["clientes",  "📦 Paquetes por cliente"],
             ["importar",  "📥 Importar operaciones"],
             ["rutas",     "🗺 Por recorrido"],
           ] as const).map(([v, lbl]) => (
-            <button key={v} onClick={() => { setVista(v); if (v !== "importar" && !dashboard.length) cargarDatos(diasVista); }}
+            <button key={v} onClick={() => { setVista(v); if (v !== "importar" && v !== "clientes" && !dashboard.length) cargarDatos(diasVista); }}
               className={cn("px-3 py-1.5 text-xs font-medium rounded-lg transition-colors",
                 vista === v ? "bg-blue-600 text-white" : "text-muted-foreground hover:bg-accent")}>
               {lbl}
@@ -580,6 +582,13 @@ export function AnalisisOperaciones() {
               )}
             </>
           )}
+        </div>
+      )}
+
+      {/* ── PAQUETES POR CLIENTE (importar listado de clientes) ── */}
+      {vista === "clientes" && (
+        <div className="flex-1 overflow-y-auto">
+          <ImportarClientes onImportado={() => cargarDatos(diasVista)} />
         </div>
       )}
 
