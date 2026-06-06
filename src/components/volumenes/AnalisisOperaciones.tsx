@@ -28,6 +28,7 @@ import { SkeletonCards, SkeletonChart } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ImportarClientes } from "./ImportarClientes";
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function inferirZona(codigo: string) {
   if (codigo.includes("-OE-")) return "Oeste";
   if (codigo.includes("-NO-")) return "Norte";
@@ -49,17 +50,21 @@ function parsearSheet(ws: XLSX.WorkSheet, turno: "tarde"|"preturno") {
   const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
   const filas: FilaOperacion[] = [];
   let colCodigo = -1, colSistema = -1, colXFuera = -1, colTotal = -1;
+
+  // Buscar header row
   for (let i = 0; i < Math.min(rows.length, 15); i++) {
     const row = rows[i].map((c: unknown) => String(c).toUpperCase().replace(/[^A-ZÁÉÍÓÚ ]/g, "").trim());
     const cs = row.findIndex(c => c === "SISTEMA");
     const cx = row.findIndex(c => c.includes("FUERA") || c === "X FU");
     const ct = row.findIndex(c => c === "TOTAL");
     if (cs >= 0 && ct >= 0) {
+      // Buscar CÓDIGO entre las primeras columnas
       for (let j = 0; j < Math.min(row.length, 6); j++) {
         if (row[j].includes("DIGO") || row[j].includes("CODIGO")) { colCodigo = j; break; }
       }
-      if (colCodigo < 0) colCodigo = 2;
+      if (colCodigo < 0) colCodigo = 2; // fallback posición 2
       colSistema = cs; colXFuera = cx; colTotal = ct;
+      // Parse desde siguiente fila
       for (let r = i + 1; r < rows.length; r++) {
         const raw = String(rows[r][colCodigo] ?? "").trim();
         if (!CODIGO_REGEX.test(raw)) continue;
@@ -75,6 +80,7 @@ function parsearSheet(ws: XLSX.WorkSheet, turno: "tarde"|"preturno") {
   return { turno, filas, ignoradas: 0 };
 }
 
+// Detectar turno desde nombre de archivo o hoja
 function detectarTurno(filename: string, sheetName: string): "tarde" | "preturno" | null {
   const texto = (filename + " " + sheetName).toUpperCase();
   if (texto.includes("PRE") && (texto.includes("TURNO") || texto.includes("TURN"))) return "preturno";
@@ -82,6 +88,7 @@ function detectarTurno(filename: string, sheetName: string): "tarde" | "preturno
   return null;
 }
 
+// ── Colores ───────────────────────────────────────────────────────────────────
 const ZONA_COLORS: Record<string, { bg: string; text: string }> = {
   Oeste: { bg: "bg-blue-100", text: "text-blue-700" },
   Norte: { bg: "bg-amber-100", text: "text-amber-700" },
@@ -95,6 +102,7 @@ function colorProm(p: number) {
   return "text-green-600 font-semibold";
 }
 
+// ── Tooltip del gráfico ───────────────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function TooltipUnif({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
@@ -114,29 +122,37 @@ function TooltipUnif({ active, payload, label }: any) {
   );
 }
 
+// ── Detalle expandible de un día (top clientes + zonas + alertas) ──────────────
 function DiaDetalleInline({ fecha }: { fecha: string }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [detalle, setDetalle] = useState<Record<string, any> | null>(null);
   const [cargando, setCargando] = useState(true);
+
   useEffect(() => {
     getDiaCompleto(fecha).then(res => {
       if (res.ok && res.data) setDetalle(res.data);
       setCargando(false);
     });
   }, [fecha]);
+
   if (cargando) return <td colSpan={10} className="bg-slate-50 px-4 py-3 text-xs text-muted-foreground text-center">Cargando detalle…</td>;
   if (!detalle) return <td colSpan={10} className="bg-slate-50 px-4 py-3 text-xs text-muted-foreground text-center">Sin detalle</td>;
+
   const porZona: { zona: string; rutas: number; total: number; prom: number; alertas: number }[] = detalle.por_zona ?? [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rutasAlerta: any[] = detalle.rutas_alerta ?? [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const topClientes: any[] = (detalle.top_clientes ?? []).slice(0, 6);
+
   return (
     <td colSpan={10} className="bg-slate-50 px-4 py-4 border-b">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Top clientes */}
         {topClientes.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1"><Package className="h-3 w-3" /> Top clientes</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+              <Package className="h-3 w-3" /> Top clientes
+            </p>
             {topClientes.map((c, i) => (
               <div key={i} className="flex items-center gap-2 text-xs">
                 <span className="text-muted-foreground w-4 text-right">{i+1}</span>
@@ -144,12 +160,17 @@ function DiaDetalleInline({ fecha }: { fecha: string }) {
                 <span className="font-bold tabular-nums">{c.paquetes}</span>
               </div>
             ))}
-            {detalle.total_clientes > 6 && <p className="text-[10px] text-muted-foreground">+ {detalle.total_clientes - 6} más · Total {Number(detalle.total_paquetes).toLocaleString("es-AR")} paq</p>}
+            {detalle.total_clientes > 6 && (
+              <p className="text-[10px] text-muted-foreground">+ {detalle.total_clientes - 6} más · Total {Number(detalle.total_paquetes).toLocaleString("es-AR")} paq</p>
+            )}
           </div>
         )}
+        {/* Por zona */}
         {porZona.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1"><Users className="h-3 w-3" /> Por zona</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+              <Users className="h-3 w-3" /> Por zona
+            </p>
             {porZona.map(z => (
               <div key={z.zona} className="flex items-center gap-2 text-xs">
                 <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium w-14 text-center", ZONA_COLORS[z.zona]?.bg, ZONA_COLORS[z.zona]?.text)}>{z.zona}</span>
@@ -160,9 +181,12 @@ function DiaDetalleInline({ fecha }: { fecha: string }) {
             ))}
           </div>
         )}
+        {/* Rutas en alerta */}
         {rutasAlerta.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-red-600 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> Sobrecarga (&gt;35)</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-red-600 flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" /> Sobrecarga (&gt;35)
+            </p>
             {rutasAlerta.slice(0, 6).map((r: { codigo: string; total: number; x_fuera: number }) => (
               <div key={r.codigo} className="flex items-center gap-2 text-xs">
                 <span className="font-mono font-bold text-blue-700 w-20">{r.codigo}</span>
@@ -173,17 +197,23 @@ function DiaDetalleInline({ fecha }: { fecha: string }) {
           </div>
         )}
         {porZona.length === 0 && rutasAlerta.length === 0 && (
-          <div className="col-span-3 text-center text-xs text-muted-foreground py-2">Sin datos de recorridos para este día. Importá el Excel de operaciones para ver el detalle por zona.</div>
+          <div className="col-span-3 text-center text-xs text-muted-foreground py-2">
+            Sin datos de recorridos para este día. Importá el Excel de operaciones para ver el detalle por zona.
+          </div>
         )}
       </div>
     </td>
   );
 }
 
+// ── Componente principal ──────────────────────────────────────────────────────
 export function AnalisisOperaciones() {
   const [mostrarImportar, setMostrarImportar] = useState(false);
+  const [tabImport, setTabImport] = useState<"operaciones" | "clientes">("operaciones");
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
-  const [archivos, setArchivos] = useState<{ nombre: string; turno: "tarde" | "preturno"; filas: FilaOperacion[]; }[]>([]);
+  const [archivos, setArchivos] = useState<{
+    nombre: string; turno: "tarde" | "preturno"; filas: FilaOperacion[];
+  }[]>([]);
   const [importando, setImportando] = useState(false);
   const [dashboard, setDashboard] = useState<DashboardUnificado[]>([]);
   const [alertas, setAlertas] = useState<RutaAlerta[]>([]);
@@ -206,6 +236,7 @@ export function AnalisisOperaciones() {
     } finally { setBorrandoDia(null); }
   }
 
+  // Cargar datos al montar
   useEffect(() => { cargarDatos(diasVista); }, []);
 
   async function cargarDatos(dias: number) {
@@ -222,11 +253,18 @@ export function AnalisisOperaciones() {
     } finally { setCargando(false); }
   }
 
+  // ── Multi-archivo ──────────────────────────────────────────────────────────
   async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
+
+    // Auto-detectar fecha del primer archivo
     const m = files[0].name.match(/(\d{1,2})[_\-\/](\d{1,2})/);
-    if (m) { const d = m[1].padStart(2, "0"), mes = m[2].padStart(2, "0"); setFecha(`${new Date().getFullYear()}-${mes}-${d}`); }
+    if (m) {
+      const d = m[1].padStart(2, "0"), mes = m[2].padStart(2, "0");
+      setFecha(`${new Date().getFullYear()}-${mes}-${d}`);
+    }
+
     const resultados: typeof archivos = [];
     for (const file of files) {
       try {
@@ -237,14 +275,21 @@ export function AnalisisOperaciones() {
           const turno = detectarTurno(file.name, sheetName);
           if (turno) {
             const parsed = parsearSheet(wb.Sheets[sheetName], turno);
-            if (parsed.filas.length > 0) { resultados.push({ nombre: `${file.name} › ${sheetName}`, turno, filas: parsed.filas }); encontrado = true; }
+            if (parsed.filas.length > 0) {
+              resultados.push({ nombre: `${file.name} › ${sheetName}`, turno, filas: parsed.filas });
+              encontrado = true;
+            }
           }
         }
+        // Si no encontró por nombre de hoja, usar nombre del archivo
         if (!encontrado) {
           const turno = detectarTurno(file.name, "") ?? "tarde";
           for (const sheetName of wb.SheetNames) {
             const parsed = parsearSheet(wb.Sheets[sheetName], turno);
-            if (parsed.filas.length > 0) { resultados.push({ nombre: `${file.name} › ${sheetName}`, turno, filas: parsed.filas }); break; }
+            if (parsed.filas.length > 0) {
+              resultados.push({ nombre: `${file.name} › ${sheetName}`, turno, filas: parsed.filas });
+              break;
+            }
           }
         }
       } catch { toast.error(`Error al leer ${file.name}`); }
@@ -272,12 +317,17 @@ export function AnalisisOperaciones() {
     } finally { setImportando(false); }
   }
 
-  const chartData = [...dashboard].slice(0, 14).reverse().map(d => ({
-    ...d, dia: d.fecha.slice(5),
-    paquetes: d.total_paquetes || undefined,
-    promedio: d.prom_por_ruta > 0 ? d.prom_por_ruta : undefined,
-    choferes: d.choferes_30 || undefined,
-  }));
+  // ── Datos del gráfico (últimos 14 días, orden cronológico) ─────────────────
+  const chartData = [...dashboard]
+    .slice(0, 14)
+    .reverse()
+    .map(d => ({
+      ...d,
+      dia: d.fecha.slice(5),
+      paquetes: d.total_paquetes || undefined,
+      promedio: d.prom_por_ruta > 0 ? d.prom_por_ruta : undefined,
+      choferes: d.choferes_30 || undefined,
+    }));
 
   const tieneClientes = dashboard.some(d => d.tiene_clientes);
   const tieneOps = dashboard.some(d => d.tiene_ops);
@@ -285,6 +335,7 @@ export function AnalisisOperaciones() {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Toolbar único */}
       <div className="px-5 py-2 border-b flex items-center gap-2 bg-background flex-wrap">
         <div className="flex gap-1">
           {[14, 30, 60].map(d => (
@@ -299,102 +350,151 @@ export function AnalisisOperaciones() {
           <RefreshCw className={cn("h-3.5 w-3.5", cargando && "animate-spin")} />
         </Button>
         <div className="ml-auto">
-          <Button variant={mostrarImportar ? "default" : "outline"} size="sm"
+          <Button
+            variant={mostrarImportar ? "default" : "outline"}
+            size="sm"
             className={cn("h-7 gap-1.5 text-xs", mostrarImportar && "bg-blue-600 text-white")}
             onClick={() => setMostrarImportar(v => !v)}>
             <Upload className="h-3 w-3" />
-            {mostrarImportar ? "Cerrar importar" : "📥 Importar Excel"}
+            {mostrarImportar ? "Cerrar" : "📥 Importar datos"}
           </Button>
         </div>
       </div>
 
+      {/* ── Contenido en scroll único ── */}
       <div className="flex-1 overflow-y-auto">
+
+        {/* Panel de importar (colapsable) */}
         {mostrarImportar && (
-          <div className="border-b bg-slate-50/80 p-5 space-y-4 max-w-2xl">
-            <div className="flex items-start gap-3">
-              <FileSpreadsheet className="h-7 w-7 text-blue-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-sm">Importar Excel de operaciones</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Seleccioná uno o varios archivos. El sistema detecta Turno Tarde y Pre Turno por el nombre.</p>
-              </div>
+          <div className="border-b bg-slate-50/80">
+            {/* Tabs internas */}
+            <div className="flex border-b bg-white">
+              {(["operaciones", "clientes"] as const).map(t => (
+                <button key={t} onClick={() => setTabImport(t)}
+                  className={cn("px-5 py-2.5 text-xs font-semibold border-b-2 -mb-px transition-colors flex items-center gap-1.5",
+                    tabImport === t ? "border-blue-600 text-blue-600" : "border-transparent text-muted-foreground hover:text-foreground")}>
+                  {t === "operaciones" ? <><FileSpreadsheet className="h-3.5 w-3.5" /> Operaciones</> : <><Package className="h-3.5 w-3.5" /> Clientes</>}
+                </button>
+              ))}
             </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} className="border rounded-lg px-3 py-2 text-sm h-9 bg-background" />
-              <Button variant="outline" className="h-9 gap-2" onClick={() => fileRef.current?.click()}>
-                <Upload className="h-3.5 w-3.5" /> Seleccionar archivos
-              </Button>
-              <input ref={fileRef} type="file" accept=".xlsx,.xls" multiple className="hidden" onChange={handleFiles} />
-            </div>
-            <div className="bg-white rounded-lg border p-3 text-xs text-muted-foreground space-y-0.5">
-              <p className="font-semibold text-slate-600 mb-1">Detección automática:</p>
-              <p>• Nombre con "PRE TURNO" → Pre-Turno · "TURNO TARDE" o "TARDE" → Tarde</p>
-              <p>• Columnas: <strong>CÓDIGO · SISTEMA · X FUERA · TOTAL</strong></p>
-            </div>
-            {archivos.length > 0 && (
-              <div className="space-y-3">
-                {archivos.map((arch, idx) => (
-                  <div key={idx} className="border rounded-xl overflow-hidden">
-                    <div className={cn("px-4 py-2 flex items-center gap-2", arch.turno === "tarde" ? "bg-blue-600" : "bg-violet-600")}>
-                      <p className="text-xs font-bold text-white uppercase tracking-wide">{arch.turno === "tarde" ? "Turno Tarde" : "Pre-Turno"} · {arch.filas.length} recorridos</p>
-                      <span className="text-[10px] text-white/70 ml-auto truncate max-w-[200px]">{arch.nombre}</span>
-                    </div>
-                    <div className="max-h-32 overflow-y-auto">
-                      <table className="w-full text-xs">
-                        <thead className="bg-slate-50 border-b">
-                          <tr>
-                            <th className="text-left px-3 py-1 font-medium text-muted-foreground">Código</th>
-                            <th className="text-left px-3 py-1 font-medium text-muted-foreground">Zona</th>
-                            <th className="text-right px-3 py-1 font-medium text-muted-foreground">Sist.</th>
-                            <th className="text-right px-3 py-1 font-medium text-muted-foreground">X Fuera</th>
-                            <th className="text-right px-3 py-1 font-medium text-muted-foreground">Total</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                          {arch.filas.map(f => (
-                            <tr key={f.codigo}>
-                              <td className="px-3 py-1 font-mono font-bold text-blue-700">{f.codigo}</td>
-                              <td className="px-3 py-1"><span className={cn("text-[10px] px-1 rounded", ZONA_COLORS[f.zona]?.bg, ZONA_COLORS[f.zona]?.text)}>{f.zona}</span></td>
-                              <td className="px-3 py-1 text-right tabular-nums">{f.sistema}</td>
-                              <td className={cn("px-3 py-1 text-right tabular-nums", f.x_fuera > 0 ? "text-amber-600" : "text-muted-foreground/40")}>{f.x_fuera > 0 ? `+${f.x_fuera}` : "—"}</td>
-                              <td className={cn("px-3 py-1 text-right font-bold tabular-nums", f.total > 40 ? "text-red-600" : f.total > 35 ? "text-amber-600" : "text-green-600")}>{f.total}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+
+            {tabImport === "operaciones" && (
+              <div className="p-5 space-y-4 max-w-2xl">
+                <p className="text-xs text-muted-foreground">
+                  Seleccioná uno o varios archivos. El sistema detecta <strong>Turno Tarde</strong> y <strong>Pre Turno</strong> por el nombre.
+                </p>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
+                    className="border rounded-lg px-3 py-2 text-sm h-9 bg-background" />
+                  <Button variant="outline" className="h-9 gap-2" onClick={() => fileRef.current?.click()}>
+                    <Upload className="h-3.5 w-3.5" /> Seleccionar archivos
+                  </Button>
+                  <input ref={fileRef} type="file" accept=".xlsx,.xls" multiple className="hidden" onChange={handleFiles} />
+                </div>
+                <div className="bg-white rounded-lg border p-3 text-xs text-muted-foreground space-y-0.5">
+                  <p className="font-semibold text-slate-600 mb-1">Detección automática:</p>
+                  <p>• Nombre con "PRE TURNO" → Pre-Turno · "TURNO TARDE" o "TARDE" → Tarde</p>
+                  <p>• Columnas: <strong>CÓDIGO · SISTEMA · X FUERA · TOTAL</strong></p>
+                </div>
+                {archivos.length > 0 && (
+                  <div className="space-y-3">
+                    {archivos.map((arch, idx) => (
+                      <div key={idx} className="border rounded-xl overflow-hidden">
+                        <div className={cn("px-4 py-2 flex items-center gap-2",
+                          arch.turno === "tarde" ? "bg-blue-600" : "bg-violet-600")}>
+                          <p className="text-xs font-bold text-white uppercase tracking-wide">
+                            {arch.turno === "tarde" ? "Turno Tarde" : "Pre-Turno"} · {arch.filas.length} recorridos
+                          </p>
+                          <span className="text-[10px] text-white/70 ml-auto truncate max-w-[200px]">{arch.nombre}</span>
+                        </div>
+                        <div className="max-h-32 overflow-y-auto">
+                          <table className="w-full text-xs">
+                            <thead className="bg-slate-50 border-b">
+                              <tr>
+                                <th className="text-left px-3 py-1 font-medium text-muted-foreground">Código</th>
+                                <th className="text-left px-3 py-1 font-medium text-muted-foreground">Zona</th>
+                                <th className="text-right px-3 py-1 font-medium text-muted-foreground">Sist.</th>
+                                <th className="text-right px-3 py-1 font-medium text-muted-foreground">X Fuera</th>
+                                <th className="text-right px-3 py-1 font-medium text-muted-foreground">Total</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {arch.filas.map(f => (
+                                <tr key={f.codigo}>
+                                  <td className="px-3 py-1 font-mono font-bold text-blue-700">{f.codigo}</td>
+                                  <td className="px-3 py-1">
+                                    <span className={cn("text-[10px] px-1 rounded", ZONA_COLORS[f.zona]?.bg, ZONA_COLORS[f.zona]?.text)}>{f.zona}</span>
+                                  </td>
+                                  <td className="px-3 py-1 text-right tabular-nums">{f.sistema}</td>
+                                  <td className={cn("px-3 py-1 text-right tabular-nums", f.x_fuera > 0 ? "text-amber-600" : "text-muted-foreground/40")}>
+                                    {f.x_fuera > 0 ? `+${f.x_fuera}` : "—"}
+                                  </td>
+                                  <td className={cn("px-3 py-1 text-right font-bold tabular-nums",
+                                    f.total > 40 ? "text-red-600" : f.total > 35 ? "text-amber-600" : "text-green-600")}>
+                                    {f.total}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
+                    <Button onClick={confirmar} disabled={importando}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold h-10 gap-2">
+                      <CheckCircle className="h-4 w-4" />
+                      {importando ? "Importando…" : `Confirmar — ${archivos.reduce((s,a) => s+a.filas.length,0)} recorridos para ${fecha}`}
+                    </Button>
                   </div>
-                ))}
-                <Button onClick={confirmar} disabled={importando} className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold h-10 gap-2">
-                  <CheckCircle className="h-4 w-4" />
-                  {importando ? "Importando…" : `Confirmar — ${archivos.reduce((s,a) => s+a.filas.length,0)} recorridos para ${fecha}`}
-                </Button>
+                )}
               </div>
+            )}
+
+            {tabImport === "clientes" && (
+              <ImportarClientes onImportado={() => cargarDatos(diasVista)} />
             )}
           </div>
         )}
 
         <div className="p-5 space-y-6">
+
+          {/* ── Sección 1: Visión general ─────────────────────────────────────── */}
           {cargando && sinDatos ? (
-            <><SkeletonCards n={4} /><SkeletonChart height={230} /></>
+            <>
+              <SkeletonCards n={4} />
+              <SkeletonChart height={230} />
+            </>
           ) : sinDatos ? (
-            <EmptyState icon={BarChart2} title="No hay datos todavía"
+            <EmptyState
+              icon={BarChart2}
+              title="No hay datos todavía"
               description="Importá el Excel de operaciones diarias (Turno Tarde + Pre Turno) para ver el análisis unificado."
-              action={<Button size="sm" onClick={() => setMostrarImportar(true)}><Upload className="h-3.5 w-3.5 mr-1.5" /> Importar primeros datos</Button>}
+              action={
+                <Button size="sm" onClick={() => setMostrarImportar(true)}>
+                  <Upload className="h-3.5 w-3.5 mr-1.5" /> Importar primeros datos
+                </Button>
+              }
             />
           ) : (
             <>
+              {/* Badges de fuentes */}
               <div className="flex gap-2 text-[10px] flex-wrap">
                 <span className={cn("px-2 py-1 rounded-full border flex items-center gap-1",
                   tieneClientes ? "bg-blue-50 border-blue-200 text-blue-700" : "bg-slate-50 border-dashed text-muted-foreground")}>
-                  <Package className="h-3 w-3" />{tieneClientes ? "Paquetes/clientes ✓" : "Sin datos de paquetes"}
+                  <Package className="h-3 w-3" />
+                  {tieneClientes ? "Paquetes/clientes ✓" : "Sin datos de paquetes"}
                 </span>
                 <span className={cn("px-2 py-1 rounded-full border flex items-center gap-1",
                   tieneOps ? "bg-green-50 border-green-200 text-green-700" : "bg-slate-50 border-dashed text-muted-foreground")}>
-                  <Users className="h-3 w-3" />{tieneOps ? "Operaciones por recorrido ✓" : "Sin datos de recorridos"}
+                  <Users className="h-3 w-3" />
+                  {tieneOps ? "Operaciones por recorrido ✓" : "Sin datos de recorridos"}
                 </span>
-                {!tieneClientes && <span className="text-[10px] text-amber-600 self-center">→ Importá el Excel de clientes para ver paquetes totales</span>}
+                {!tieneClientes && (
+                  <span className="text-[10px] text-amber-600 self-center">→ Importá el Excel de clientes para ver paquetes totales</span>
+                )}
               </div>
 
+              {/* Gráfico de evolución */}
               <div className="border rounded-xl p-5 bg-background">
                 <p className="text-sm font-bold mb-4">Evolución diaria — últimos {Math.min(14, dashboard.length)} días</p>
                 <ResponsiveContainer width="100%" height={230}>
@@ -405,7 +505,9 @@ export function AnalisisOperaciones() {
                     <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} domain={[0, 60]} />
                     <Tooltip content={<TooltipUnif />} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    {tieneClientes && <Bar yAxisId="left" dataKey="paquetes" name="Paquetes totales" fill="#3b82f6" opacity={0.7} radius={[3,3,0,0]} barSize={18} />}
+                    {tieneClientes && (
+                      <Bar yAxisId="left" dataKey="paquetes" name="Paquetes totales" fill="#3b82f6" opacity={0.7} radius={[3,3,0,0]} barSize={18} />
+                    )}
                     {tieneOps && (
                       <>
                         <Bar yAxisId="left" dataKey="choferes" name="Choferes @30" fill={PALETA.verde} opacity={0.5} radius={[3,3,0,0]} barSize={10} />
@@ -424,6 +526,7 @@ export function AnalisisOperaciones() {
                 </div>
               </div>
 
+              {/* Tabla detalle por día */}
               <div className="border rounded-xl overflow-hidden">
                 <div className="px-4 py-2.5 border-b bg-muted/20 flex items-center">
                   <p className="text-xs font-semibold">Detalle por día</p>
@@ -452,29 +555,54 @@ export function AnalisisOperaciones() {
                           <Fragment key={d.fecha + d.dia_nombre}>
                             <tr onClick={() => setDiaExpandido(exp ? null : d.fecha)}
                               className={cn("hover:bg-accent/30 cursor-pointer transition-colors", exp && "bg-blue-50/50")}>
-                              <td className="px-2 py-1.5 text-center text-muted-foreground">{exp ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}</td>
-                              <td className="px-3 py-1.5 font-semibold tabular-nums">{new Date(d.fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}</td>
+                              <td className="px-2 py-1.5 text-center text-muted-foreground">
+                                {exp ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                              </td>
+                              <td className="px-3 py-1.5 font-semibold tabular-nums">
+                                {new Date(d.fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                              </td>
                               <td className="px-3 py-1.5 text-muted-foreground">{d.dia_nombre}</td>
-                              <td className="px-3 py-1.5 text-right tabular-nums">{d.total_paquetes > 0 ? d.total_paquetes.toLocaleString("es-AR") : <span className="text-muted-foreground/40">—</span>}</td>
-                              <td className="px-3 py-1.5 text-right tabular-nums">{d.rutas_activas > 0 ? <span>{d.rutas_activas} <span className="text-[10px] text-muted-foreground">({d.rutas_fijas}F {d.rutas_preturno}PT)</span></span> : <span className="text-muted-foreground/40">—</span>}</td>
-                              <td className={cn("px-3 py-1.5 text-right tabular-nums font-semibold", colorProm(d.prom_por_ruta))}>{d.prom_por_ruta > 0 ? d.prom_por_ruta : "—"}</td>
-                              <td className={cn("px-3 py-1.5 text-right tabular-nums", d.pct_x_fuera > 5 ? "text-amber-600 font-semibold" : "text-muted-foreground")}>{d.pct_x_fuera > 0 ? `${d.pct_x_fuera}%` : "—"}</td>
-                              <td className="px-3 py-1.5 text-right tabular-nums text-blue-700 font-semibold">{d.choferes_30 > 0 ? d.choferes_30 : "—"}</td>
+                              <td className="px-3 py-1.5 text-right tabular-nums">
+                                {d.total_paquetes > 0 ? d.total_paquetes.toLocaleString("es-AR") : <span className="text-muted-foreground/40">—</span>}
+                              </td>
+                              <td className="px-3 py-1.5 text-right tabular-nums">
+                                {d.rutas_activas > 0
+                                  ? <span>{d.rutas_activas} <span className="text-[10px] text-muted-foreground">({d.rutas_fijas}F {d.rutas_preturno}PT)</span></span>
+                                  : <span className="text-muted-foreground/40">—</span>}
+                              </td>
+                              <td className={cn("px-3 py-1.5 text-right tabular-nums font-semibold", colorProm(d.prom_por_ruta))}>
+                                {d.prom_por_ruta > 0 ? d.prom_por_ruta : "—"}
+                              </td>
+                              <td className={cn("px-3 py-1.5 text-right tabular-nums", d.pct_x_fuera > 5 ? "text-amber-600 font-semibold" : "text-muted-foreground")}>
+                                {d.pct_x_fuera > 0 ? `${d.pct_x_fuera}%` : "—"}
+                              </td>
+                              <td className="px-3 py-1.5 text-right tabular-nums text-blue-700 font-semibold">
+                                {d.choferes_30 > 0 ? d.choferes_30 : "—"}
+                              </td>
                               <td className="px-3 py-1.5">
                                 <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium",
                                   d.estado === "SOBRECARGA" ? "bg-red-100 text-red-700" :
                                   d.estado === "SOBRE TARGET" ? "bg-amber-100 text-amber-700" :
-                                  d.estado === "OK" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500")}>{d.estado}</span>
+                                  d.estado === "OK" ? "bg-green-100 text-green-700" :
+                                  "bg-slate-100 text-slate-500")}>
+                                  {d.estado}
+                                </span>
                               </td>
                               <td className="px-2 py-1.5 text-center">
-                                <button onClick={(e) => { e.stopPropagation(); eliminarDia(d.fecha); }} disabled={borrandoDia === d.fecha}
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); eliminarDia(d.fecha); }}
+                                  disabled={borrandoDia === d.fecha}
                                   className="inline-flex items-center justify-center h-6 w-6 rounded-md border border-red-200 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50"
                                   title="Eliminar datos del día">
-                                  {borrandoDia === d.fecha ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                  {borrandoDia === d.fecha
+                                    ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                    : <Trash2 className="h-3.5 w-3.5" />}
                                 </button>
                               </td>
                             </tr>
-                            {exp && <tr><DiaDetalleInline fecha={d.fecha} /></tr>}
+                            {exp && (
+                              <tr><DiaDetalleInline fecha={d.fecha} /></tr>
+                            )}
                           </Fragment>
                         );
                       })}
@@ -483,6 +611,7 @@ export function AnalisisOperaciones() {
                 </div>
               </div>
 
+              {/* Alertas de recorridos */}
               {alertas.length > 0 && (
                 <div className="border rounded-xl overflow-hidden">
                   <div className="px-4 py-2.5 border-b bg-red-50 flex items-center gap-2">
@@ -504,14 +633,19 @@ export function AnalisisOperaciones() {
                       {alertas.map(r => (
                         <tr key={r.codigo} className="hover:bg-accent/20">
                           <td className="px-3 py-2 font-mono font-bold text-blue-700">{r.codigo}</td>
-                          <td className="px-3 py-2"><span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium", ZONA_COLORS[r.zona]?.bg, ZONA_COLORS[r.zona]?.text)}>{r.zona}</span></td>
+                          <td className="px-3 py-2">
+                            <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium", ZONA_COLORS[r.zona]?.bg, ZONA_COLORS[r.zona]?.text)}>{r.zona}</span>
+                          </td>
                           <td className={cn("px-3 py-2 text-right font-bold tabular-nums", colorProm(r.prom_total))}>{r.prom_total}</td>
                           <td className="px-3 py-2 text-right tabular-nums font-semibold">{r.max_total}</td>
-                          <td className="px-3 py-2 text-right"><span className={cn("font-bold", r.pct_sobre >= 75 ? "text-red-600" : "text-amber-600")}>{r.pct_sobre}%</span></td>
+                          <td className="px-3 py-2 text-right">
+                            <span className={cn("font-bold", r.pct_sobre >= 75 ? "text-red-600" : "text-amber-600")}>{r.pct_sobre}%</span>
+                          </td>
                           <td className="px-3 py-2">
                             <span className={cn("text-[10px] px-2 py-0.5 rounded-full",
                               r.recomendacion.includes("permanente") ? "bg-red-100 text-red-700 font-semibold" :
-                              r.recomendacion.includes("frecuente") ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500")}>
+                              r.recomendacion.includes("frecuente") ? "bg-amber-100 text-amber-700" :
+                              "bg-slate-100 text-slate-500")}>
                               {r.recomendacion}
                             </span>
                           </td>
@@ -524,19 +658,13 @@ export function AnalisisOperaciones() {
             </>
           )}
 
-          {!sinDatos && (
-            <div className="border rounded-xl overflow-hidden">
-              <div className="px-4 py-3 bg-muted/20 border-b">
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5"><Package className="h-3.5 w-3.5" /> Paquetes por cliente</p>
-              </div>
-              <ImportarClientes onImportado={() => cargarDatos(diasVista)} />
-            </div>
-          )}
-
+          {/* ── Sección 2: Análisis por recorrido ────────────────────────────── */}
           {analisis.length > 0 && (
             <div className="border rounded-xl overflow-hidden">
               <div className="px-4 py-3 bg-muted/20 border-b">
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5"><BarChart2 className="h-3.5 w-3.5" /> Análisis por recorrido — últimos {diasVista} días</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                  <BarChart2 className="h-3.5 w-3.5" /> Análisis por recorrido — últimos {diasVista} días
+                </p>
               </div>
               <table className="w-full text-xs">
                 <thead className="bg-background border-b sticky top-0">
@@ -556,15 +684,28 @@ export function AnalisisOperaciones() {
                   {analisis.map(r => (
                     <tr key={r.codigo} className={cn("hover:bg-accent/20 transition-colors", r.pct_sobrecarga >= 50 && "bg-red-50/30")}>
                       <td className="px-3 py-2 font-mono font-bold text-blue-700">{r.codigo}</td>
-                      <td className="px-3 py-2"><span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium", ZONA_COLORS[r.zona]?.bg, ZONA_COLORS[r.zona]?.text)}>{r.zona}</span></td>
+                      <td className="px-3 py-2">
+                        <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium", ZONA_COLORS[r.zona]?.bg, ZONA_COLORS[r.zona]?.text)}>{r.zona}</span>
+                      </td>
                       <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{r.dias_registrados}</td>
                       <td className={cn("px-3 py-2 text-right tabular-nums", colorProm(r.prom_total))}>{r.prom_total}</td>
-                      <td className={cn("px-3 py-2 text-right tabular-nums", r.prom_x_fuera >= 3 ? "text-amber-600 font-semibold" : "text-muted-foreground")}>{r.prom_x_fuera > 0 ? `+${r.prom_x_fuera}` : "—"}</td>
+                      <td className={cn("px-3 py-2 text-right tabular-nums", r.prom_x_fuera >= 3 ? "text-amber-600 font-semibold" : "text-muted-foreground")}>
+                        {r.prom_x_fuera > 0 ? `+${r.prom_x_fuera}` : "—"}
+                      </td>
                       <td className="px-3 py-2 text-right tabular-nums font-semibold">{r.max_total}</td>
-                      <td className="px-3 py-2 text-right">{r.pct_sobrecarga > 0 ? <span className={cn("font-semibold", r.pct_sobrecarga >= 50 ? "text-red-600" : "text-amber-600")}>{r.pct_sobrecarga}%</span> : <span className="text-muted-foreground">—</span>}</td>
+                      <td className="px-3 py-2 text-right">
+                        {r.pct_sobrecarga > 0
+                          ? <span className={cn("font-semibold", r.pct_sobrecarga >= 50 ? "text-red-600" : "text-amber-600")}>{r.pct_sobrecarga}%</span>
+                          : <span className="text-muted-foreground">—</span>}
+                      </td>
                       <td className="px-3 py-2 text-center">
-                        <span className={cn(r.tendencia === "subiendo" ? "text-red-500" : r.tendencia === "bajando" ? "text-green-600" : "text-muted-foreground")}>
-                          {r.tendencia === "subiendo" ? <TrendingUp className="h-3.5 w-3.5" /> : r.tendencia === "bajando" ? <TrendingDown className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
+                        <span className={cn(
+                          r.tendencia === "subiendo" ? "text-red-500" :
+                          r.tendencia === "bajando"  ? "text-green-600" : "text-muted-foreground"
+                        )}>
+                          {r.tendencia === "subiendo" ? <TrendingUp className="h-3.5 w-3.5" /> :
+                           r.tendencia === "bajando"  ? <TrendingDown className="h-3.5 w-3.5" /> :
+                           <Minus className="h-3.5 w-3.5" />}
                         </span>
                       </td>
                       <td className="px-3 py-2">
