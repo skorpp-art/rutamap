@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
@@ -113,7 +114,16 @@ function CalidadDatosCard({ calidad }: { calidad: CalidadDatos[] }) {
 }
 
 export function VolumenesPanel() {
+  const searchParams = useSearchParams();
   const [tab, setTab] = useState<"proyeccion" | "operacion" | "analisis" | "herramientas">("proyeccion");
+
+  // Permite saltar directo a una pestaña desde la paleta de comandos (?tab=…)
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t === "proyeccion" || t === "operacion" || t === "analisis" || t === "herramientas") {
+      setTab(t);
+    }
+  }, [searchParams]);
   const [dashboard, setDashboard] = useState<DashboardDiaV2[]>([]);
   const [resumen, setResumen] = useState<ResumenSemanalV2 | null>(null);
   const [topClientes, setTopClientes] = useState<ClienteDia[]>([]);
@@ -312,7 +322,7 @@ export function VolumenesPanel() {
         ))}
       </div>
 
-      <div key={tab} className="flex-1 overflow-y-auto animate-fade-in">
+      <div key={tab} className="flex-1 overflow-y-auto animate-fade-up">
 
         {tab === "proyeccion" && (() => {
           const promPorRuta = calcRutas > 0 ? calcPaquetes / calcRutas : 0;
