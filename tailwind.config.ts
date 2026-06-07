@@ -10,18 +10,40 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // ── Color de firma RutaMap: índigo → violeta ──────────────────────
+        // Re-mapeo la escala `blue-*` de Tailwind al índigo de firma para que
+        // toda la app (botones, estados activos, paneles) adopte la nueva
+        // identidad sin tocar cada componente. Los colores de DATOS del mapa
+        // usan hex (recorrido.*) y quedan intactos.
+        blue: {
+          50: "#eef2ff",
+          100: "#e0e7ff",
+          200: "#c7d2fe",
+          300: "#a5b4fc",
+          400: "#818cf8",
+          500: "#6366f1",
+          600: "#4f46e5",
+          700: "#4338ca",
+          800: "#3730a3",
+          900: "#312e81",
+          950: "#1e1b4b",
+        },
         // Colores corporativos Logística Hogareño
         brand: {
           blue: {
-            DEFAULT: "#2563eb",
-            dark: "#1d4ed8",
-            light: "#3b82f6",
+            DEFAULT: "#4f46e5",
+            dark: "#4338ca",
+            light: "#6366f1",
           },
           sky: {
-            DEFAULT: "#7dd3fc",
-            dark: "#38bdf8",
+            DEFAULT: "#818cf8",
+            dark: "#a5b4fc",
           },
-          black: "#0f172a",
+          violet: {
+            DEFAULT: "#8b5cf6",
+            dark: "#7c3aed",
+          },
+          black: "#0b1120",
         },
         // Paleta de recorridos (para referencia en el código)
         recorrido: {
@@ -73,6 +95,17 @@ const config: Config = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      // Sombras suaves y estratificadas (estilo premium, baja opacidad)
+      // Reemplazan las sombras duras de Tailwind en toda la app.
+      boxShadow: {
+        sm: "0 1px 2px 0 rgb(16 24 40 / 0.04)",
+        DEFAULT:
+          "0 1px 3px 0 rgb(16 24 40 / 0.06), 0 1px 2px -1px rgb(16 24 40 / 0.05)",
+        md: "0 4px 8px -2px rgb(16 24 40 / 0.06), 0 2px 4px -2px rgb(16 24 40 / 0.04)",
+        lg: "0 12px 16px -4px rgb(16 24 40 / 0.08), 0 4px 6px -2px rgb(16 24 40 / 0.03)",
+        xl: "0 20px 24px -4px rgb(16 24 40 / 0.08), 0 8px 8px -4px rgb(16 24 40 / 0.03)",
+        "2xl": "0 24px 48px -12px rgb(16 24 40 / 0.18)",
       },
       keyframes: {
         "accordion-down": {
