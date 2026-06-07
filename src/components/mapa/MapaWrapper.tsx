@@ -11,8 +11,8 @@ const MapaLeaflet = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-full w-full flex items-center justify-center bg-slate-100">
-        <div className="flex flex-col items-center gap-3 text-slate-500">
+      <div className="h-full w-full flex items-center justify-center bg-slate-100 dark:bg-slate-800">
+        <div className="flex flex-col items-center gap-3 text-slate-500 dark:text-slate-400">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-blue border-t-transparent" />
           <span className="text-sm">Cargando mapa…</span>
         </div>

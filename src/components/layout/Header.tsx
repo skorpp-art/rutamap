@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useMapStore } from "@/stores/mapStore";
 import { createClient } from "@/lib/supabase/client";
 import type { Perfil, Zona } from "@/types/database.types";
@@ -123,6 +124,9 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
         <span>Buscar…</span>
         <kbd className="inline-flex items-center gap-0.5 rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-medium text-white/60">⌘K</kbd>
       </button>
+
+      {/* Toggle claro/oscuro */}
+      <ThemeToggle />
 
       {/* Indicador de zona activa */}
       {filtros.zona && (

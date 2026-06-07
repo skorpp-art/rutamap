@@ -10,20 +10,20 @@ import { EmptyState } from "@/components/ui/empty-state";
 import type { HistorialDiaV2 } from "@/app/actions/operaciones-diarias";
 
 const ZONA_COLORS: Record<string, string> = {
-  Oeste: "text-blue-700 bg-blue-50 border-blue-200",
-  Norte: "text-amber-700 bg-amber-50 border-amber-200",
-  Sur:   "text-green-700 bg-green-50 border-green-200",
-  CABA:  "text-red-700 bg-red-50 border-red-200",
+  Oeste: "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900",
+  Norte: "text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900",
+  Sur:   "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-900",
+  CABA:  "text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900",
 };
 const SEMANA_LABELS: Record<number, string> = {
   1: "Tarjetas", 2: "Sueldos", 3: "Baja", 4: "Normal",
 };
 
 function colorProm(p: number) {
-  if (p > 40) return "text-red-600 font-bold";
-  if (p > 35) return "text-amber-600 font-semibold";
-  if (p < 20) return "text-slate-400";
-  return "text-green-600 font-semibold";
+  if (p > 40) return "text-red-600 dark:text-red-300 font-bold";
+  if (p > 35) return "text-amber-600 dark:text-amber-300 font-semibold";
+  if (p < 20) return "text-slate-400 dark:text-slate-500";
+  return "text-green-600 dark:text-green-300 font-semibold";
 }
 
 interface DiaDetalleProps {
@@ -52,7 +52,7 @@ function DiaDetalle({ fecha }: DiaDetalleProps) {
 
   return (
     <tr>
-      <td colSpan={10} className="bg-slate-50 px-4 py-4 border-b">
+      <td colSpan={10} className="bg-slate-50 dark:bg-slate-800/40 px-4 py-4 border-b">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
           {/* Paquetes por cliente */}
@@ -66,7 +66,7 @@ function DiaDetalle({ fecha }: DiaDetalleProps) {
                   <div key={i} className="flex items-center gap-2 text-xs">
                     <span className="text-muted-foreground w-4 text-right shrink-0">{i+1}</span>
                     <span className="flex-1 truncate font-medium">{c.cliente}</span>
-                    <div className="w-16 h-1.5 rounded-full bg-slate-200 overflow-hidden shrink-0">
+                    <div className="w-16 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden shrink-0">
                       <div className="h-full rounded-full bg-blue-500" style={{ width: `${c.pct}%` }} />
                     </div>
                     <span className="font-bold tabular-nums w-8 text-right">{c.paquetes}</span>
@@ -96,7 +96,7 @@ function DiaDetalle({ fecha }: DiaDetalleProps) {
                     <span className="text-muted-foreground tabular-nums w-16">{z.rutas} rutas</span>
                     <span className={cn("font-semibold tabular-nums", colorProm(z.prom))}>{z.prom} prom</span>
                     {z.alertas > 0 && (
-                      <span className="text-[10px] text-red-600 font-bold">⚠ {z.alertas}</span>
+                      <span className="text-[10px] text-red-600 dark:text-red-300 font-bold">⚠ {z.alertas}</span>
                     )}
                   </div>
                 ))}
@@ -107,14 +107,14 @@ function DiaDetalle({ fecha }: DiaDetalleProps) {
           {/* Rutas en alerta */}
           {rutasAlerta.length > 0 && (
             <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-red-600 flex items-center gap-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-red-600 dark:text-red-300 flex items-center gap-1">
                 <AlertTriangle className="h-3 w-3" /> Rutas con sobrecarga (&gt;35)
               </p>
               <div className="space-y-1">
                 {rutasAlerta.slice(0, 6).map((r: { codigo: string; zona: string; total: number; x_fuera: number }) => (
                   <div key={r.codigo} className="flex items-center gap-2 text-xs">
-                    <span className="font-mono font-bold text-blue-700 w-20 shrink-0">{r.codigo}</span>
-                    <span className={cn("font-bold tabular-nums", r.total > 40 ? "text-red-600" : "text-amber-600")}>
+                    <span className="font-mono font-bold text-blue-700 dark:text-blue-300 w-20 shrink-0">{r.codigo}</span>
+                    <span className={cn("font-bold tabular-nums", r.total > 40 ? "text-red-600 dark:text-red-300" : "text-amber-600 dark:text-amber-300")}>
                       {r.total} paq
                     </span>
                     {r.x_fuera > 0 && (
@@ -213,7 +213,7 @@ export function HistorialDias() {
                     <tr
                       onClick={() => setExpandido(isExp ? null : d.fecha)}
                       className={cn("cursor-pointer border-b transition-colors hover:bg-accent/30",
-                        isExp && "bg-blue-50/40")}>
+                        isExp && "bg-blue-50/40 dark:bg-blue-950/40")}>
                       <td className="px-2 py-2 text-center text-muted-foreground">
                         {isExp ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                       </td>
@@ -225,10 +225,10 @@ export function HistorialDias() {
                       <td className="px-3 py-2 text-muted-foreground">{d.dia_semana}</td>
                       <td className="px-3 py-2">
                         <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full border font-medium",
-                          d.semana_mes === 1 ? "bg-blue-50 border-blue-200 text-blue-700" :
-                          d.semana_mes === 2 ? "bg-green-50 border-green-200 text-green-700" :
-                          d.semana_mes === 3 ? "bg-slate-50 border-slate-200 text-slate-500" :
-                          "bg-slate-50 border-slate-100 text-slate-400")}>
+                          d.semana_mes === 1 ? "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300" :
+                          d.semana_mes === 2 ? "bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-900 text-green-700 dark:text-green-300" :
+                          d.semana_mes === 3 ? "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400" :
+                          "bg-slate-50 dark:bg-slate-800/40 border-slate-100 text-slate-400 dark:text-slate-500")}>
                           {SEMANA_LABELS[d.semana_mes] ?? "Normal"}
                         </span>
                       </td>
@@ -251,17 +251,17 @@ export function HistorialDias() {
                       </td>
                       <td className="px-3 py-2 text-right">
                         {d.rutas_en_alerta > 0 ? (
-                          <span className="text-red-600 font-bold flex items-center justify-end gap-0.5">
+                          <span className="text-red-600 dark:text-red-300 font-bold flex items-center justify-end gap-0.5">
                             <AlertTriangle className="h-3 w-3" />{d.rutas_en_alerta}
                           </span>
                         ) : <span className="text-muted-foreground/30">—</span>}
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-blue-700 font-semibold">
+                      <td className="px-3 py-2 text-right tabular-nums text-blue-700 dark:text-blue-300 font-semibold">
                         {d.choferes_30 > 0 ? d.choferes_30 : "—"}
                       </td>
                       <td className={cn("px-3 py-2 text-right tabular-nums font-medium",
                         d.vs_semana_ant == null ? "text-muted-foreground/40" :
-                        Number(d.vs_semana_ant) > 0 ? "text-emerald-600" : "text-red-500")}>
+                        Number(d.vs_semana_ant) > 0 ? "text-emerald-600 dark:text-emerald-300" : "text-red-500")}>
                         {d.vs_semana_ant != null
                           ? `${Number(d.vs_semana_ant) > 0 ? "+" : ""}${d.vs_semana_ant}%`
                           : "—"}

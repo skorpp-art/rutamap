@@ -30,6 +30,29 @@
     --radius: 0.625rem;
   }
 
+  /* ── Dark mode: slate profundo con índigo de firma resaltando ──────────── */
+  .dark {
+    --background: 222 47% 8%;
+    --foreground: 210 40% 96%;
+    --card: 222 41% 11%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 44% 10%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 243 80% 68%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 217 33% 16%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 243 38% 22%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 217 33% 20%;
+    --input: 217 33% 24%;
+    --ring: 243 80% 68%;
+  }
+
   * {
     @apply border-border;
   }

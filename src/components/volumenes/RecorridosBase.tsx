@@ -14,10 +14,10 @@ import { ZONA_COLOR } from "@/lib/estados";
 type RecorridoBase = RecorridoBaseItem;
 
 const TIPO_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
-  fijo:      { label: "Fijo",      bg: "bg-blue-50",   text: "text-blue-700",   border: "border-blue-200" },
-  pre_turno: { label: "Pre-Turno", bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-200" },
-  corte:     { label: "Corte",     bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
-  suplencia: { label: "Comodín",   bg: "bg-slate-50",  text: "text-slate-500",  border: "border-slate-200" },
+  fijo:      { label: "Fijo",      bg: "bg-blue-50 dark:bg-blue-950/40",   text: "text-blue-700 dark:text-blue-300",   border: "border-blue-200 dark:border-blue-900" },
+  pre_turno: { label: "Pre-Turno", bg: "bg-violet-50 dark:bg-violet-950/40", text: "text-violet-700 dark:text-violet-300", border: "border-violet-200 dark:border-violet-900" },
+  corte:     { label: "Corte",     bg: "bg-orange-50 dark:bg-orange-950/40", text: "text-orange-700 dark:text-orange-300", border: "border-orange-200 dark:border-orange-900" },
+  suplencia: { label: "Comodín",   bg: "bg-slate-50 dark:bg-slate-800/40",  text: "text-slate-500 dark:text-slate-400",  border: "border-slate-200 dark:border-slate-700" },
 };
 
 const ZONA_COLORS: Record<string, string> = {
@@ -111,9 +111,9 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
 
       {/* Cards de piso operativo */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="border rounded-xl p-4 bg-blue-50/50 col-span-2 lg:col-span-1">
+        <div className="border rounded-xl p-4 bg-blue-50/50 dark:bg-blue-950/40 col-span-2 lg:col-span-1">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Piso operativo (RF)</p>
-          <p className="text-4xl font-bold text-blue-700 tabular-nums mt-1">{pisoOperativo}</p>
+          <p className="text-4xl font-bold text-blue-700 dark:text-blue-300 tabular-nums mt-1">{pisoOperativo}</p>
           <p className="text-xs text-muted-foreground mt-1">recorridos fijos activos</p>
         </div>
         {(["Oeste","Norte","Sur","CABA"] as const).map(zona => {
@@ -138,9 +138,9 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
         </p>
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: "Mínimo (P.E. −5)", pkg: targetPkg - 5, color: "text-amber-600", bg: "bg-amber-50" },
-            { label: `Equilibrio (${targetPkg}P)`, pkg: targetPkg, color: "text-green-700", bg: "bg-green-50", highlight: true },
-            { label: "Máximo (P.E. +5)", pkg: targetPkg + 5, color: "text-amber-600", bg: "bg-amber-50" },
+            { label: "Mínimo (P.E. −5)", pkg: targetPkg - 5, color: "text-amber-600 dark:text-amber-300", bg: "bg-amber-50 dark:bg-amber-950/40" },
+            { label: `Equilibrio (${targetPkg}P)`, pkg: targetPkg, color: "text-green-700 dark:text-green-300", bg: "bg-green-50 dark:bg-green-950/40", highlight: true },
+            { label: "Máximo (P.E. +5)", pkg: targetPkg + 5, color: "text-amber-600 dark:text-amber-300", bg: "bg-amber-50 dark:bg-amber-950/40" },
           ].map(({ label, pkg, color, bg, highlight }) => {
             const choferes = Math.ceil((fijosActivos * pkg) / pkg); // = fijosActivos (1 chofer por recorrido en piso)
             // Choferes necesarios si cada uno lleva `pkg` paquetes y hay `fijosActivos * pkg` paquetes totales
@@ -178,7 +178,7 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
         </Button>
 
         {mostrarForm && (
-          <div className="border rounded-xl p-4 bg-slate-50 space-y-3">
+          <div className="border rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40 space-y-3">
             <p className="text-xs font-semibold">Nuevo recorrido</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="space-y-1">
@@ -314,8 +314,8 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
                         <button onClick={() => handleToggleActivo(r)}
                           className={cn("text-[10px] px-2 py-0.5 rounded-full border font-medium transition-colors",
                             r.activo
-                              ? "bg-green-50 text-green-700 border-green-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
-                              : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-green-50 hover:text-green-700 hover:border-green-200"
+                              ? "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-900 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-green-50 hover:text-green-700 hover:border-green-200"
                           )}>
                           {r.activo ? "Activo" : "Inactivo"}
                         </button>

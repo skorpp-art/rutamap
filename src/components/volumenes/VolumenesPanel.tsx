@@ -75,13 +75,13 @@ function CalidadDatosCard({ calidad }: { calidad: CalidadDatos[] }) {
   return (
     <div className="border rounded-xl p-5 bg-background">
       <div className="flex items-center gap-2 mb-3">
-        <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
+        <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-300 shrink-0" />
         <p className="text-sm font-bold">Calidad de datos históricos</p>
         <span className={cn(
           "ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full",
-          diasConDatos === totalDias ? "bg-emerald-100 text-emerald-700" :
-          diasConDatos >= 3 ? "bg-amber-100 text-amber-700" :
-          "bg-red-100 text-red-700"
+          diasConDatos === totalDias ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300" :
+          diasConDatos >= 3 ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300" :
+          "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300"
         )}>
           {diasConDatos}/{totalDias} días con datos · {registrosTotal} registros
         </span>
@@ -91,13 +91,13 @@ function CalidadDatosCard({ calidad }: { calidad: CalidadDatos[] }) {
           const d = calidad.find(c => c.dia_nombre === dia);
           const registros = d?.registros ?? 0;
           const pct = Math.min(100, Math.round(registros / meta * 100));
-          const color = registros >= 8 ? "bg-emerald-500" : registros >= 4 ? "bg-amber-400" : registros >= 1 ? "bg-blue-400" : "bg-slate-200";
-          const labelColor = registros >= 8 ? "text-emerald-700" : registros >= 4 ? "text-amber-600" : registros >= 1 ? "text-blue-600" : "text-muted-foreground";
+          const color = registros >= 8 ? "bg-emerald-500" : registros >= 4 ? "bg-amber-400" : registros >= 1 ? "bg-blue-400" : "bg-slate-200 dark:bg-slate-700";
+          const labelColor = registros >= 8 ? "text-emerald-700 dark:text-emerald-300" : registros >= 4 ? "text-amber-600 dark:text-amber-300" : registros >= 1 ? "text-blue-600 dark:text-blue-300" : "text-muted-foreground";
           const confianza = registros >= 8 ? "Alta" : registros >= 4 ? "Media" : registros >= 1 ? "Baja" : "Sin datos";
           return (
             <div key={dia} className="flex items-center gap-3">
               <span className="text-xs font-medium w-20 shrink-0">{dia}</span>
-              <div className="flex-1 h-2.5 rounded-full bg-slate-100 overflow-hidden">
+              <div className="flex-1 h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                 <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
               </div>
               <span className="text-[10px] tabular-nums text-muted-foreground w-16 text-right shrink-0">{registros}/{meta} sem</span>
@@ -246,7 +246,7 @@ export function VolumenesPanel() {
 
   const vsAnteriorPct = resumen?.vs_anterior_pct ?? 0;
   const DeltaIcon = vsAnteriorPct > 2 ? TrendingUp : vsAnteriorPct < -2 ? TrendingDown : Minus;
-  const deltaColor = vsAnteriorPct > 2 ? "text-emerald-600" : vsAnteriorPct < -2 ? "text-red-500" : "text-muted-foreground";
+  const deltaColor = vsAnteriorPct > 2 ? "text-emerald-600 dark:text-emerald-300" : vsAnteriorPct < -2 ? "text-red-500" : "text-muted-foreground";
 
   // suppress unused warning
   void promDiaActual;
@@ -263,7 +263,7 @@ export function VolumenesPanel() {
         <div className="flex items-center gap-4 ml-4 flex-wrap">
           <div className="text-center">
             <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Hoy</p>
-            <p className="text-base font-bold tabular-nums text-blue-700 leading-tight">
+            <p className="text-base font-bold tabular-nums text-blue-700 dark:text-blue-300 leading-tight">
               {resumen?.hoy_total ? resumen.hoy_total.toLocaleString("es-AR") : "—"}
             </p>
             <p className="text-[9px] text-muted-foreground">{choferesHoy > 0 ? `${choferesHoy} choferes` : "sin datos"}</p>
@@ -290,7 +290,7 @@ export function VolumenesPanel() {
               <div className="h-8 w-px bg-border" />
               <div className="text-center">
                 <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Proyección mañana</p>
-                <p className="text-base font-bold tabular-nums text-emerald-600 leading-tight">
+                <p className="text-base font-bold tabular-nums text-emerald-600 dark:text-emerald-300 leading-tight">
                   {proyectadoTotal.toLocaleString("es-AR")}
                 </p>
                 <p className="text-[9px] text-muted-foreground">confianza {confianza}</p>
@@ -315,7 +315,7 @@ export function VolumenesPanel() {
           <button key={t} onClick={() => setTab(t)}
             className={cn(
               "px-4 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0",
-              tab === t ? "border-blue-600 text-blue-600" : "border-transparent text-muted-foreground hover:text-foreground"
+              tab === t ? "border-blue-600 text-blue-600 dark:text-blue-300" : "border-transparent text-muted-foreground hover:text-foreground"
             )}>
             {lbl}
           </button>
@@ -358,7 +358,7 @@ export function VolumenesPanel() {
                         )}
                         {plantillaPara(fechaProyeccion) > 0 && (
                           <Button variant="outline" size="sm"
-                            className="h-11 text-xs whitespace-nowrap border-blue-300 text-blue-700 hover:bg-blue-50"
+                            className="h-11 text-xs whitespace-nowrap border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-50"
                             onClick={() => setCalcPaquetes(plantillaPara(fechaProyeccion))}>
                             🗓 {plantillaPara(fechaProyeccion).toLocaleString("es-AR")}
                           </Button>
@@ -382,7 +382,7 @@ export function VolumenesPanel() {
                           />
                           <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCalcRutas(v => v + 1)}>+</Button>
                         </div>
-                        <button className="text-[10px] text-blue-600 mt-1" onClick={() => setCalcRutas(rutasFijasCount)}>RF piso ({rutasFijasCount})</button>
+                        <button className="text-[10px] text-blue-600 dark:text-blue-300 mt-1" onClick={() => setCalcRutas(rutasFijasCount)}>RF piso ({rutasFijasCount})</button>
                       </div>
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Obj. pkg/chofer</label>
@@ -392,9 +392,9 @@ export function VolumenesPanel() {
                           <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setTargetPkg(v => Math.min(100, v + 1))}>+</Button>
                         </div>
                         <div className="flex gap-1 mt-1">
-                          <span className="text-[9px] px-1 py-0.5 rounded bg-amber-100 text-amber-700">Mín {targetPkg-5}</span>
-                          <span className="text-[9px] px-1 py-0.5 rounded bg-green-100 text-green-700 font-bold">Obj {targetPkg}</span>
-                          <span className="text-[9px] px-1 py-0.5 rounded bg-amber-100 text-amber-700">Máx {targetPkg+5}</span>
+                          <span className="text-[9px] px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">Mín {targetPkg-5}</span>
+                          <span className="text-[9px] px-1 py-0.5 rounded bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-bold">Obj {targetPkg}</span>
+                          <span className="text-[9px] px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">Máx {targetPkg+5}</span>
                         </div>
                       </div>
                     </div>
@@ -412,9 +412,9 @@ export function VolumenesPanel() {
                           { l: "Esperado (@"+targetPkg+")", v: choferesCalc, hl: true },
                           { l: "Máx (@"+(targetPkg-5)+")", v: choferesMax },
                         ].map(({ l, v, hl }) => (
-                          <div key={l} className={cn("p-3 text-center", hl && "bg-blue-50/50")}>
+                          <div key={l} className={cn("p-3 text-center", hl && "bg-blue-50/50 dark:bg-blue-950/40")}>
                             <p className="text-[10px] text-muted-foreground">{l}</p>
-                            <p className={cn("text-xl font-bold tabular-nums", hl ? "text-blue-700" : "")}>{v}</p>
+                            <p className={cn("text-xl font-bold tabular-nums", hl ? "text-blue-700 dark:text-blue-300" : "")}>{v}</p>
                           </div>
                         ))}
                       </div>
@@ -423,11 +423,11 @@ export function VolumenesPanel() {
                           <span className="text-xs font-medium">Promedio por ruta ({calcRutas} rutas)</span>
                           <span className="text-lg font-bold tabular-nums" style={{ color: ESTADO[zonaCalc].hex }}>{promPorRuta.toFixed(1)} pkg/ruta</span>
                         </div>
-                        <div className="relative h-5 rounded-full overflow-hidden bg-slate-100">
+                        <div className="relative h-5 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
                           <div className="absolute inset-0 flex">
-                            <div className="flex-1 bg-red-100" /><div className="flex-1 bg-amber-100" />
-                            <div className="flex-1 bg-green-100" /><div className="flex-1 bg-amber-100" />
-                            <div className="flex-1 bg-red-100" />
+                            <div className="flex-1 bg-red-100 dark:bg-red-900/40" /><div className="flex-1 bg-amber-100 dark:bg-amber-900/40" />
+                            <div className="flex-1 bg-green-100 dark:bg-green-900/40" /><div className="flex-1 bg-amber-100 dark:bg-amber-900/40" />
+                            <div className="flex-1 bg-red-100 dark:bg-red-900/40" />
                           </div>
                           {(() => {
                             const min = targetPkg - 12, max = targetPkg + 12;
@@ -437,7 +437,7 @@ export function VolumenesPanel() {
                         </div>
                         <div className="flex justify-between text-[9px] text-muted-foreground">
                           <span>↓ Ineficiente ({targetPkg-10})</span>
-                          <span className="font-semibold text-green-600">P.E. ({targetPkg})</span>
+                          <span className="font-semibold text-green-600 dark:text-green-300">P.E. ({targetPkg})</span>
                           <span>↑ Peligroso ({targetPkg+10})</span>
                         </div>
                         {zonaCalc !== "sin" && <div className="flex justify-center"><EstadoBadge estado={zonaCalc} /></div>}
@@ -460,13 +460,13 @@ export function VolumenesPanel() {
                     <div className="border rounded-xl p-4 bg-background space-y-3">
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <div>
-                          <p className="text-xs font-bold text-blue-700">{proyeccion.dia_nombre} · Semana {proyeccion.semana_mes}: {proyeccion.tipo_semana}</p>
+                          <p className="text-xs font-bold text-blue-700 dark:text-blue-300">{proyeccion.dia_nombre} · Semana {proyeccion.semana_mes}: {proyeccion.tipo_semana}</p>
                           <p className="text-[10px] text-muted-foreground">Factor estacional: {proyeccion.factor_semana > 1 ? "+" : ""}{Math.round((proyeccion.factor_semana - 1) * 100)}%</p>
                         </div>
                         <span className={cn("text-[10px] font-semibold px-2 py-1 rounded-full border",
-                          proyeccion.confianza === "alta" ? "bg-emerald-50 border-emerald-300 text-emerald-700" :
-                          proyeccion.confianza === "media" ? "bg-amber-50 border-amber-300 text-amber-700" :
-                          "bg-red-50 border-red-300 text-red-700")}>
+                          proyeccion.confianza === "alta" ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300" :
+                          proyeccion.confianza === "media" ? "bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300" :
+                          "bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300")}>
                           ● Confianza {proyeccion.confianza}
                         </span>
                       </div>
@@ -484,34 +484,34 @@ export function VolumenesPanel() {
                               onClick={() => { if (!valOk) return; setPkgProyectado(v); setTipoProyeccion(tipo); setCalcPaquetes(v); }}
                               className={cn("border rounded-xl p-3 text-center transition-all",
                                 valOk ? "hover:border-blue-400 hover:bg-blue-50/50 cursor-pointer" : "opacity-50 cursor-not-allowed",
-                                sel ? "border-blue-500 bg-blue-50 ring-2 ring-blue-400" : hl ? "border-blue-300 bg-blue-50/30" : "")}>
+                                sel ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 ring-2 ring-blue-400" : hl ? "border-blue-300 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/40" : "")}>
                               <p className="text-[10px] text-muted-foreground font-medium">{l}</p>
-                              <p className={cn("text-xl font-bold tabular-nums mt-0.5", sel || hl ? "text-blue-700" : "")}>{valOk ? v.toLocaleString("es-AR") : "—"}</p>
-                              <p className="text-[10px] font-semibold text-blue-600 mt-0.5">{c > 0 ? `${c} choferes` : "—"}</p>
-                              {sel && <p className="text-[9px] text-emerald-600 font-bold mt-0.5">✓ Seleccionado</p>}
+                              <p className={cn("text-xl font-bold tabular-nums mt-0.5", sel || hl ? "text-blue-700 dark:text-blue-300" : "")}>{valOk ? v.toLocaleString("es-AR") : "—"}</p>
+                              <p className="text-[10px] font-semibold text-blue-600 dark:text-blue-300 mt-0.5">{c > 0 ? `${c} choferes` : "—"}</p>
+                              {sel && <p className="text-[9px] text-emerald-600 dark:text-emerald-300 font-bold mt-0.5">✓ Seleccionado</p>}
                             </button>
                           );
                         })}
                       </div>
                       {recomendaciones.length > 0 && (
                         <div className="border rounded-lg overflow-hidden">
-                          <div className="px-3 py-2 bg-amber-50 border-b border-amber-200">
-                            <span className="text-xs font-bold text-amber-700">💡 Recomendaciones basadas en historial</span>
+                          <div className="px-3 py-2 bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-900">
+                            <span className="text-xs font-bold text-amber-700 dark:text-amber-300">💡 Recomendaciones basadas en historial</span>
                           </div>
                           <div className="divide-y max-h-40 overflow-y-auto">
                             {recomendaciones.map(r => (
                               <div key={r.codigo} className="px-3 py-2 flex items-start gap-3">
                                 <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full font-bold shrink-0 mt-0.5",
-                                  r.prioridad === "alta" ? "bg-red-100 text-red-700" :
-                                  r.prioridad === "media" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500")}>
+                                  r.prioridad === "alta" ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300" :
+                                  r.prioridad === "media" ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400")}>
                                   {r.prioridad.toUpperCase()}
                                 </span>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-bold text-blue-700">{r.codigo}</p>
-                                  <p className="text-[10px] text-slate-600">{r.motivo}</p>
+                                  <p className="text-xs font-bold text-blue-700 dark:text-blue-300">{r.codigo}</p>
+                                  <p className="text-[10px] text-slate-600 dark:text-slate-300">{r.motivo}</p>
                                 </div>
                                 {r.prom_hist > 0 && (
-                                  <p className={cn("text-xs font-bold shrink-0", Number(r.prom_hist) > 40 ? "text-red-600" : "text-amber-600")}>{r.prom_hist} prom</p>
+                                  <p className={cn("text-xs font-bold shrink-0", Number(r.prom_hist) > 40 ? "text-red-600 dark:text-red-300" : "text-amber-600 dark:text-amber-300")}>{r.prom_hist} prom</p>
                                 )}
                               </div>
                             ))}
@@ -555,7 +555,7 @@ export function VolumenesPanel() {
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 <div className="lg:col-span-2 border rounded-xl p-5 bg-background">
-                  <p className="text-sm font-bold uppercase tracking-wide text-blue-700 mb-4">Volumen semanal</p>
+                  <p className="text-sm font-bold uppercase tracking-wide text-blue-700 dark:text-blue-300 mb-4">Volumen semanal</p>
                   {cargando && !dashboard.length ? <SkeletonChart height={200} /> : (
                     <ResponsiveContainer width="100%" height={200}>
                       <ComposedChart data={chartData} margin={{ top: 5, right: 40, left: 0, bottom: 5 }}>

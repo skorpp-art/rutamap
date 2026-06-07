@@ -61,10 +61,10 @@ function BarraZona({ zona, recorridos }: { zona: Zona; recorridos: RecorridoGeo[
       </div>
       <div className="flex gap-3 text-[10px] text-muted-foreground">
         <span>
-          <span className="text-green-600 font-medium">{conArea.length}</span>/{activos.length} con área
+          <span className="text-green-600 dark:text-green-300 font-medium">{conArea.length}</span>/{activos.length} con área
         </span>
         <span>
-          <span className="text-blue-600 font-medium">{conTraza.length}</span>/{activos.length} con traza
+          <span className="text-blue-600 dark:text-blue-300 font-medium">{conTraza.length}</span>/{activos.length} con traza
         </span>
       </div>
     </div>
@@ -103,9 +103,9 @@ export function DashboardCobertura({ recorridos, onCerrar }: DashboardCoberturaP
         {/* Stats globales */}
         <div className="grid grid-cols-4 gap-4">
           <Stat label="Total recorridos" valor={recorridos.length} />
-          <Stat label="Activos" valor={activos.length} color="text-green-600" />
+          <Stat label="Activos" valor={activos.length} color="text-green-600 dark:text-green-300" />
           <Stat label="Inactivos" valor={inactivos.length} color="text-muted-foreground" />
-          <Stat label="Completos" valor={completos.length} sub="con área y traza" color="text-blue-600" />
+          <Stat label="Completos" valor={completos.length} sub="con área y traza" color="text-blue-600 dark:text-blue-300" />
         </div>
 
         {/* Barras de cobertura global */}
@@ -119,7 +119,7 @@ export function DashboardCobertura({ recorridos, onCerrar }: DashboardCoberturaP
             <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${pctArea}%` }} />
           </div>
           <div className="flex gap-3 text-[10px] text-muted-foreground">
-            <span className="text-green-600 font-medium">{conArea.length} con área</span>
+            <span className="text-green-600 dark:text-green-300 font-medium">{conArea.length} con área</span>
             {sinArea.length > 0 && (
               <span className="flex items-center gap-1 text-destructive">
                 <AlertCircle className="h-3 w-3" />

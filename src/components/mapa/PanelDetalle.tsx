@@ -116,7 +116,7 @@ function CampoInline({
         />
         <button
           onMouseDown={(e) => { e.preventDefault(); guardar(); }}
-          className="text-green-600 hover:text-green-700 shrink-0"
+          className="text-green-600 dark:text-green-300 hover:text-green-700 shrink-0"
           title="Guardar"
         >
           <Check className="h-3.5 w-3.5" />
@@ -294,9 +294,9 @@ export function PanelDetalle({
 
       {/* Banner modo edición geometría */}
       {editandoGeometria && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border-b border-amber-200">
+        <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-900">
           <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-          <span className="text-xs text-amber-700 font-medium">
+          <span className="text-xs text-amber-700 dark:text-amber-300 font-medium">
             Editando {modoEdicion === "area" ? "área" : "traza"}…
           </span>
         </div>
@@ -315,7 +315,7 @@ export function PanelDetalle({
               variant="outline"
               className={cn(
                 "gap-1 text-xs",
-                recorrido.tipo === "suplencia" && "border-orange-300 text-orange-600"
+                recorrido.tipo === "suplencia" && "border-orange-300 dark:border-orange-800 text-orange-600 dark:text-orange-300"
               )}
             >
               <Tag className="h-3 w-3" />
@@ -397,7 +397,7 @@ export function PanelDetalle({
         <>
         <Button
           variant="outline" size="sm"
-          className={cn("w-full text-xs gap-1.5", modoEdicion === "area" && "border-amber-400 text-amber-700 bg-amber-50")}
+          className={cn("w-full text-xs gap-1.5", modoEdicion === "area" && "border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40")}
           onClick={onIniciarEdicionArea}
           disabled={!onIniciarEdicionArea || editandoGeometria}
         >
@@ -407,7 +407,7 @@ export function PanelDetalle({
 
         <Button
           variant="outline" size="sm"
-          className={cn("w-full text-xs gap-1.5", modoEdicion === "traza" && "border-amber-400 text-amber-700 bg-amber-50")}
+          className={cn("w-full text-xs gap-1.5", modoEdicion === "traza" && "border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40")}
           onClick={onIniciarEdicionTraza}
           disabled={!onIniciarEdicionTraza || editandoGeometria}
         >
@@ -434,7 +434,7 @@ export function PanelDetalle({
             "w-full text-xs gap-1.5",
             recorrido.activo
               ? "text-destructive hover:bg-destructive/10 border-destructive/30"
-              : "text-green-600 hover:bg-green-50 border-green-300"
+              : "text-green-600 dark:text-green-300 hover:bg-green-50 border-green-300 dark:border-green-800"
           )}
           onClick={handleToggleActivo}
           disabled={editandoGeometria || togglando}
