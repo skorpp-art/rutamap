@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import {
   Save, RefreshCw, ChevronLeft, ChevronRight,
   FileDown, AlertTriangle, CheckCircle, Users, Clock,
-  Plus, Pencil, X,
+  Plus, Pencil, X, Lightbulb, Scissors, Sunrise,
 } from "lucide-react";
 import {
   getOperacionDia, inicializarOperacionDia,
   guardarOperacionBulk,
 } from "@/app/actions/operacion";
+import { getAnalisisRecorridos } from "@/app/actions/operaciones-diarias";
+import type { AnalisisRecorrido } from "@/app/actions/operaciones-diarias";
 import { crearRecorrido, actualizarCamposRecorrido, getSiguienteCodigo } from "@/app/actions/recorridos";
 import { ZONA_COLOR as ZONA_HEX } from "@/lib/estados";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -76,6 +78,8 @@ export function OperacionDia({
   const [filtroTipo, setFiltroTipo] = useState<string | null>(null);
   const [soloActivos, setSoloActivos] = useState(false);
   const [mostrarAlerta, setMostrarAlerta] = useState(false);
+  const [analisisHist, setAnalisisHist] = useState<AnalisisRecorrido[]>([]);
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(true);
   const reportRef = useRef<HTMLDivElement>(null);
   // Debounce para autoguardado al cambiar rutas ON/OFF
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -167,8 +171,42 @@ export function OperacionDia({
 
   useEffect(() => { cargar(fecha); }, [fecha, cargar]);
 
+  // Análisis histórico para sugerencias de cortes / pre-turnos
+  useEffect(() => {
+    getAnalisisRecorridos(30).then(res => {
+      if (res.ok && res.data) setAnalisisHist(res.data);
+    });
+  }, []);
+
   // Merge local edits
   const rutasConEdits = rutas.map(r => ({ ...r, ...editados[r.recorrido_id] }));
+
+  // ── Sugerencias inteligentes: dónde conviene armar cortes o pre-turnos ─────
+  // Cruza el análisis histórico (30 días) con las rutas activas hoy: si una ruta
+  // fija viene sobrecargada de forma sostenida, sugiere abrir un corte (split)
+  // o, si lo que sobra es sistemático "x fuera", un pre-turno que lo absorba.
+  const sugerencias = analisisHist
+    .filter(a => a.tipo === "fijo" && rutasConEdits.some(r => r.codigo === a.codigo && r.activo))
+    .filter(a => a.pct_sobrecarga >= 40 || a.prom_total >= 36)
+    .sort((a, b) => b.pct_sobrecarga - a.pct_sobrecarga || b.prom_total - a.prom_total)
+    .slice(0, 6)
+    .map(a => {
+      const ruta = rutasConEdits.find(r => r.codigo === a.codigo);
+      const tipoSugerido: "corte" | "pre_turno" = a.prom_x_fuera >= 4 ? "pre_turno" : "corte";
+      return {
+        ...a,
+        nombre: ruta?.nombre ?? "",
+        tipoSugerido,
+        motivo: tipoSugerido === "pre_turno"
+          ? `Promedio ${a.prom_total} pkg + ${a.prom_x_fuera} "x fuera" recurrentes — un pre-turno puede absorber ese excedente antes del reparto`
+          : `Sobrecargada el ${a.pct_sobrecarga}% de los días (prom. ${a.prom_total}, máx ${a.max_total}) — conviene dividirla en un corte`,
+      };
+    });
+
+  function abrirSugerencia(s: typeof sugerencias[number]) {
+    setModalRuta({ modo: "nuevo", codigo: "", nombre: `Corte de ${s.codigo} — ${s.nombre}`.slice(0, 80), zona: s.zona, tipo: s.tipoSugerido });
+    actualizarCodigoAuto(s.zona, s.tipoSugerido);
+  }
 
   // Filtrado
   const rutasFiltradas = rutasConEdits.filter(r => {
@@ -585,6 +623,45 @@ export function OperacionDia({
           </div>
         )}
       </div>
+
+      {/* ── Sugerencias inteligentes (cortes / pre-turnos) ── */}
+      {sugerencias.length > 0 && (
+        <div className="border-b bg-amber-50/40">
+          <button onClick={() => setMostrarSugerencias(v => !v)}
+            className="w-full px-5 py-2 flex items-center gap-2 text-left hover:bg-amber-50/70 transition-colors">
+            <Lightbulb className="h-4 w-4 text-amber-600" />
+            <span className="text-xs font-bold text-amber-800">
+              Sugerencias — {sugerencias.length} recorrido{sugerencias.length > 1 ? "s" : ""} con sobrecarga sostenida (últimos 30 días)
+            </span>
+            <ChevronRight className={cn("h-3.5 w-3.5 text-amber-600 ml-auto transition-transform", mostrarSugerencias && "rotate-90")} />
+          </button>
+          {mostrarSugerencias && (
+            <div className="px-5 pb-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+              {sugerencias.map(s => (
+                <div key={s.codigo} className="bg-white border border-amber-200 rounded-xl p-3 flex items-start gap-2.5">
+                  {s.tipoSugerido === "pre_turno"
+                    ? <Sunrise className="h-4 w-4 text-violet-600 shrink-0 mt-0.5" />
+                    : <Scissors className="h-4 w-4 text-orange-600 shrink-0 mt-0.5" />}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold">
+                      <span className="font-mono text-blue-700">{s.codigo}</span>
+                      <span className="text-muted-foreground font-normal"> · {s.zona}</span>
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{s.motivo}</p>
+                  </div>
+                  <Button size="sm" variant="outline"
+                    className={cn("h-7 gap-1 text-[10px] shrink-0",
+                      s.tipoSugerido === "pre_turno" ? "border-violet-300 text-violet-700 hover:bg-violet-50" : "border-orange-300 text-orange-700 hover:bg-orange-50")}
+                    onClick={() => abrirSugerencia(s)}>
+                    <Plus className="h-3 w-3" />
+                    {s.tipoSugerido === "pre_turno" ? "Crear pre-turno" : "Crear corte"}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Filtros ── */}
       <div className="px-5 py-2 border-b flex items-center gap-2 flex-wrap bg-background">
