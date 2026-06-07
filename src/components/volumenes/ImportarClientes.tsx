@@ -129,29 +129,29 @@ export function ImportarClientes({ onImportado, targetPkg = 30 }: Props) {
   return (
     <div className="p-6 space-y-5 max-w-3xl">
       <div className="flex items-center gap-2">
-        <FileSpreadsheet className="h-5 w-5 text-green-600" />
+        <FileSpreadsheet className="h-5 w-5 text-green-600 dark:text-green-300" />
         <h2 className="text-sm font-semibold">Paquetes por cliente</h2>
       </div>
 
       {/* Formato esperado */}
-      <div className="border rounded-xl p-4 bg-slate-50 space-y-2">
-        <p className="text-xs font-semibold text-slate-700">Formato detectado automáticamente:</p>
+      <div className="border rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40 space-y-2">
+        <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">Formato detectado automáticamente:</p>
         <div className="flex items-center gap-4">
           <table className="text-xs border rounded overflow-hidden text-left">
-            <thead className="bg-slate-200">
+            <thead className="bg-slate-200 dark:bg-slate-700">
               <tr><th className="px-3 py-1.5">A — Cliente</th><th className="px-3 py-1.5">B — Cantidad de Paquetes</th></tr>
             </thead>
-            <tbody className="bg-white">
+            <tbody className="bg-white dark:bg-slate-900">
               <tr className="border-t"><td className="px-3 py-1.5">GAMING CITY</td><td className="px-3 py-1.5 tabular-nums">258</td></tr>
               <tr className="border-t"><td className="px-3 py-1.5">DOMESTICABLES</td><td className="px-3 py-1.5 tabular-nums">172</td></tr>
               <tr className="border-t"><td className="px-3 py-1.5">…</td><td className="px-3 py-1.5">…</td></tr>
             </tbody>
           </table>
-          <div className="text-xs text-slate-600 space-y-1">
+          <div className="text-xs text-slate-600 dark:text-slate-300 space-y-1">
             <p>✅ Columna A: nombre del cliente</p>
             <p>✅ Columna B: cantidad de paquetes</p>
             <p>✅ Fecha auto-detectada del nombre del archivo</p>
-            <p className="text-slate-400">Ejemplo: <code className="bg-slate-100 px-1 rounded">Listado_Clientes_20260530.xlsx</code></p>
+            <p className="text-slate-400 dark:text-slate-500">Ejemplo: <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">Listado_Clientes_20260530.xlsx</code></p>
           </div>
         </div>
       </div>
@@ -182,11 +182,11 @@ export function ImportarClientes({ onImportado, targetPkg = 30 }: Props) {
       </div>
 
       {/* ── Cliente manual (grande que no figura en el Excel) ── */}
-      <div className="border rounded-xl p-4 bg-amber-50/50 border-amber-200 space-y-3">
+      <div className="border rounded-xl p-4 bg-amber-50/50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900 space-y-3">
         <div className="flex items-center gap-2">
-          <Package className="h-4 w-4 text-amber-600" />
-          <p className="text-sm font-semibold text-amber-800">Cliente manual</p>
-          <span className="text-[11px] text-amber-600/80">— se suma al total y sobrevive a las reimportaciones del Excel</span>
+          <Package className="h-4 w-4 text-amber-600 dark:text-amber-300" />
+          <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Cliente manual</p>
+          <span className="text-[11px] text-amber-600/80 dark:text-amber-300">— se suma al total y sobrevive a las reimportaciones del Excel</span>
         </div>
         <div className="flex items-end gap-2 flex-wrap">
           <div className="flex-1 min-w-[180px]">
@@ -213,11 +213,11 @@ export function ImportarClientes({ onImportado, targetPkg = 30 }: Props) {
 
         {clientesManuales.length > 0 && (
           <div className="space-y-1 pt-1">
-            <p className="text-[10px] text-amber-700 font-medium">Manuales del {fechaImport}:</p>
+            <p className="text-[10px] text-amber-700 dark:text-amber-300 font-medium">Manuales del {fechaImport}:</p>
             {clientesManuales.map(c => (
               <div key={c.id} className="flex items-center gap-2 text-xs bg-white/70 rounded-lg px-3 py-1.5">
                 <span className="flex-1 font-medium">{c.cliente}</span>
-                <span className="font-bold tabular-nums text-amber-700">{c.paquetes} paq</span>
+                <span className="font-bold tabular-nums text-amber-700 dark:text-amber-300">{c.paquetes} paq</span>
                 <button onClick={() => quitarClienteManual(c.id)}
                   className="text-muted-foreground/40 hover:text-red-600 transition-colors"
                   title="Quitar">✕</button>
@@ -230,9 +230,9 @@ export function ImportarClientes({ onImportado, targetPkg = 30 }: Props) {
       {/* Preview */}
       {preview.length > 0 && (
         <div className="border rounded-xl overflow-hidden">
-          <div className="px-4 py-2.5 border-b bg-green-50 flex items-center gap-3">
-            <Package className="h-4 w-4 text-green-600" />
-            <span className="text-xs font-semibold text-green-700">
+          <div className="px-4 py-2.5 border-b bg-green-50 dark:bg-green-950/40 flex items-center gap-3">
+            <Package className="h-4 w-4 text-green-600 dark:text-green-300" />
+            <span className="text-xs font-semibold text-green-700 dark:text-green-300">
               {preview.length} clientes · {totalPreview.toLocaleString("es-AR")} paquetes · {(totalPreview / rutasFijas).toFixed(1)} prom/ruta · {Math.ceil(totalPreview / targetPkg)} choferes
             </span>
           </div>
@@ -241,7 +241,7 @@ export function ImportarClientes({ onImportado, targetPkg = 30 }: Props) {
             {(["preview", "topClientes"] as const).map(t => (
               <button key={t} onClick={() => setVistaTab(t)}
                 className={cn("px-4 py-2 text-xs font-medium border-b-2 -mb-px transition-colors",
-                  vistaTab === t ? "border-blue-600 text-blue-600" : "border-transparent text-muted-foreground")}>
+                  vistaTab === t ? "border-blue-600 text-blue-600 dark:text-blue-300" : "border-transparent text-muted-foreground")}>
                 {t === "preview" ? `Todos (${preview.length})` : "Top 10"}
               </button>
             ))}

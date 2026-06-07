@@ -90,16 +90,16 @@ function detectarTurno(filename: string, sheetName: string): "tarde" | "preturno
 
 // ── Colores ───────────────────────────────────────────────────────────────────
 const ZONA_COLORS: Record<string, { bg: string; text: string }> = {
-  Oeste: { bg: "bg-blue-100", text: "text-blue-700" },
-  Norte: { bg: "bg-amber-100", text: "text-amber-700" },
-  Sur:   { bg: "bg-green-100", text: "text-green-700" },
-  CABA:  { bg: "bg-red-100",   text: "text-red-700" },
+  Oeste: { bg: "bg-blue-100 dark:bg-blue-900/40", text: "text-blue-700 dark:text-blue-300" },
+  Norte: { bg: "bg-amber-100 dark:bg-amber-900/40", text: "text-amber-700 dark:text-amber-300" },
+  Sur:   { bg: "bg-green-100 dark:bg-green-900/40", text: "text-green-700 dark:text-green-300" },
+  CABA:  { bg: "bg-red-100 dark:bg-red-900/40",   text: "text-red-700 dark:text-red-300" },
 };
 function colorProm(p: number) {
-  if (p > 40) return "text-red-600 font-bold";
-  if (p > 35) return "text-amber-600 font-semibold";
-  if (p < 20) return "text-slate-400";
-  return "text-green-600 font-semibold";
+  if (p > 40) return "text-red-600 dark:text-red-300 font-bold";
+  if (p > 35) return "text-amber-600 dark:text-amber-300 font-semibold";
+  if (p < 20) return "text-slate-400 dark:text-slate-500";
+  return "text-green-600 dark:text-green-300 font-semibold";
 }
 
 // ── Tooltip del gráfico ───────────────────────────────────────────────────────
@@ -115,8 +115,8 @@ function TooltipUnif({ active, payload, label }: any) {
       {d?.prom_por_ruta > 0 && <p>Prom/ruta: <b className={colorProm(d.prom_por_ruta)}>{d.prom_por_ruta}</b></p>}
       {d?.choferes_30 > 0 && <p>Choferes @30: <b>{d.choferes_30}</b></p>}
       <p className="text-[10px] text-muted-foreground flex gap-1">
-        {d?.tiene_clientes && <span className="text-blue-600">● Clientes</span>}
-        {d?.tiene_ops && <span className="text-green-600">● Operaciones</span>}
+        {d?.tiene_clientes && <span className="text-blue-600 dark:text-blue-300">● Clientes</span>}
+        {d?.tiene_ops && <span className="text-green-600 dark:text-green-300">● Operaciones</span>}
       </p>
     </div>
   );
@@ -135,8 +135,8 @@ function DiaDetalleInline({ fecha }: { fecha: string }) {
     });
   }, [fecha]);
 
-  if (cargando) return <td colSpan={10} className="bg-slate-50 px-4 py-3 text-xs text-muted-foreground text-center">Cargando detalle…</td>;
-  if (!detalle) return <td colSpan={10} className="bg-slate-50 px-4 py-3 text-xs text-muted-foreground text-center">Sin detalle</td>;
+  if (cargando) return <td colSpan={10} className="bg-slate-50 dark:bg-slate-800/40 px-4 py-3 text-xs text-muted-foreground text-center">Cargando detalle…</td>;
+  if (!detalle) return <td colSpan={10} className="bg-slate-50 dark:bg-slate-800/40 px-4 py-3 text-xs text-muted-foreground text-center">Sin detalle</td>;
 
   const porZona: { zona: string; rutas: number; total: number; prom: number; alertas: number }[] = detalle.por_zona ?? [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -145,7 +145,7 @@ function DiaDetalleInline({ fecha }: { fecha: string }) {
   const topClientes: any[] = (detalle.top_clientes ?? []).slice(0, 6);
 
   return (
-    <td colSpan={10} className="bg-slate-50 px-4 py-4 border-b">
+    <td colSpan={10} className="bg-slate-50 dark:bg-slate-800/40 px-4 py-4 border-b">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Top clientes */}
         {topClientes.length > 0 && (
@@ -176,7 +176,7 @@ function DiaDetalleInline({ fecha }: { fecha: string }) {
                 <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium w-14 text-center", ZONA_COLORS[z.zona]?.bg, ZONA_COLORS[z.zona]?.text)}>{z.zona}</span>
                 <span className="text-muted-foreground tabular-nums w-14">{z.rutas} rutas</span>
                 <span className={cn("font-semibold tabular-nums", colorProm(z.prom))}>{z.prom} prom</span>
-                {z.alertas > 0 && <span className="text-[10px] text-red-600 font-bold">⚠{z.alertas}</span>}
+                {z.alertas > 0 && <span className="text-[10px] text-red-600 dark:text-red-300 font-bold">⚠{z.alertas}</span>}
               </div>
             ))}
           </div>
@@ -184,13 +184,13 @@ function DiaDetalleInline({ fecha }: { fecha: string }) {
         {/* Rutas en alerta */}
         {rutasAlerta.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-red-600 flex items-center gap-1">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-red-600 dark:text-red-300 flex items-center gap-1">
               <AlertTriangle className="h-3 w-3" /> Sobrecarga (&gt;35)
             </p>
             {rutasAlerta.slice(0, 6).map((r: { codigo: string; total: number; x_fuera: number }) => (
               <div key={r.codigo} className="flex items-center gap-2 text-xs">
-                <span className="font-mono font-bold text-blue-700 w-20">{r.codigo}</span>
-                <span className={cn("font-bold tabular-nums", r.total > 40 ? "text-red-600" : "text-amber-600")}>{r.total} paq</span>
+                <span className="font-mono font-bold text-blue-700 dark:text-blue-300 w-20">{r.codigo}</span>
+                <span className={cn("font-bold tabular-nums", r.total > 40 ? "text-red-600 dark:text-red-300" : "text-amber-600 dark:text-amber-300")}>{r.total} paq</span>
                 {r.x_fuera > 0 && <span className="text-[10px] text-amber-500">+{r.x_fuera}</span>}
               </div>
             ))}
@@ -366,13 +366,13 @@ export function AnalisisOperaciones() {
 
         {/* Panel de importar (colapsable) */}
         {mostrarImportar && (
-          <div className="border-b bg-slate-50/80">
+          <div className="border-b bg-slate-50/80 dark:bg-slate-800/40">
             {/* Tabs internas */}
-            <div className="flex border-b bg-white">
+            <div className="flex border-b bg-white dark:bg-slate-900">
               {(["operaciones", "clientes"] as const).map(t => (
                 <button key={t} onClick={() => setTabImport(t)}
                   className={cn("px-5 py-2.5 text-xs font-semibold border-b-2 -mb-px transition-colors flex items-center gap-1.5",
-                    tabImport === t ? "border-blue-600 text-blue-600" : "border-transparent text-muted-foreground hover:text-foreground")}>
+                    tabImport === t ? "border-blue-600 text-blue-600 dark:text-blue-300" : "border-transparent text-muted-foreground hover:text-foreground")}>
                   {t === "operaciones" ? <><FileSpreadsheet className="h-3.5 w-3.5" /> Operaciones</> : <><Package className="h-3.5 w-3.5" /> Clientes</>}
                 </button>
               ))}
@@ -391,8 +391,8 @@ export function AnalisisOperaciones() {
                   </Button>
                   <input ref={fileRef} type="file" accept=".xlsx,.xls" multiple className="hidden" onChange={handleFiles} />
                 </div>
-                <div className="bg-white rounded-lg border p-3 text-xs text-muted-foreground space-y-0.5">
-                  <p className="font-semibold text-slate-600 mb-1">Detección automática:</p>
+                <div className="bg-white dark:bg-slate-900 rounded-lg border p-3 text-xs text-muted-foreground space-y-0.5">
+                  <p className="font-semibold text-slate-600 dark:text-slate-300 mb-1">Detección automática:</p>
                   <p>• Nombre con "PRE TURNO" → Pre-Turno · "TURNO TARDE" o "TARDE" → Tarde</p>
                   <p>• Columnas: <strong>CÓDIGO · SISTEMA · X FUERA · TOTAL</strong></p>
                 </div>
@@ -409,7 +409,7 @@ export function AnalisisOperaciones() {
                         </div>
                         <div className="max-h-32 overflow-y-auto">
                           <table className="w-full text-xs">
-                            <thead className="bg-slate-50 border-b">
+                            <thead className="bg-slate-50 dark:bg-slate-800/40 border-b">
                               <tr>
                                 <th className="text-left px-3 py-1 font-medium text-muted-foreground">Código</th>
                                 <th className="text-left px-3 py-1 font-medium text-muted-foreground">Zona</th>
@@ -421,16 +421,16 @@ export function AnalisisOperaciones() {
                             <tbody className="divide-y">
                               {arch.filas.map(f => (
                                 <tr key={f.codigo}>
-                                  <td className="px-3 py-1 font-mono font-bold text-blue-700">{f.codigo}</td>
+                                  <td className="px-3 py-1 font-mono font-bold text-blue-700 dark:text-blue-300">{f.codigo}</td>
                                   <td className="px-3 py-1">
                                     <span className={cn("text-[10px] px-1 rounded", ZONA_COLORS[f.zona]?.bg, ZONA_COLORS[f.zona]?.text)}>{f.zona}</span>
                                   </td>
                                   <td className="px-3 py-1 text-right tabular-nums">{f.sistema}</td>
-                                  <td className={cn("px-3 py-1 text-right tabular-nums", f.x_fuera > 0 ? "text-amber-600" : "text-muted-foreground/40")}>
+                                  <td className={cn("px-3 py-1 text-right tabular-nums", f.x_fuera > 0 ? "text-amber-600 dark:text-amber-300" : "text-muted-foreground/40")}>
                                     {f.x_fuera > 0 ? `+${f.x_fuera}` : "—"}
                                   </td>
                                   <td className={cn("px-3 py-1 text-right font-bold tabular-nums",
-                                    f.total > 40 ? "text-red-600" : f.total > 35 ? "text-amber-600" : "text-green-600")}>
+                                    f.total > 40 ? "text-red-600 dark:text-red-300" : f.total > 35 ? "text-amber-600 dark:text-amber-300" : "text-green-600 dark:text-green-300")}>
                                     {f.total}
                                   </td>
                                 </tr>
@@ -480,17 +480,17 @@ export function AnalisisOperaciones() {
               {/* Badges de fuentes */}
               <div className="flex gap-2 text-[10px] flex-wrap">
                 <span className={cn("px-2 py-1 rounded-full border flex items-center gap-1",
-                  tieneClientes ? "bg-blue-50 border-blue-200 text-blue-700" : "bg-slate-50 border-dashed text-muted-foreground")}>
+                  tieneClientes ? "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300" : "bg-slate-50 dark:bg-slate-800/40 border-dashed text-muted-foreground")}>
                   <Package className="h-3 w-3" />
                   {tieneClientes ? "Paquetes/clientes ✓" : "Sin datos de paquetes"}
                 </span>
                 <span className={cn("px-2 py-1 rounded-full border flex items-center gap-1",
-                  tieneOps ? "bg-green-50 border-green-200 text-green-700" : "bg-slate-50 border-dashed text-muted-foreground")}>
+                  tieneOps ? "bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-900 text-green-700 dark:text-green-300" : "bg-slate-50 dark:bg-slate-800/40 border-dashed text-muted-foreground")}>
                   <Users className="h-3 w-3" />
                   {tieneOps ? "Operaciones por recorrido ✓" : "Sin datos de recorridos"}
                 </span>
                 {!tieneClientes && (
-                  <span className="text-[10px] text-amber-600 self-center">→ Importá el Excel de clientes para ver paquetes totales</span>
+                  <span className="text-[10px] text-amber-600 dark:text-amber-300 self-center">→ Importá el Excel de clientes para ver paquetes totales</span>
                 )}
               </div>
 
@@ -521,7 +521,7 @@ export function AnalisisOperaciones() {
                 </ResponsiveContainer>
                 <div className="flex gap-3 mt-1 text-[9px] text-muted-foreground">
                   <span className="text-red-400">- - - 35 (máx)</span>
-                  <span className="text-green-600">— — 30 (P.E.)</span>
+                  <span className="text-green-600 dark:text-green-300">— — 30 (P.E.)</span>
                   <span className="text-amber-400">- - - 25 (mín)</span>
                 </div>
               </div>
@@ -554,7 +554,7 @@ export function AnalisisOperaciones() {
                         return (
                           <Fragment key={d.fecha + d.dia_nombre}>
                             <tr onClick={() => setDiaExpandido(exp ? null : d.fecha)}
-                              className={cn("hover:bg-accent/30 cursor-pointer transition-colors", exp && "bg-blue-50/50")}>
+                              className={cn("hover:bg-accent/30 cursor-pointer transition-colors", exp && "bg-blue-50/50 dark:bg-blue-950/40")}>
                               <td className="px-2 py-1.5 text-center text-muted-foreground">
                                 {exp ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                               </td>
@@ -573,18 +573,18 @@ export function AnalisisOperaciones() {
                               <td className={cn("px-3 py-1.5 text-right tabular-nums font-semibold", colorProm(d.prom_por_ruta))}>
                                 {d.prom_por_ruta > 0 ? d.prom_por_ruta : "—"}
                               </td>
-                              <td className={cn("px-3 py-1.5 text-right tabular-nums", d.pct_x_fuera > 5 ? "text-amber-600 font-semibold" : "text-muted-foreground")}>
+                              <td className={cn("px-3 py-1.5 text-right tabular-nums", d.pct_x_fuera > 5 ? "text-amber-600 dark:text-amber-300 font-semibold" : "text-muted-foreground")}>
                                 {d.pct_x_fuera > 0 ? `${d.pct_x_fuera}%` : "—"}
                               </td>
-                              <td className="px-3 py-1.5 text-right tabular-nums text-blue-700 font-semibold">
+                              <td className="px-3 py-1.5 text-right tabular-nums text-blue-700 dark:text-blue-300 font-semibold">
                                 {d.choferes_30 > 0 ? d.choferes_30 : "—"}
                               </td>
                               <td className="px-3 py-1.5">
                                 <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium",
-                                  d.estado === "SOBRECARGA" ? "bg-red-100 text-red-700" :
-                                  d.estado === "SOBRE TARGET" ? "bg-amber-100 text-amber-700" :
-                                  d.estado === "OK" ? "bg-green-100 text-green-700" :
-                                  "bg-slate-100 text-slate-500")}>
+                                  d.estado === "SOBRECARGA" ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300" :
+                                  d.estado === "SOBRE TARGET" ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300" :
+                                  d.estado === "OK" ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300" :
+                                  "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400")}>
                                   {d.estado}
                                 </span>
                               </td>
@@ -592,7 +592,7 @@ export function AnalisisOperaciones() {
                                 <button
                                   onClick={(e) => { e.stopPropagation(); eliminarDia(d.fecha); }}
                                   disabled={borrandoDia === d.fecha}
-                                  className="inline-flex items-center justify-center h-6 w-6 rounded-md border border-red-200 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50"
+                                  className="inline-flex items-center justify-center h-6 w-6 rounded-md border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50"
                                   title="Eliminar datos del día">
                                   {borrandoDia === d.fecha
                                     ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
@@ -614,9 +614,9 @@ export function AnalisisOperaciones() {
               {/* Alertas de recorridos */}
               {alertas.length > 0 && (
                 <div className="border rounded-xl overflow-hidden">
-                  <div className="px-4 py-2.5 border-b bg-red-50 flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-red-600" />
-                    <p className="text-xs font-semibold text-red-700">Recorridos con sobrecarga frecuente — últimos {diasVista} días</p>
+                  <div className="px-4 py-2.5 border-b bg-red-50 dark:bg-red-950/40 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-300" />
+                    <p className="text-xs font-semibold text-red-700 dark:text-red-300">Recorridos con sobrecarga frecuente — últimos {diasVista} días</p>
                   </div>
                   <table className="w-full text-xs">
                     <thead className="bg-background border-b">
@@ -632,20 +632,20 @@ export function AnalisisOperaciones() {
                     <tbody className="divide-y">
                       {alertas.map(r => (
                         <tr key={r.codigo} className="hover:bg-accent/20">
-                          <td className="px-3 py-2 font-mono font-bold text-blue-700">{r.codigo}</td>
+                          <td className="px-3 py-2 font-mono font-bold text-blue-700 dark:text-blue-300">{r.codigo}</td>
                           <td className="px-3 py-2">
                             <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium", ZONA_COLORS[r.zona]?.bg, ZONA_COLORS[r.zona]?.text)}>{r.zona}</span>
                           </td>
                           <td className={cn("px-3 py-2 text-right font-bold tabular-nums", colorProm(r.prom_total))}>{r.prom_total}</td>
                           <td className="px-3 py-2 text-right tabular-nums font-semibold">{r.max_total}</td>
                           <td className="px-3 py-2 text-right">
-                            <span className={cn("font-bold", r.pct_sobre >= 75 ? "text-red-600" : "text-amber-600")}>{r.pct_sobre}%</span>
+                            <span className={cn("font-bold", r.pct_sobre >= 75 ? "text-red-600 dark:text-red-300" : "text-amber-600 dark:text-amber-300")}>{r.pct_sobre}%</span>
                           </td>
                           <td className="px-3 py-2">
                             <span className={cn("text-[10px] px-2 py-0.5 rounded-full",
-                              r.recomendacion.includes("permanente") ? "bg-red-100 text-red-700 font-semibold" :
-                              r.recomendacion.includes("frecuente") ? "bg-amber-100 text-amber-700" :
-                              "bg-slate-100 text-slate-500")}>
+                              r.recomendacion.includes("permanente") ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 font-semibold" :
+                              r.recomendacion.includes("frecuente") ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300" :
+                              "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400")}>
                               {r.recomendacion}
                             </span>
                           </td>
@@ -682,26 +682,26 @@ export function AnalisisOperaciones() {
                 </thead>
                 <tbody className="divide-y">
                   {analisis.map(r => (
-                    <tr key={r.codigo} className={cn("hover:bg-accent/20 transition-colors", r.pct_sobrecarga >= 50 && "bg-red-50/30")}>
-                      <td className="px-3 py-2 font-mono font-bold text-blue-700">{r.codigo}</td>
+                    <tr key={r.codigo} className={cn("hover:bg-accent/20 transition-colors", r.pct_sobrecarga >= 50 && "bg-red-50/30 dark:bg-red-950/40")}>
+                      <td className="px-3 py-2 font-mono font-bold text-blue-700 dark:text-blue-300">{r.codigo}</td>
                       <td className="px-3 py-2">
                         <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium", ZONA_COLORS[r.zona]?.bg, ZONA_COLORS[r.zona]?.text)}>{r.zona}</span>
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{r.dias_registrados}</td>
                       <td className={cn("px-3 py-2 text-right tabular-nums", colorProm(r.prom_total))}>{r.prom_total}</td>
-                      <td className={cn("px-3 py-2 text-right tabular-nums", r.prom_x_fuera >= 3 ? "text-amber-600 font-semibold" : "text-muted-foreground")}>
+                      <td className={cn("px-3 py-2 text-right tabular-nums", r.prom_x_fuera >= 3 ? "text-amber-600 dark:text-amber-300 font-semibold" : "text-muted-foreground")}>
                         {r.prom_x_fuera > 0 ? `+${r.prom_x_fuera}` : "—"}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums font-semibold">{r.max_total}</td>
                       <td className="px-3 py-2 text-right">
                         {r.pct_sobrecarga > 0
-                          ? <span className={cn("font-semibold", r.pct_sobrecarga >= 50 ? "text-red-600" : "text-amber-600")}>{r.pct_sobrecarga}%</span>
+                          ? <span className={cn("font-semibold", r.pct_sobrecarga >= 50 ? "text-red-600 dark:text-red-300" : "text-amber-600 dark:text-amber-300")}>{r.pct_sobrecarga}%</span>
                           : <span className="text-muted-foreground">—</span>}
                       </td>
                       <td className="px-3 py-2 text-center">
                         <span className={cn(
                           r.tendencia === "subiendo" ? "text-red-500" :
-                          r.tendencia === "bajando"  ? "text-green-600" : "text-muted-foreground"
+                          r.tendencia === "bajando"  ? "text-green-600 dark:text-green-300" : "text-muted-foreground"
                         )}>
                           {r.tendencia === "subiendo" ? <TrendingUp className="h-3.5 w-3.5" /> :
                            r.tendencia === "bajando"  ? <TrendingDown className="h-3.5 w-3.5" /> :
@@ -710,9 +710,9 @@ export function AnalisisOperaciones() {
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex gap-1 flex-wrap">
-                          {r.pct_sobrecarga >= 50 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700">⚠ Sobrecarga</span>}
-                          {r.prom_x_fuera >= 3 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">X Fuera alto</span>}
-                          {r.tendencia === "subiendo" && r.prom_total > 32 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700">↑ Revisar</span>}
+                          {r.pct_sobrecarga >= 50 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">⚠ Sobrecarga</span>}
+                          {r.prom_x_fuera >= 3 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">X Fuera alto</span>}
+                          {r.tendencia === "subiendo" && r.prom_total > 32 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300">↑ Revisar</span>}
                         </div>
                       </td>
                     </tr>

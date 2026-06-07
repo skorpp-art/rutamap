@@ -110,7 +110,7 @@ export function KpisMonitoreo() {
       {/* Header */}
       <div className="flex items-start gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <Activity className="h-5 w-5 text-blue-600" />
+          <Activity className="h-5 w-5 text-blue-600 dark:text-blue-300" />
           <div>
             <h2 className="text-sm font-bold">Monitoreo general · KPIs</h2>
             <p className="text-xs text-muted-foreground">Carga del playón, entregas en término y devoluciones. Cargá un día y seguí la tendencia.</p>
@@ -123,7 +123,7 @@ export function KpisMonitoreo() {
 
       {/* Editor de objetivos */}
       {editTargets && (
-        <div className="border rounded-xl p-4 bg-slate-50 flex items-end gap-4 flex-wrap">
+        <div className="border rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40 flex items-end gap-4 flex-wrap">
           <div>
             <label className="text-[10px] uppercase font-semibold text-muted-foreground">Carga playón (máx min)</label>
             <input type="number" value={targets.carga}

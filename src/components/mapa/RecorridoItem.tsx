@@ -87,9 +87,9 @@ export function RecorridoItem({ recorrido, seleccionado, visible, onClick, onTog
               variant="outline"
               className={cn(
                 "text-[10px] px-1.5 py-0 h-4",
-                recorrido.tipo === "suplencia" && "border-orange-300 text-orange-600",
-                recorrido.tipo === "corte" && "border-red-300 text-red-600",
-                recorrido.tipo === "pre_turno" && "border-violet-300 text-violet-600",
+                recorrido.tipo === "suplencia" && "border-orange-300 dark:border-orange-800 text-orange-600 dark:text-orange-300",
+                recorrido.tipo === "corte" && "border-red-300 dark:border-red-800 text-red-600 dark:text-red-300",
+                recorrido.tipo === "pre_turno" && "border-violet-300 dark:border-violet-800 text-violet-600 dark:text-violet-300",
               )}
             >
               {TIPO_LABELS[recorrido.tipo] ?? recorrido.tipo}

@@ -42,10 +42,10 @@ function fmtFecha(iso: string) {
 }
 
 const TIPO_BADGE: Record<string, string> = {
-  fijo: "bg-blue-100 text-blue-700 border-blue-200",
-  pre_turno: "bg-violet-100 text-violet-700 border-violet-200",
-  corte: "bg-orange-100 text-orange-700 border-orange-200",
-  suplencia: "bg-slate-100 text-slate-500 border-slate-200",
+  fijo: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900",
+  pre_turno: "bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-900",
+  corte: "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-900",
+  suplencia: "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700",
 };
 const TIPO_LABEL: Record<string, string> = {
   fijo: "Fijo", pre_turno: "Pre-T", corte: "Corte", suplencia: "Cmd",
@@ -225,9 +225,9 @@ export function OperacionDia({
   const promedio = nActivas > 0 && pkgTotal > 0 ? pkgTotal / nActivas : 0;
   const choferes = pkgTotal > 0 ? Math.ceil(pkgTotal / targetPkg) : nActivas;
   const estadoColor = promedio === 0 ? "text-muted-foreground"
-    : promedio > 40 || promedio < 20 ? "text-red-600"
-    : promedio > 35 || promedio < 25 ? "text-amber-600"
-    : "text-green-600";
+    : promedio > 40 || promedio < 20 ? "text-red-600 dark:text-red-300"
+    : promedio > 35 || promedio < 25 ? "text-amber-600 dark:text-amber-300"
+    : "text-green-600 dark:text-green-300";
   const estadoLabel = promedio === 0 ? "Sin paquetes"
     : promedio > 40 ? "⚠ SOBRECARGA"
     : promedio > 35 ? "↑ SOBRE TARGET"
@@ -513,7 +513,7 @@ export function OperacionDia({
           {fmtFecha(fecha)}
         </span>
         {tipoProyeccion && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 font-medium">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900 font-medium">
             Proyección {tipoProyeccion === "min" ? "Mínima" : tipoProyeccion === "esperado" ? "Esperada" : "Máxima"} — {pkgTotal.toLocaleString("es-AR")} paq
           </span>
         )}
@@ -527,11 +527,11 @@ export function OperacionDia({
             onChange={e => setPkgTotal(parseInt(e.target.value) || 0)}
             className={cn(
               "border rounded px-2 py-0.5 text-sm h-7 w-28 tabular-nums text-right bg-background font-semibold",
-              pkgTotal > 0 ? "border-blue-400 text-blue-700" : "border-border text-muted-foreground"
+              pkgTotal > 0 ? "border-blue-400 text-blue-700 dark:text-blue-300" : "border-border text-muted-foreground"
             )}
           />
           {pkgBase > 0 && pkgTotal !== pkgBase && (
-            <button className="text-[10px] text-blue-600 hover:underline"
+            <button className="text-[10px] text-blue-600 dark:text-blue-300 hover:underline"
               onClick={() => setPkgTotal(pkgBase)}>
               ← {pkgBase.toLocaleString("es-AR")}
             </button>
@@ -553,12 +553,12 @@ export function OperacionDia({
       </div>
 
       {/* ── Calculadora en tiempo real ── */}
-      <div className="px-5 py-3 border-b bg-slate-50/50 flex items-center gap-4 flex-wrap">
+      <div className="px-5 py-3 border-b bg-slate-50/50 dark:bg-slate-800/40 flex items-center gap-4 flex-wrap">
         {/* Estado */}
         <div className="flex items-center gap-2">
           {promedio === 0 ? <Clock className="h-5 w-5 text-muted-foreground" />
             : promedio > 35 || promedio < 25 ? <AlertTriangle className="h-5 w-5 text-amber-500" />
-            : <CheckCircle className="h-5 w-5 text-green-600" />}
+            : <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-300" />}
           <span className={cn("text-sm font-bold", estadoColor)}>{estadoLabel}</span>
         </div>
 
@@ -572,7 +572,7 @@ export function OperacionDia({
         ].map(({ label, valor, sub, hl }) => (
           <div key={label} className="text-center">
             <p className="text-[9px] uppercase tracking-wide text-muted-foreground font-semibold">{label}</p>
-            <p className={cn("text-lg font-bold tabular-nums leading-tight", hl ? "text-blue-700" : "text-foreground")}>{valor}</p>
+            <p className={cn("text-lg font-bold tabular-nums leading-tight", hl ? "text-blue-700 dark:text-blue-300" : "text-foreground")}>{valor}</p>
             <p className="text-[9px] text-muted-foreground">{sub}</p>
           </div>
         ))}
@@ -583,17 +583,17 @@ export function OperacionDia({
             <div className="h-5 w-px bg-border" />
             <div className={cn(
               "border rounded-lg px-3 py-2 text-center min-w-[110px]",
-              margenHasta40 < 0 ? "bg-red-50 border-red-200" :
-              margenHasta35 < 200 ? "bg-amber-50 border-amber-200" :
-              "bg-emerald-50 border-emerald-200"
+              margenHasta40 < 0 ? "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900" :
+              margenHasta35 < 200 ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900" :
+              "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900"
             )}>
               <p className="text-[9px] uppercase tracking-wide font-semibold text-muted-foreground">
                 Margen hasta 40P
               </p>
               <p className={cn("text-base font-bold tabular-nums",
-                margenHasta40 < 0 ? "text-red-600" :
-                margenHasta35 < 200 ? "text-amber-600" :
-                "text-emerald-600")}>
+                margenHasta40 < 0 ? "text-red-600 dark:text-red-300" :
+                margenHasta35 < 200 ? "text-amber-600 dark:text-amber-300" :
+                "text-emerald-600 dark:text-emerald-300")}>
                 {margenHasta40 < 0
                   ? `−${Math.abs(margenHasta40).toLocaleString("es-AR")} paq`
                   : `+${margenHasta40.toLocaleString("es-AR")} paq`}
@@ -611,9 +611,9 @@ export function OperacionDia({
         {promedio > 0 && (
           <div className="flex-1 min-w-[120px]">
             <div className="flex justify-between text-[8px] text-muted-foreground mb-0.5">
-              <span>20</span><span>25</span><span className="font-bold text-green-600">30</span><span>35</span><span>40</span>
+              <span>20</span><span>25</span><span className="font-bold text-green-600 dark:text-green-300">30</span><span>35</span><span>40</span>
             </div>
-            <div className="h-3 rounded-full bg-slate-200 overflow-hidden relative">
+            <div className="h-3 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden relative">
               {/* Zona verde 25-35 */}
               <div className="absolute h-full bg-green-200" style={{ left: "25%", width: "50%" }} />
               {/* Indicador */}
@@ -626,32 +626,32 @@ export function OperacionDia({
 
       {/* ── Sugerencias inteligentes (cortes / pre-turnos) ── */}
       {sugerencias.length > 0 && (
-        <div className="border-b bg-amber-50/40">
+        <div className="border-b bg-amber-50/40 dark:bg-amber-950/40">
           <button onClick={() => setMostrarSugerencias(v => !v)}
             className="w-full px-5 py-2 flex items-center gap-2 text-left hover:bg-amber-50/70 transition-colors">
-            <Lightbulb className="h-4 w-4 text-amber-600" />
-            <span className="text-xs font-bold text-amber-800">
+            <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-300" />
+            <span className="text-xs font-bold text-amber-800 dark:text-amber-200">
               Sugerencias — {sugerencias.length} recorrido{sugerencias.length > 1 ? "s" : ""} con sobrecarga sostenida (últimos 30 días)
             </span>
-            <ChevronRight className={cn("h-3.5 w-3.5 text-amber-600 ml-auto transition-transform", mostrarSugerencias && "rotate-90")} />
+            <ChevronRight className={cn("h-3.5 w-3.5 text-amber-600 dark:text-amber-300 ml-auto transition-transform", mostrarSugerencias && "rotate-90")} />
           </button>
           {mostrarSugerencias && (
             <div className="px-5 pb-3 grid grid-cols-1 md:grid-cols-2 gap-2">
               {sugerencias.map(s => (
-                <div key={s.codigo} className="bg-white border border-amber-200 rounded-xl p-3 flex items-start gap-2.5">
+                <div key={s.codigo} className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900 rounded-xl p-3 flex items-start gap-2.5">
                   {s.tipoSugerido === "pre_turno"
-                    ? <Sunrise className="h-4 w-4 text-violet-600 shrink-0 mt-0.5" />
-                    : <Scissors className="h-4 w-4 text-orange-600 shrink-0 mt-0.5" />}
+                    ? <Sunrise className="h-4 w-4 text-violet-600 dark:text-violet-300 shrink-0 mt-0.5" />
+                    : <Scissors className="h-4 w-4 text-orange-600 dark:text-orange-300 shrink-0 mt-0.5" />}
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold">
-                      <span className="font-mono text-blue-700">{s.codigo}</span>
+                      <span className="font-mono text-blue-700 dark:text-blue-300">{s.codigo}</span>
                       <span className="text-muted-foreground font-normal"> · {s.zona}</span>
                     </p>
                     <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{s.motivo}</p>
                   </div>
                   <Button size="sm" variant="outline"
                     className={cn("h-7 gap-1 text-[10px] shrink-0",
-                      s.tipoSugerido === "pre_turno" ? "border-violet-300 text-violet-700 hover:bg-violet-50" : "border-orange-300 text-orange-700 hover:bg-orange-50")}
+                      s.tipoSugerido === "pre_turno" ? "border-violet-300 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50" : "border-orange-300 dark:border-orange-800 text-orange-700 dark:text-orange-300 hover:bg-orange-50")}
                     onClick={() => abrirSugerencia(s)}>
                     <Plus className="h-3 w-3" />
                     {s.tipoSugerido === "pre_turno" ? "Crear pre-turno" : "Crear corte"}
@@ -730,8 +730,8 @@ export function OperacionDia({
                 return (
                   <tr key={r.recorrido_id}
                     className={cn("transition-colors",
-                      !r.activo ? "opacity-40 bg-slate-50" : "hover:bg-accent/20",
-                      modificada && "bg-amber-50/40"
+                      !r.activo ? "opacity-40 bg-slate-50 dark:bg-slate-800/40" : "hover:bg-accent/20",
+                      modificada && "bg-amber-50/40 dark:bg-amber-950/40"
                     )}>
                     {/* Toggle ON/OFF */}
                     <td className="px-3 py-2 text-center">
@@ -765,7 +765,7 @@ export function OperacionDia({
                         value={r.notas_dia ?? ""}
                         placeholder="ej: con Castelar, max 30…"
                         onChange={e => setNota(r.recorrido_id, e.target.value)}
-                        className="w-full border-0 border-b border-dashed border-slate-300 bg-transparent text-xs focus:outline-none focus:border-blue-400 py-0.5 placeholder:text-slate-300"
+                        className="w-full border-0 border-b border-dashed border-slate-300 dark:border-slate-600 bg-transparent text-xs focus:outline-none focus:border-blue-400 py-0.5 placeholder:text-slate-300"
                       />
                     </td>
                     {/* Editar recorrido */}
@@ -785,11 +785,11 @@ export function OperacionDia({
       </div>
 
       {/* ── Footer ── */}
-      <div className="px-5 py-2.5 border-t bg-slate-50 flex items-center gap-3 flex-wrap text-xs">
+      <div className="px-5 py-2.5 border-t bg-slate-50 dark:bg-slate-800/40 flex items-center gap-3 flex-wrap text-xs">
         <Users className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="text-muted-foreground">
           <strong className="text-foreground">{nActivas}</strong> rutas ·
-          <strong className="text-blue-700 ml-1">{choferes}</strong> choferes ·
+          <strong className="text-blue-700 dark:text-blue-300 ml-1">{choferes}</strong> choferes ·
           prom. <strong className={estadoColor}>{promedio > 0 ? promedio.toFixed(1) : "—"}</strong> pkg/ruta
         </span>
         {hayEdits && (
@@ -861,7 +861,7 @@ export function OperacionDia({
                 <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold flex items-center gap-2">
                   3. Código
                   {modalRuta.modo === "nuevo" && (
-                    <span className="text-[9px] text-emerald-600 font-normal normal-case bg-emerald-50 px-1.5 py-0.5 rounded">
+                    <span className="text-[9px] text-emerald-600 dark:text-emerald-300 font-normal normal-case bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">
                       Auto-generado · podés editarlo
                     </span>
                   )}
@@ -904,7 +904,7 @@ export function OperacionDia({
             {/* Header */}
             <div className="flex items-start gap-3">
               {promedio >= targetPkg - 5 && promedio <= targetPkg + 5
-                ? <CheckCircle className="h-6 w-6 text-green-600 shrink-0 mt-0.5" />
+                ? <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-300 shrink-0 mt-0.5" />
                 : <AlertTriangle className="h-6 w-6 text-amber-500 shrink-0 mt-0.5" />
               }
               <div>
@@ -922,7 +922,7 @@ export function OperacionDia({
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-3 text-center border rounded-xl p-3 bg-slate-50">
+            <div className="grid grid-cols-3 gap-3 text-center border rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Rutas</p>
                 <p className="text-xl font-bold">{nActivas}</p>
@@ -935,7 +935,7 @@ export function OperacionDia({
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Choferes</p>
-                <p className="text-xl font-bold text-blue-700">{choferes}</p>
+                <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{choferes}</p>
                 <p className="text-[9px] text-muted-foreground">@{targetPkg} pkg</p>
               </div>
             </div>
@@ -944,9 +944,9 @@ export function OperacionDia({
             {nActivas > 0 && pkgTotal > 0 && (
               <div className={cn(
                 "rounded-xl p-3 border text-center",
-                margenHasta40 < 0 ? "bg-red-50 border-red-200" :
-                margenHasta35 < 200 ? "bg-amber-50 border-amber-200" :
-                "bg-emerald-50 border-emerald-200"
+                margenHasta40 < 0 ? "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900" :
+                margenHasta35 < 200 ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900" :
+                "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900"
               )}>
                 <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-1">
                   Capacidad restante antes de superar 40 pkg/ruta
@@ -954,8 +954,8 @@ export function OperacionDia({
                 <div className="flex items-center justify-center gap-4">
                   <div>
                     <p className={cn("text-2xl font-black tabular-nums",
-                      margenHasta40 < 0 ? "text-red-600" :
-                      margenHasta35 < 200 ? "text-amber-600" : "text-emerald-600")}>
+                      margenHasta40 < 0 ? "text-red-600 dark:text-red-300" :
+                      margenHasta35 < 200 ? "text-amber-600 dark:text-amber-300" : "text-emerald-600 dark:text-emerald-300")}>
                       {margenHasta40 < 0
                         ? `−${Math.abs(margenHasta40).toLocaleString("es-AR")}`
                         : `+${margenHasta40.toLocaleString("es-AR")}`}
@@ -965,7 +965,7 @@ export function OperacionDia({
                   <div className="text-left text-xs text-muted-foreground space-y-0.5">
                     <p>Actual: <b>{pkgTotal.toLocaleString("es-AR")}</b> paq</p>
                     <p>Capacidad máx (@40): <b>{capacidadMax40.toLocaleString("es-AR")}</b></p>
-                    <p>Buffer disponible: <b className={margenHasta40 < 0 ? "text-red-600" : "text-emerald-600"}>{pctBuffer}%</b></p>
+                    <p>Buffer disponible: <b className={margenHasta40 < 0 ? "text-red-600 dark:text-red-300" : "text-emerald-600 dark:text-emerald-300"}>{pctBuffer}%</b></p>
                   </div>
                 </div>
               </div>
@@ -975,8 +975,8 @@ export function OperacionDia({
             {promedio > 0 && !(promedio >= targetPkg - 5 && promedio <= targetPkg + 5) && (
               <div className={`rounded-lg p-3 text-sm ${
                 promedio > targetPkg + 5
-                  ? "bg-red-50 border border-red-200 text-red-700"
-                  : "bg-amber-50 border border-amber-200 text-amber-700"
+                  ? "bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300"
+                  : "bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-300"
               }`}>
                 {promedio > targetPkg + 5
                   ? `⚠ Sobrecarga: ~${promedio.toFixed(0)} pkg/ruta (máx aceptable: ${targetPkg+5}). Agregá más recorridos para reducir la carga.`
@@ -986,7 +986,7 @@ export function OperacionDia({
             )}
 
             {promedio === 0 && pkgTotal === 0 && (
-              <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-lg p-3">
                 ⚠ No hay paquetes asignados. El PDF se exportará sin cálculo de promedio.
               </p>
             )}

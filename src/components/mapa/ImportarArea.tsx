@@ -121,7 +121,7 @@ export function ImportarArea({ onGeometriaImportada }: ImportarAreaProps) {
       />
       <button
         onClick={() => inputRef.current?.click()}
-        className="flex items-center gap-1 text-[11px] font-medium py-1 px-2.5 rounded-md bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200"
+        className="flex items-center gap-1 text-[11px] font-medium py-1 px-2.5 rounded-md bg-slate-50 dark:bg-slate-800/40 text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition-colors border border-slate-200 dark:border-slate-700"
         title="Importar área desde archivo GeoJSON o KML"
       >
         <Upload className="h-3 w-3" />

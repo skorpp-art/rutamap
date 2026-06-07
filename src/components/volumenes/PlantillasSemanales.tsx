@@ -89,7 +89,7 @@ export function PlantillasSemanales({ onUsarValor }: Props) {
       {/* Header */}
       <div className="flex items-start gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <CalendarRange className="h-5 w-5 text-blue-600" />
+          <CalendarRange className="h-5 w-5 text-blue-600 dark:text-blue-300" />
           <div>
             <h2 className="text-sm font-bold">Plantillas semanales</h2>
             <p className="text-xs text-muted-foreground">
@@ -111,11 +111,11 @@ export function PlantillasSemanales({ onUsarValor }: Props) {
       {/* Leyenda */}
       <div className="flex items-center gap-4 text-[11px] text-muted-foreground flex-wrap">
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded bg-blue-100 border border-blue-300" />
+          <span className="inline-block w-3 h-3 rounded bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-800" />
           Valor base editable
         </span>
         <span className="flex items-center gap-1.5">
-          <History className="h-3 w-3 text-slate-400" /> hist = promedio histórico real (clic para copiar)
+          <History className="h-3 w-3 text-slate-400 dark:text-slate-500" /> hist = promedio histórico real (clic para copiar)
         </span>
         <span>Estacionalidad ya aplicada por la proyección — acá cargás el volumen real esperado.</span>
       </div>
@@ -142,9 +142,9 @@ export function PlantillasSemanales({ onUsarValor }: Props) {
                     <span className="text-[10px] text-muted-foreground">{sem.sub}</span>
                     <span className={cn(
                       "text-[9px] font-bold px-1 py-px rounded",
-                      sem.factor > 1 ? "bg-emerald-100 text-emerald-700"
-                        : sem.factor < 1 ? "bg-red-100 text-red-700"
-                        : "bg-slate-100 text-slate-500"
+                      sem.factor > 1 ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
+                        : sem.factor < 1 ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                     )}>
                       {sem.factor > 1 ? "+" : ""}{Math.round((sem.factor - 1) * 100)}%
                     </span>
@@ -169,7 +169,7 @@ export function PlantillasSemanales({ onUsarValor }: Props) {
                         onChange={(e) => setValores((p) => ({ ...p, [k]: parseInt(e.target.value) || 0 }))}
                         onBlur={(e) => guardarCelda(sem.n, d, parseInt(e.target.value) || 0)}
                         className={cn(
-                          "w-16 text-center border rounded-md px-1 py-1.5 text-sm font-semibold tabular-nums bg-blue-50/40",
+                          "w-16 text-center border rounded-md px-1 py-1.5 text-sm font-semibold tabular-nums bg-blue-50/40 dark:bg-blue-950/40",
                           "focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-background",
                           guardando === k && "ring-2 ring-emerald-400"
                         )}
@@ -182,7 +182,7 @@ export function PlantillasSemanales({ onUsarValor }: Props) {
                         title={hist > 0 ? `Copiar promedio histórico (${regs} ${regs === 1 ? "registro" : "registros"})` : "Sin histórico"}
                         className={cn(
                           "mt-1 block mx-auto text-[9px] tabular-nums transition-colors",
-                          hist > 0 ? "text-slate-400 hover:text-blue-600 cursor-pointer" : "text-slate-300 cursor-default"
+                          hist > 0 ? "text-slate-400 dark:text-slate-500 hover:text-blue-600 cursor-pointer" : "text-slate-300 dark:text-slate-600 cursor-default"
                         )}
                       >
                         hist {hist > 0 ? hist.toLocaleString("es-AR") : "—"}
@@ -193,7 +193,7 @@ export function PlantillasSemanales({ onUsarValor }: Props) {
                           type="button"
                           onClick={() => onUsarValor(val)}
                           title="Usar este valor en Operación del Día"
-                          className="mt-0.5 mx-auto flex items-center gap-0.5 text-[9px] text-emerald-600 hover:text-emerald-700 font-medium"
+                          className="mt-0.5 mx-auto flex items-center gap-0.5 text-[9px] text-emerald-600 dark:text-emerald-300 hover:text-emerald-700 font-medium"
                         >
                           usar <ArrowRight className="h-2.5 w-2.5" />
                         </button>
@@ -203,7 +203,7 @@ export function PlantillasSemanales({ onUsarValor }: Props) {
                 })}
 
                 {/* Total semana */}
-                <td className="px-3 py-2 text-center font-bold tabular-nums text-blue-700">
+                <td className="px-3 py-2 text-center font-bold tabular-nums text-blue-700 dark:text-blue-300">
                   {totalSemana(sem.n).toLocaleString("es-AR")}
                 </td>
               </tr>
