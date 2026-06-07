@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/layout/Header";
+import { CommandPalette } from "@/components/CommandPalette";
 
 export default async function MapaLayout({
   children,
@@ -28,6 +29,7 @@ export default async function MapaLayout({
     <div className="flex flex-col h-full">
       <Header perfil={perfil} esInvitado={!user} />
       <main className="flex-1 overflow-hidden">{children}</main>
+      <CommandPalette esInvitado={!user} />
     </div>
   );
 }

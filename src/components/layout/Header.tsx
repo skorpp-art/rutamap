@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { MapPin, LogOut, User, ChevronDown, Truck, Map, Package, Lock, LogIn } from "lucide-react";
+import { MapPin, LogOut, User, ChevronDown, Truck, Map, Package, Lock, LogIn, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -112,6 +112,17 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
 
       {/* Espacio flexible */}
       <div className="flex-1" />
+
+      {/* Buscador / paleta de comandos (⌘K) */}
+      <button
+        onClick={() => window.dispatchEvent(new CustomEvent("rm-open-command-palette"))}
+        className="hidden md:inline-flex items-center gap-2 h-8 pl-2.5 pr-1.5 rounded-md bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white/80 transition-colors text-xs"
+        title="Buscar (⌘K)"
+      >
+        <Search className="h-3.5 w-3.5" />
+        <span>Buscar…</span>
+        <kbd className="inline-flex items-center gap-0.5 rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-medium text-white/60">⌘K</kbd>
+      </button>
 
       {/* Indicador de zona activa */}
       {filtros.zona && (
