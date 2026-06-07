@@ -52,10 +52,10 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
   }
 
   return (
-    <header className="h-14 bg-brand-black border-b border-brand-blue/30 flex items-center px-4 gap-4 shrink-0">
+    <header className="h-14 bg-brand-black border-b border-white/5 flex items-center px-4 gap-4 shrink-0">
       {/* Logo */}
-      <div className="flex items-center gap-2 select-none">
-        <div className="bg-brand-blue rounded-md p-1.5">
+      <div className="flex items-center gap-2.5 select-none">
+        <div className="bg-gradient-to-br from-brand-blue to-brand-violet rounded-lg p-1.5 shadow-md ring-1 ring-white/10">
           <Truck className="h-4 w-4 text-white" />
         </div>
         <span className="font-bold text-white text-lg tracking-tight">
@@ -90,8 +90,8 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
       <div className="flex items-center gap-1">
         <button
           onClick={() => router.push("/")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-            pathname === "/" ? "bg-brand-blue text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ${
+            pathname === "/" ? "bg-brand-blue text-white shadow-sm ring-1 ring-white/10" : "text-white/70 hover:bg-white/10 hover:text-white"
           }`}
         >
           <Map className="h-3.5 w-3.5" />
@@ -99,8 +99,8 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
         </button>
         <button
           onClick={() => router.push("/volumenes")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-            pathname === "/volumenes" ? "bg-brand-blue text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ${
+            pathname === "/volumenes" ? "bg-brand-blue text-white shadow-sm ring-1 ring-white/10" : "text-white/70 hover:bg-white/10 hover:text-white"
           }`}
           title={esInvitado ? "Requiere iniciar sesión" : "Gestión de volúmenes"}
         >
