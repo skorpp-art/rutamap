@@ -28,5 +28,9 @@ export function useChartTheme() {
       labelStyle: { color: dark ? "#e2e8f0" : "#0f172a", fontWeight: 600 },
       itemStyle: { color: dark ? "#cbd5e1" : "#334155" },
     },
+    // Fondo del cursor al hacer hover sobre barras
+    tooltipCursor: { fill: dark ? "rgba(148,163,184,0.10)" : "rgba(15,23,42,0.04)" },
+    // Color legible para el texto de la leyenda
+    legendColor: dark ? "#cbd5e1" : "#475569",
   };
 }

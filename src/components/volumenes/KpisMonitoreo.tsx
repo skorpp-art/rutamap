@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import {
-  ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
 } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -284,13 +284,20 @@ function MiniChart({ titulo, data, dataKey, target, targetMode, color, dominio }
       </div>
       <ResponsiveContainer width="100%" height={140}>
         <ComposedChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
-          <XAxis dataKey="dia" tick={{ fontSize: 9, fill: ct.axis }} stroke={ct.axisLine} interval="preserveStartEnd" />
-          <YAxis tick={{ fontSize: 9, fill: ct.axis }} stroke={ct.axisLine} domain={dominio ?? [0, "auto"]} />
-          <Tooltip formatter={(v) => [v, titulo]} {...ct.tooltip} />
-          <ReferenceLine y={target} stroke={targetMode === "min" ? PALETA.verde : PALETA.rojo} strokeDasharray="4 3" strokeWidth={1.5} />
-          <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2}
-            dot={{ r: 3, fill: color }} connectNulls name={titulo} />
+          <defs>
+            <linearGradient id={`gradKpi-${dataKey}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+              <stop offset="100%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} vertical={false} />
+          <XAxis dataKey="dia" tick={{ fontSize: 9, fill: ct.axis }} stroke={ct.axisLine} tickLine={false} interval="preserveStartEnd" />
+          <YAxis tick={{ fontSize: 9, fill: ct.axis }} stroke={ct.axisLine} tickLine={false} axisLine={false} domain={dominio ?? [0, "auto"]} />
+          <Tooltip formatter={(v) => [v, titulo]} {...ct.tooltip} cursor={{ stroke: ct.axisLine }} />
+          <ReferenceLine y={target} stroke={targetMode === "min" ? PALETA.verde : PALETA.rojo} strokeDasharray="5 4" strokeWidth={1.25} />
+          <Area type="monotone" dataKey={dataKey} stroke="none" fill={`url(#gradKpi-${dataKey})`} connectNulls />
+          <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2.25}
+            dot={{ r: 2.5, fill: color, strokeWidth: 0 }} activeDot={{ r: 4.5 }} connectNulls name={titulo} />
         </ComposedChart>
       </ResponsiveContainer>
     </div>
