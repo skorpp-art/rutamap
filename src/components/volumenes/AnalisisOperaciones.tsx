@@ -458,13 +458,13 @@ export function AnalisisOperaciones() {
           </div>
         )}
 
-        <div className="p-5 space-y-6">
+        <div className="p-5 space-y-6 stagger-children">
 
           {/* ── Sección 1: Visión general ─────────────────────────────────────── */}
           {cargando && sinDatos ? (
             <>
               <SkeletonCards n={4} />
-              <SkeletonChart height={230} />
+              <SkeletonChart height={280} />
             </>
           ) : sinDatos ? (
             <EmptyState
@@ -499,7 +499,7 @@ export function AnalisisOperaciones() {
               {/* Gráfico de evolución */}
               <div className="border rounded-xl p-5 bg-background">
                 <p className="text-sm font-bold mb-4">Evolución diaria — últimos {Math.min(14, dashboard.length)} días</p>
-                <ResponsiveContainer width="100%" height={230}>
+                <ResponsiveContainer width="100%" height={280}>
                   <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
                     <XAxis dataKey="dia" tick={{ fontSize: 10, fill: ct.axis }} stroke={ct.axisLine} />

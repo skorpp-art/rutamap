@@ -79,7 +79,7 @@ export function OperacionDia({
   const [soloActivos, setSoloActivos] = useState(false);
   const [mostrarAlerta, setMostrarAlerta] = useState(false);
   const [analisisHist, setAnalisisHist] = useState<AnalisisRecorrido[]>([]);
-  const [mostrarSugerencias, setMostrarSugerencias] = useState(true);
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
   // Debounce para autoguardado al cambiar rutas ON/OFF
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -628,17 +628,22 @@ export function OperacionDia({
       {sugerencias.length > 0 && (
         <div className="border-b bg-amber-50/40 dark:bg-amber-950/40">
           <button onClick={() => setMostrarSugerencias(v => !v)}
-            className="w-full px-5 py-2 flex items-center gap-2 text-left hover:bg-amber-50/70 transition-colors">
-            <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-300" />
-            <span className="text-xs font-bold text-amber-800 dark:text-amber-200">
-              Sugerencias — {sugerencias.length} recorrido{sugerencias.length > 1 ? "s" : ""} con sobrecarga sostenida (últimos 30 días)
+            className="w-full px-5 py-2 flex items-center gap-2 text-left hover:bg-amber-50/70 dark:hover:bg-amber-950/60 transition-colors">
+            <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-300 shrink-0" />
+            <span className="text-xs font-bold text-amber-800 dark:text-amber-200">Sugerencias de cortes y pre-turnos</span>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-200/70 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 tabular-nums">
+              {sugerencias.length}
             </span>
-            <ChevronRight className={cn("h-3.5 w-3.5 text-amber-600 dark:text-amber-300 ml-auto transition-transform", mostrarSugerencias && "rotate-90")} />
+            <span className="hidden sm:inline text-[10px] text-amber-600/80 dark:text-amber-300/70">sobrecarga sostenida · últimos 30 días</span>
+            <span className="ml-auto flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+              {mostrarSugerencias ? "Ocultar" : "Ver"}
+              <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", mostrarSugerencias && "rotate-90")} />
+            </span>
           </button>
           {mostrarSugerencias && (
-            <div className="px-5 pb-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div className="px-5 pb-3 grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[38vh] overflow-y-auto animate-fade-up">
               {sugerencias.map(s => (
-                <div key={s.codigo} className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900 rounded-xl p-3 flex items-start gap-2.5">
+                <div key={s.codigo} className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900 rounded-xl p-3 flex items-start gap-2.5 hover-lift">
                   {s.tipoSugerido === "pre_turno"
                     ? <Sunrise className="h-4 w-4 text-violet-600 dark:text-violet-300 shrink-0 mt-0.5" />
                     : <Scissors className="h-4 w-4 text-orange-600 dark:text-orange-300 shrink-0 mt-0.5" />}

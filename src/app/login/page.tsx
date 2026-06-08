@@ -3,10 +3,14 @@ import { LoginForm } from "@/components/auth/LoginForm";
 
 export default function LoginPage() {
   return (
-    <main className="min-h-screen bg-brand-black flex flex-col items-center justify-center p-4">
+    <main className="relative min-h-screen bg-brand-black flex flex-col items-center justify-center p-4 overflow-hidden">
+      {/* Glow ambiental de firma */}
+      <div className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 h-[420px] w-[420px] rounded-full bg-brand-blue/25 blur-[120px]" />
+      <div className="pointer-events-none absolute bottom-0 right-0 h-[320px] w-[320px] rounded-full bg-brand-violet/20 blur-[120px]" />
+
       {/* Logo */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="bg-brand-blue rounded-xl p-3">
+      <div className="relative flex items-center gap-3 mb-8 animate-fade-up">
+        <div className="bg-gradient-to-br from-brand-blue to-brand-violet rounded-2xl p-3 shadow-xl ring-1 ring-white/10">
           <Truck className="h-7 w-7 text-white" />
         </div>
         <div>
@@ -17,7 +21,9 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <LoginForm />
+      <div className="relative animate-fade-up" style={{ animationDelay: "0.08s" }}>
+        <LoginForm />
+      </div>
     </main>
   );
 }
