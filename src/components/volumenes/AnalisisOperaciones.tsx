@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Upload, BarChart2, AlertTriangle, TrendingUp, TrendingDown, Minus,
   FileSpreadsheet, CheckCircle, Package, Users, RefreshCw, Trash2,
-  ChevronDown, ChevronRight,
+  ChevronDown, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown,
 } from "lucide-react";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
@@ -223,7 +223,20 @@ export function AnalisisOperaciones() {
   const [cargando, setCargando] = useState(false);
   const [borrandoDia, setBorrandoDia] = useState<string | null>(null);
   const [diaExpandido, setDiaExpandido] = useState<string | null>(null);
+  const [ordenCol, setOrdenCol] = useState<keyof AnalisisRecorrido>("prom_total");
+  const [ordenDir, setOrdenDir] = useState<"asc" | "desc">("desc");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  function ordenarPor(col: keyof AnalisisRecorrido) {
+    if (ordenCol === col) setOrdenDir(d => (d === "desc" ? "asc" : "desc"));
+    else { setOrdenCol(col); setOrdenDir("desc"); }
+  }
+  const analisisOrdenado = [...analisis].sort((a, b) => {
+    const av = a[ordenCol], bv = b[ordenCol];
+    const cmp = typeof av === "number" && typeof bv === "number"
+      ? av - bv : String(av).localeCompare(String(bv));
+    return ordenDir === "asc" ? cmp : -cmp;
+  });
 
   async function eliminarDia(fecha: string) {
     const fechaFmt = new Date(fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
@@ -550,7 +563,7 @@ export function AnalisisOperaciones() {
                 </div>
                 <div className="max-h-72 overflow-y-auto">
                   <table className="w-full text-xs">
-                    <thead className="bg-background border-b sticky top-0">
+                    <thead className="bg-muted/40 dark:bg-muted/20 border-b sticky top-0 z-10 backdrop-blur-sm">
                       <tr>
                         <th className="w-6 px-2 py-2" />
                         <th className="text-left px-3 py-2 text-muted-foreground font-medium">Fecha</th>
@@ -683,22 +696,41 @@ export function AnalisisOperaciones() {
                 </p>
               </div>
               <table className="w-full text-xs">
-                <thead className="bg-background border-b sticky top-0">
+                <thead className="bg-muted/40 dark:bg-muted/20 border-b sticky top-0 z-10 backdrop-blur-sm">
                   <tr>
-                    <th className="text-left px-3 py-2.5 text-muted-foreground font-medium">Código</th>
-                    <th className="text-left px-3 py-2.5 text-muted-foreground font-medium">Zona</th>
-                    <th className="text-right px-3 py-2.5 text-muted-foreground font-medium">Días</th>
-                    <th className="text-right px-3 py-2.5 text-muted-foreground font-medium">Prom.</th>
-                    <th className="text-right px-3 py-2.5 text-muted-foreground font-medium">X Fuera</th>
-                    <th className="text-right px-3 py-2.5 text-muted-foreground font-medium">Máx</th>
-                    <th className="text-right px-3 py-2.5 text-muted-foreground font-medium">% &gt;40</th>
+                    {([
+                      ["codigo", "Código", "left"],
+                      ["zona", "Zona", "left"],
+                      ["dias_registrados", "Días", "right"],
+                      ["prom_total", "Prom.", "right"],
+                      ["prom_x_fuera", "X Fuera", "right"],
+                      ["max_total", "Máx", "right"],
+                      ["pct_sobrecarga", "% >40", "right"],
+                    ] as const).map(([col, label, align]) => {
+                      const activo = ordenCol === col;
+                      return (
+                        <th key={col}
+                          onClick={() => ordenarPor(col)}
+                          className={cn("px-3 py-2.5 font-medium cursor-pointer select-none transition-colors",
+                            align === "right" ? "text-right" : "text-left",
+                            activo ? "text-foreground" : "text-muted-foreground hover:text-foreground")}>
+                          <span className={cn("inline-flex items-center gap-1", align === "right" && "flex-row-reverse")}>
+                            {label}
+                            {activo
+                              ? (ordenDir === "desc" ? <ArrowDown className="h-3 w-3 text-primary" /> : <ArrowUp className="h-3 w-3 text-primary" />)
+                              : <ArrowUpDown className="h-3 w-3 opacity-25" />}
+                          </span>
+                        </th>
+                      );
+                    })}
                     <th className="text-center px-3 py-2.5 text-muted-foreground font-medium">Tend.</th>
                     <th className="text-left px-3 py-2.5 text-muted-foreground font-medium">Alerta</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {analisis.map(r => (
-                    <tr key={r.codigo} className={cn("hover:bg-accent/20 transition-colors", r.pct_sobrecarga >= 50 && "bg-red-50/30 dark:bg-red-950/40")}>
+                  {analisisOrdenado.map(r => (
+                    <tr key={r.codigo} className={cn("transition-colors hover:bg-accent/30",
+                      r.pct_sobrecarga >= 50 ? "bg-red-50/40 dark:bg-red-950/30" : "even:bg-muted/15 dark:even:bg-muted/10")}>
                       <td className="px-3 py-2 font-mono font-bold text-blue-700 dark:text-blue-300">{r.codigo}</td>
                       <td className="px-3 py-2">
                         <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium", ZONA_COLORS[r.zona]?.bg, ZONA_COLORS[r.zona]?.text)}>{r.zona}</span>

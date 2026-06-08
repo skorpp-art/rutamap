@@ -190,7 +190,7 @@ export function HistorialDias() {
       ) : (
         <div className="flex-1 overflow-y-auto">
           <table className="w-full text-xs">
-            <thead className="sticky top-0 bg-background border-b z-10">
+            <thead className="sticky top-0 z-10 bg-muted/40 dark:bg-muted/20 border-b backdrop-blur-sm">
               <tr>
                 <th className="w-6 px-2 py-2.5" />
                 <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Fecha</th>
