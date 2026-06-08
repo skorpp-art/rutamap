@@ -28,12 +28,19 @@ export function RecorridoItem({ recorrido, seleccionado, visible, onClick, onTog
   return (
     <div
       className={cn(
-        "w-full text-left px-2 py-2 rounded-lg transition-colors",
+        "relative w-full text-left px-2 py-2 rounded-lg transition-colors",
         "flex items-start gap-2 group",
-        seleccionado && "bg-accent ring-1 ring-brand-blue/30",
+        seleccionado ? "bg-accent ring-1 ring-primary/25" : "hover:bg-accent/40",
         !recorrido.activo && "opacity-50"
       )}
     >
+      {/* Acento de color del recorrido cuando está seleccionado */}
+      {seleccionado && (
+        <span
+          className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-full"
+          style={{ backgroundColor: recorrido.color }}
+        />
+      )}
       {/* Toggle visibilidad en mapa */}
       <button
         onClick={onToggleVisible}
