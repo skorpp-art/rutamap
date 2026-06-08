@@ -141,6 +141,15 @@ export function VolumenesPanel() {
   const [bandas, setBandas] = useState<BandaControl[]>([]);
   const [rutasFijasCount, setRutasFijasCount] = useState(53);
 
+  // Persistir el objetivo pkg/chofer entre sesiones
+  useEffect(() => {
+    const saved = parseInt(localStorage.getItem("rm-target-pkg") ?? "");
+    if (saved >= 10 && saved <= 100) setTargetPkg(saved);
+  }, []);
+  useEffect(() => {
+    localStorage.setItem("rm-target-pkg", String(targetPkg));
+  }, [targetPkg]);
+
   const [plantillas, setPlantillas] = useState<PlantillaCelda[]>([]);
   useEffect(() => {
     getPlantillasSemanales().then(r => { if (r.ok && r.data) setPlantillas(r.data); });

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { FileSpreadsheet, Package, Upload, ChevronLeft, ChevronRight } from "lucide-react";
@@ -91,8 +90,9 @@ export function ImportarClientes({ onImportado, targetPkg = 30 }: Props) {
     if (fechaDet) setFechaImport(fechaDet);
 
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
+        const XLSX = await import("xlsx");
         const wb = XLSX.read(ev.target?.result, { type: "array" });
         const ws = wb.Sheets[wb.SheetNames[0]];
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

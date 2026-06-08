@@ -19,7 +19,6 @@ import { crearRecorrido, actualizarCamposRecorrido, getSiguienteCodigo } from "@
 import { ZONA_COLOR as ZONA_HEX } from "@/lib/estados";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { OperacionRuta } from "@/app/actions/operacion";
-import { jsPDF } from "jspdf";
 
 const ZONAS_OPT = ["Oeste", "Norte", "Sur", "CABA"] as const;
 const TIPOS_OPT = [
@@ -302,6 +301,7 @@ export function OperacionDia({
   // Exportar PDF — diseño por zonas, solo activos
   async function exportarPDF() {
     try {
+      const { jsPDF } = await import("jspdf");
       const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
       const PW = pdf.internal.pageSize.getWidth();  // 297
       const PH = pdf.internal.pageSize.getHeight(); // 210

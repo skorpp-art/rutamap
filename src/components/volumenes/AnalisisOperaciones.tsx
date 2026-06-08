@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, Fragment } from "react";
-import * as XLSX from "xlsx";
+import type * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -46,7 +46,7 @@ function inferirTipo(codigo: string) {
 }
 const CODIGO_REGEX = /^(RF|CE|PT|PR|CMD)-[A-Z]{2}-\d{1,3}$/i;
 
-function parsearSheet(ws: XLSX.WorkSheet, turno: "tarde"|"preturno") {
+function parsearSheet(XLSX: typeof import("xlsx"), ws: XLSX.WorkSheet, turno: "tarde"|"preturno") {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
   const filas: FilaOperacion[] = [];
@@ -279,6 +279,7 @@ export function AnalisisOperaciones() {
       setFecha(`${new Date().getFullYear()}-${mes}-${d}`);
     }
 
+    const XLSX = await import("xlsx");
     const resultados: typeof archivos = [];
     for (const file of files) {
       try {
@@ -288,7 +289,7 @@ export function AnalisisOperaciones() {
         for (const sheetName of wb.SheetNames) {
           const turno = detectarTurno(file.name, sheetName);
           if (turno) {
-            const parsed = parsearSheet(wb.Sheets[sheetName], turno);
+            const parsed = parsearSheet(XLSX, wb.Sheets[sheetName], turno);
             if (parsed.filas.length > 0) {
               resultados.push({ nombre: `${file.name} › ${sheetName}`, turno, filas: parsed.filas });
               encontrado = true;
@@ -299,7 +300,7 @@ export function AnalisisOperaciones() {
         if (!encontrado) {
           const turno = detectarTurno(file.name, "") ?? "tarde";
           for (const sheetName of wb.SheetNames) {
-            const parsed = parsearSheet(wb.Sheets[sheetName], turno);
+            const parsed = parsearSheet(XLSX, wb.Sheets[sheetName], turno);
             if (parsed.filas.length > 0) {
               resultados.push({ nombre: `${file.name} › ${sheetName}`, turno, filas: parsed.filas });
               break;
