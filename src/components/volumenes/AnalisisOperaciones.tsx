@@ -11,17 +11,17 @@ import {
   ChevronDown, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown,
 } from "lucide-react";
 import {
-  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
+  ComposedChart, Bar, Cell, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend, ReferenceLine, ReferenceArea,
 } from "recharts";
 import {
   importarOperacionDiaria, getAnalisisRecorridos,
   getDashboardUnificado, getRutasAlerta, eliminarDiaCompleto,
-  getDiaCompleto,
+  getDiaCompleto, getPatronDiaSemana,
 } from "@/app/actions/operaciones-diarias";
 import type {
   FilaOperacion, AnalisisRecorrido,
-  DashboardUnificado, RutaAlerta,
+  DashboardUnificado, RutaAlerta, PatronDiaSemana,
 } from "@/app/actions/operaciones-diarias";
 import { PALETA } from "@/lib/estados";
 import { useChartTheme } from "@/hooks/useChartTheme";
@@ -207,6 +207,62 @@ function DiaDetalleInline({ fecha }: { fecha: string }) {
   );
 }
 
+// ── Patrón por día de la semana de un recorrido (dato ya calculado en la BD) ───
+function hexProm(p: number) {
+  if (p > 40) return PALETA.rojo;
+  if (p > 35) return PALETA.ambar;
+  if (p < 20) return PALETA.gris;
+  return PALETA.verde;
+}
+function PatronDiaInline({ codigo }: { codigo: string }) {
+  const ct = useChartTheme();
+  const [data, setData] = useState<PatronDiaSemana[] | null>(null);
+
+  useEffect(() => {
+    let vivo = true;
+    getPatronDiaSemana(codigo).then(r => {
+      if (!vivo) return;
+      setData(r.ok && r.data ? r.data : []);
+    });
+    return () => { vivo = false; };
+  }, [codigo]);
+
+  if (!data) return <div className="py-4 text-center text-xs text-muted-foreground">Cargando patrón por día…</div>;
+  if (data.length === 0) return <div className="py-4 text-center text-xs text-muted-foreground">Sin datos suficientes por día</div>;
+
+  const chart = data.map(d => ({ dia: d.dia_nombre.slice(0, 3), prom: Number(d.prom_total), reg: d.registros, xf: Number(d.prom_x_fuera) }));
+  const pico = chart.reduce((a, b) => (b.prom > a.prom ? b : a), chart[0]);
+  const valle = chart.reduce((a, b) => (b.prom < a.prom && b.prom > 0 ? b : a), pico);
+
+  return (
+    <div className="py-3 px-4 space-y-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Promedio por día de la semana</p>
+        {pico.prom > 35 && (
+          <span className="text-[10px] text-muted-foreground">
+            · Pico <b style={{ color: hexProm(pico.prom) }}>{pico.dia} ({pico.prom})</b>
+            {valle.prom < pico.prom && <> · valle <b className="text-green-600 dark:text-green-300">{valle.dia} ({valle.prom})</b></>}
+          </span>
+        )}
+      </div>
+      <ResponsiveContainer width="100%" height={130}>
+        <ComposedChart data={chart} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} vertical={false} />
+          <XAxis dataKey="dia" tick={{ fontSize: 10, fill: ct.axis }} stroke={ct.axisLine} tickLine={false} />
+          <YAxis tick={{ fontSize: 9, fill: ct.axis }} stroke={ct.axisLine} tickLine={false} axisLine={false} />
+          <Tooltip {...ct.tooltip} cursor={ct.tooltipCursor}
+            formatter={(v) => [`${v} pkg/día`, "Promedio"]} />
+          <ReferenceLine y={35} stroke={PALETA.ambar} strokeDasharray="3 4" strokeWidth={1} strokeOpacity={0.5} />
+          <ReferenceLine y={40} stroke={PALETA.rojo} strokeDasharray="3 4" strokeWidth={1} strokeOpacity={0.5} />
+          <Bar dataKey="prom" radius={[4, 4, 0, 0]} maxBarSize={40}>
+            {chart.map((e, i) => <Cell key={i} fill={hexProm(e.prom)} fillOpacity={0.85} />)}
+          </Bar>
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 // ── Componente principal ──────────────────────────────────────────────────────
 export function AnalisisOperaciones() {
   const [mostrarImportar, setMostrarImportar] = useState(false);
@@ -225,6 +281,7 @@ export function AnalisisOperaciones() {
   const [diaExpandido, setDiaExpandido] = useState<string | null>(null);
   const [ordenCol, setOrdenCol] = useState<keyof AnalisisRecorrido>("prom_total");
   const [ordenDir, setOrdenDir] = useState<"asc" | "desc">("desc");
+  const [recorridoExpandido, setRecorridoExpandido] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function ordenarPor(col: keyof AnalisisRecorrido) {
@@ -691,10 +748,11 @@ export function AnalisisOperaciones() {
           {/* ── Sección 2: Análisis por recorrido ────────────────────────────── */}
           {analisis.length > 0 && (
             <div className="border rounded-xl overflow-hidden">
-              <div className="px-4 py-3 bg-muted/20 border-b">
+              <div className="px-4 py-3 bg-muted/20 border-b flex items-center gap-2">
                 <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                   <BarChart2 className="h-3.5 w-3.5" /> Análisis por recorrido — últimos {diasVista} días
                 </p>
+                <p className="text-[10px] text-muted-foreground ml-auto">Clic en una fila → patrón por día</p>
               </div>
               <table className="w-full text-xs">
                 <thead className="bg-muted/40 dark:bg-muted/20 border-b sticky top-0 z-10 backdrop-blur-sm">
@@ -729,10 +787,19 @@ export function AnalisisOperaciones() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {analisisOrdenado.map(r => (
-                    <tr key={r.codigo} className={cn("transition-colors hover:bg-accent/30",
-                      r.pct_sobrecarga >= 50 ? "bg-red-50/40 dark:bg-red-950/30" : "even:bg-muted/15 dark:even:bg-muted/10")}>
-                      <td className="px-3 py-2 font-mono font-bold text-blue-700 dark:text-blue-300">{r.codigo}</td>
+                  {analisisOrdenado.map(r => {
+                    const exp = recorridoExpandido === r.codigo;
+                    return (
+                    <Fragment key={r.codigo}>
+                    <tr onClick={() => setRecorridoExpandido(exp ? null : r.codigo)}
+                      className={cn("transition-colors hover:bg-accent/30 cursor-pointer",
+                      exp ? "bg-primary/5" : r.pct_sobrecarga >= 50 ? "bg-red-50/40 dark:bg-red-950/30" : "even:bg-muted/15 dark:even:bg-muted/10")}>
+                      <td className="px-3 py-2 font-mono font-bold text-blue-700 dark:text-blue-300">
+                        <span className="inline-flex items-center gap-1.5">
+                          {exp ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground/50" />}
+                          {r.codigo}
+                        </span>
+                      </td>
                       <td className="px-3 py-2">
                         <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium", ZONA_COLORS[r.zona]?.bg, ZONA_COLORS[r.zona]?.text)}>{r.zona}</span>
                       </td>
@@ -765,7 +832,16 @@ export function AnalisisOperaciones() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    {exp && (
+                      <tr>
+                        <td colSpan={9} className="bg-muted/20 dark:bg-muted/10 border-b p-0">
+                          <PatronDiaInline codigo={r.codigo} />
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
