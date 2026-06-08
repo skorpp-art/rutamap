@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import {
   Map as MapIcon, Package, Calculator, Settings2, BarChart3, CalendarRange,
-  Search, CornerDownLeft, Truck,
+  Search, CornerDownLeft, Truck, Sun, Moon,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ type Comando = {
  */
 export function CommandPalette({ esInvitado = false }: { esInvitado?: boolean }) {
   const router = useRouter();
+  const { resolvedTheme, setTheme } = useTheme();
   const [abierto, setAbierto] = useState(false);
   const [query, setQuery] = useState("");
   const [activo, setActivo] = useState(0);
@@ -65,8 +67,17 @@ export function CommandPalette({ esInvitado = false }: { esInvitado?: boolean })
         { id: "herramientas", titulo: "Herramientas", grupo: "Volúmenes", keywords: "herramientas plantillas kpis historial", icon: CalendarRange, accion: () => cerrarYNavegar("/volumenes?tab=herramientas") },
       );
     }
+    const esOscuro = resolvedTheme === "dark";
+    base.push({
+      id: "tema",
+      titulo: esOscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro",
+      grupo: "Acciones",
+      keywords: "tema theme oscuro claro dark light modo",
+      icon: esOscuro ? Sun : Moon,
+      accion: () => { setTheme(esOscuro ? "light" : "dark"); setAbierto(false); },
+    });
     return base;
-  }, [esInvitado, cerrarYNavegar]);
+  }, [esInvitado, cerrarYNavegar, resolvedTheme, setTheme]);
 
   const filtrados = useMemo(() => {
     const q = query.trim().toLowerCase();

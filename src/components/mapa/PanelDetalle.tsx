@@ -255,6 +255,9 @@ export function PanelDetalle({
   return (
     <aside className="flex flex-col h-full w-72 shrink-0 border-l bg-background shadow-sm">
 
+      {/* Franja de acento con el color del recorrido */}
+      <div className="h-1 w-full shrink-0" style={{ backgroundColor: recorrido.color }} />
+
       {/* ── Cabecera con edición inline ── */}
       <div className="flex items-start gap-2 px-3 py-3 border-b">
         <div
@@ -340,7 +343,7 @@ export function PanelDetalle({
           <Campo label="Geometría">
             <div className="space-y-1">
               <div className="flex items-center gap-1.5">
-                <span className={cn("h-2 w-2 rounded-full", recorrido.area_geojson ? "bg-green-500" : "bg-slate-300")} />
+                <span className={cn("h-2 w-2 rounded-full", recorrido.area_geojson ? "bg-green-500" : "bg-slate-300 dark:bg-slate-600")} />
                 <span className="text-xs text-muted-foreground">
                   {recorrido.area_geojson ? "Área cargada" : "Sin área"}
                 </span>
