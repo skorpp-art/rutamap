@@ -458,7 +458,7 @@ export function AnalisisOperaciones() {
           </div>
         )}
 
-        <div className="p-5 space-y-6">
+        <div className="p-5 space-y-6 stagger-children">
 
           {/* ── Sección 1: Visión general ─────────────────────────────────────── */}
           {cargando && sinDatos ? (

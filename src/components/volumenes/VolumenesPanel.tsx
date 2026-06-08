@@ -334,7 +334,7 @@ export function VolumenesPanel() {
           const choferesMax  = calcPaquetes > 0 ? Math.ceil(calcPaquetes / (targetPkg - 5)) : 0;
           const zonaCalc = clasificarRiesgo(promPorRuta, targetPkg);
           return (
-            <div className="p-5 space-y-5">
+            <div className="p-5 space-y-5 stagger-children">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 <div className="space-y-4">
                   <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Calculadora rápida</p>
