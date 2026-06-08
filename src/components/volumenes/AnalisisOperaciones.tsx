@@ -550,6 +550,38 @@ export function AnalisisOperaciones() {
             />
           ) : (
             <>
+              {/* Resumen proactivo: qué necesita atención */}
+              {analisis.length > 0 && (() => {
+                const sob = analisis.filter(a => a.pct_sobrecarga >= 50).length;
+                const xf = analisis.filter(a => a.prom_x_fuera >= 3).length;
+                const alza = analisis.filter(a => a.tendencia === "subiendo" && a.prom_total > 32).length;
+                const atencion = new Set<string>();
+                analisis.forEach(a => {
+                  if (a.pct_sobrecarga >= 50 || a.prom_x_fuera >= 3 || (a.tendencia === "subiendo" && a.prom_total > 32)) atencion.add(a.codigo);
+                });
+                if (atencion.size === 0) {
+                  return (
+                    <div className="flex items-center gap-2 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/40 px-4 py-2.5">
+                      <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-300 shrink-0" />
+                      <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Todo en orden — ningún recorrido requiere atención</span>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="flex items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5 flex-wrap">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-300 shrink-0" />
+                    <span className="text-sm font-bold text-amber-800 dark:text-amber-200">
+                      {atencion.size} recorrido{atencion.size > 1 ? "s" : ""} necesita{atencion.size > 1 ? "n" : ""} atención
+                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap ml-auto">
+                      {sob > 0 && <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">{sob} sobrecargado{sob > 1 ? "s" : ""}</span>}
+                      {xf > 0 && <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">{xf} con X fuera alto</span>}
+                      {alza > 0 && <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300">{alza} en alza</span>}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Badges de fuentes */}
               <div className="flex gap-2 text-[10px] flex-wrap">
                 <span className={cn("px-2 py-1 rounded-full border flex items-center gap-1",

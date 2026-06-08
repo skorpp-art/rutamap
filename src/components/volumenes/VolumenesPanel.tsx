@@ -188,6 +188,16 @@ export function VolumenesPanel() {
   const choferesHoy = resumen?.hoy_total ? Math.ceil(resumen.hoy_total / targetPkg) : 0;
   const confianza = diasConDatos.length >= 4 ? "alta" : diasConDatos.length >= 2 ? "media" : "baja";
 
+  // Precisión del modelo: qué tan cerca estuvo el volumen real del esperado
+  // histórico (promedio del mismo día de semana). 100% = clavado.
+  const precision = (() => {
+    const dias = dashboard.filter(d => d.total_actual > 0 && Number(d.promedio_hist) > 0);
+    if (dias.length < 2) return null;
+    const errores = dias.map(d => Math.abs(d.total_actual - Number(d.promedio_hist)) / d.total_actual);
+    const mape = errores.reduce((a, b) => a + b, 0) / errores.length;
+    return { pct: Math.max(0, Math.min(100, Math.round((1 - mape) * 100))), n: dias.length };
+  })();
+
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
@@ -306,6 +316,21 @@ export function VolumenesPanel() {
                   {proyectadoTotal.toLocaleString("es-AR")}
                 </p>
                 <p className="text-[9px] text-muted-foreground">confianza {confianza}</p>
+              </div>
+            </>
+          )}
+          {precision && (
+            <>
+              <div className="h-8 w-px bg-border" />
+              <div className="text-center" title={`El volumen real estuvo en promedio a ${100 - precision.pct}% del esperado histórico (${precision.n} días)`}>
+                <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Precisión modelo</p>
+                <p className={cn("text-base font-bold tabular-nums leading-tight",
+                  precision.pct >= 85 ? "text-emerald-600 dark:text-emerald-300" :
+                  precision.pct >= 70 ? "text-amber-600 dark:text-amber-300" :
+                  "text-red-500 dark:text-red-300")}>
+                  {precision.pct}%
+                </p>
+                <p className="text-[9px] text-muted-foreground">real vs esperado</p>
               </div>
             </>
           )}
@@ -607,9 +632,23 @@ export function VolumenesPanel() {
                     </ResponsiveContainer>
                   )}
                 </div>
-                {topClientes.length > 0 && (
+                {topClientes.length > 0 && (() => {
+                  const top3 = Math.round(topClientes.slice(0, 3).reduce((s, c) => s + (c.pct ?? 0), 0));
+                  const riesgo = top3 >= 50 ? "alto" : top3 >= 35 ? "medio" : "bajo";
+                  return (
                   <div className="border rounded-xl overflow-hidden">
-                    <div className="px-4 py-2.5 border-b bg-muted/20"><p className="text-xs font-semibold">Top clientes hoy</p></div>
+                    <div className="px-4 py-2.5 border-b bg-muted/20 flex items-center gap-2">
+                      <p className="text-xs font-semibold">Top clientes hoy</p>
+                      {top3 > 0 && (
+                        <span className={cn("ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full",
+                          riesgo === "alto" ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300" :
+                          riesgo === "medio" ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300" :
+                          "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300")}
+                          title={`El top 3 de clientes concentra el ${top3}% del volumen del día — riesgo ${riesgo}`}>
+                          Top 3 = {top3}% del volumen
+                        </span>
+                      )}
+                    </div>
                     <div className="divide-y">
                       {topClientes.slice(0, 8).map((c, i) => (
                         <div key={i} className="px-4 py-2 flex items-center gap-3 text-xs hover:bg-accent/20">
@@ -625,7 +664,8 @@ export function VolumenesPanel() {
                       ))}
                     </div>
                   </div>
-                )}
+                  );
+                })()}
               </div>
               <CalidadDatosCard calidad={calidad} />
             </div>
