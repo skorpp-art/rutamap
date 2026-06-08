@@ -30,6 +30,7 @@ import type {
   PlantillaCelda,
 } from "@/app/actions/volumenes";
 import { PALETA, ESTADO, clasificarRiesgo } from "@/lib/estados";
+import { useChartTheme } from "@/hooks/useChartTheme";
 import { EstadoBadge } from "@/components/ui/estado-badge";
 import { NumeroAnimado } from "@/components/ui/numero-animado";
 import { SkeletonCards, SkeletonChart } from "@/components/ui/skeleton";
@@ -247,6 +248,8 @@ export function VolumenesPanel() {
   const vsAnteriorPct = resumen?.vs_anterior_pct ?? 0;
   const DeltaIcon = vsAnteriorPct > 2 ? TrendingUp : vsAnteriorPct < -2 ? TrendingDown : Minus;
   const deltaColor = vsAnteriorPct > 2 ? "text-emerald-600 dark:text-emerald-300" : vsAnteriorPct < -2 ? "text-red-500" : "text-muted-foreground";
+
+  const ct = useChartTheme();
 
   // suppress unused warning
   void promDiaActual;
@@ -531,10 +534,10 @@ export function VolumenesPanel() {
                       <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Historial — Promedio pkg/ruta</p>
                       <ResponsiveContainer width="100%" height={150}>
                         <ComposedChart data={bandas.map(b => ({ dia: b.fecha.slice(5), promedio: Number(b.promedio_ruta), zona: b.zona_riesgo }))} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                          <XAxis dataKey="dia" tick={{ fontSize: 9 }} interval={Math.floor(bandas.length / 6)} />
-                          <YAxis tick={{ fontSize: 9 }} domain={[0, targetPkg + 15]} />
-                          <Tooltip formatter={(v) => [`${v} pkg/ruta`]} />
+                          <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
+                          <XAxis dataKey="dia" tick={{ fontSize: 9, fill: ct.axis }} stroke={ct.axisLine} interval={Math.floor(bandas.length / 6)} />
+                          <YAxis tick={{ fontSize: 9, fill: ct.axis }} stroke={ct.axisLine} domain={[0, targetPkg + 15]} />
+                          <Tooltip formatter={(v) => [`${v} pkg/ruta`]} {...ct.tooltip} />
                           <ReferenceLine y={targetPkg + 10} stroke={PALETA.rojo} strokeDasharray="4 3" strokeWidth={1} />
                           <ReferenceLine y={targetPkg + 5}  stroke={PALETA.ambar} strokeDasharray="4 3" strokeWidth={1} />
                           <ReferenceLine y={targetPkg}      stroke={PALETA.verde} strokeDasharray="4 3" strokeWidth={1} />
@@ -559,9 +562,9 @@ export function VolumenesPanel() {
                   {cargando && !dashboard.length ? <SkeletonChart height={200} /> : (
                     <ResponsiveContainer width="100%" height={200}>
                       <ComposedChart data={chartData} margin={{ top: 5, right: 40, left: 0, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="dia" tick={{ fontSize: 11, fontWeight: 600 }} />
-                        <YAxis tick={{ fontSize: 10 }} tickFormatter={v => v.toLocaleString("es-AR")} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
+                        <XAxis dataKey="dia" tick={{ fontSize: 11, fontWeight: 600, fill: ct.axis }} stroke={ct.axisLine} />
+                        <YAxis tick={{ fontSize: 10, fill: ct.axis }} stroke={ct.axisLine} tickFormatter={v => v.toLocaleString("es-AR")} />
                         <Tooltip content={<TooltipGrafico />} />
                         <Legend wrapperStyle={{ fontSize: 11 }} />
                         <Bar dataKey="Semana anterior" fill={PALETA.gris} opacity={0.45} radius={[3,3,0,0]} barSize={20} />

@@ -14,6 +14,7 @@ import {
   type KpiDia, type KpiForm,
 } from "@/app/actions/kpis";
 import { PALETA } from "@/lib/estados";
+import { useChartTheme } from "@/hooks/useChartTheme";
 import { SkeletonCards, SkeletonChart } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MetricCard } from "@/components/ui/metric-card";
@@ -272,6 +273,7 @@ function MiniChart({ titulo, data, dataKey, target, targetMode, color, dominio }
   data: any[]; dataKey: string; target: number; targetMode: "min" | "max"; color: string;
   dominio?: [number, number];
 }) {
+  const ct = useChartTheme();
   return (
     <div className="border rounded-xl p-4 bg-background">
       <div className="flex items-center justify-between mb-2">
@@ -282,10 +284,10 @@ function MiniChart({ titulo, data, dataKey, target, targetMode, color, dominio }
       </div>
       <ResponsiveContainer width="100%" height={140}>
         <ComposedChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          <XAxis dataKey="dia" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
-          <YAxis tick={{ fontSize: 9 }} domain={dominio ?? [0, "auto"]} />
-          <Tooltip formatter={(v) => [v, titulo]} />
+          <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
+          <XAxis dataKey="dia" tick={{ fontSize: 9, fill: ct.axis }} stroke={ct.axisLine} interval="preserveStartEnd" />
+          <YAxis tick={{ fontSize: 9, fill: ct.axis }} stroke={ct.axisLine} domain={dominio ?? [0, "auto"]} />
+          <Tooltip formatter={(v) => [v, titulo]} {...ct.tooltip} />
           <ReferenceLine y={target} stroke={targetMode === "min" ? PALETA.verde : PALETA.rojo} strokeDasharray="4 3" strokeWidth={1.5} />
           <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2}
             dot={{ r: 3, fill: color }} connectNulls name={titulo} />

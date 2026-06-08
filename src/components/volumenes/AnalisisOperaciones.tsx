@@ -24,6 +24,7 @@ import type {
   DashboardUnificado, RutaAlerta,
 } from "@/app/actions/operaciones-diarias";
 import { PALETA } from "@/lib/estados";
+import { useChartTheme } from "@/hooks/useChartTheme";
 import { SkeletonCards, SkeletonChart } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ImportarClientes } from "./ImportarClientes";
@@ -332,6 +333,7 @@ export function AnalisisOperaciones() {
   const tieneClientes = dashboard.some(d => d.tiene_clientes);
   const tieneOps = dashboard.some(d => d.tiene_ops);
   const sinDatos = dashboard.length === 0;
+  const ct = useChartTheme();
 
   return (
     <div className="flex flex-col h-full">
@@ -499,10 +501,10 @@ export function AnalisisOperaciones() {
                 <p className="text-sm font-bold mb-4">Evolución diaria — últimos {Math.min(14, dashboard.length)} días</p>
                 <ResponsiveContainer width="100%" height={230}>
                   <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="dia" tick={{ fontSize: 10 }} />
-                    <YAxis yAxisId="left" tick={{ fontSize: 10 }} tickFormatter={v => v.toLocaleString("es-AR")} />
-                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} domain={[0, 60]} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
+                    <XAxis dataKey="dia" tick={{ fontSize: 10, fill: ct.axis }} stroke={ct.axisLine} />
+                    <YAxis yAxisId="left" tick={{ fontSize: 10, fill: ct.axis }} stroke={ct.axisLine} tickFormatter={v => v.toLocaleString("es-AR")} />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: ct.axis }} stroke={ct.axisLine} domain={[0, 60]} />
                     <Tooltip content={<TooltipUnif />} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
                     {tieneClientes && (
