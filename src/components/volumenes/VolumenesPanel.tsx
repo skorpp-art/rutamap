@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
-  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Legend, Cell, ReferenceLine,
+  ComposedChart, Bar, Line, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Legend, Cell, ReferenceLine, ReferenceArea,
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -534,21 +534,27 @@ export function VolumenesPanel() {
                       <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Historial — Promedio pkg/ruta</p>
                       <ResponsiveContainer width="100%" height={180}>
                         <ComposedChart data={bandas.map(b => ({ dia: b.fecha.slice(5), promedio: Number(b.promedio_ruta), zona: b.zona_riesgo }))} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
+                          <defs>
+                            <linearGradient id="gradPromedio" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#6366f1" stopOpacity={0.28} />
+                              <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} vertical={false} />
                           <XAxis dataKey="dia" tick={{ fontSize: 9, fill: ct.axis }} stroke={ct.axisLine} interval={Math.floor(bandas.length / 6)} />
                           <YAxis tick={{ fontSize: 9, fill: ct.axis }} stroke={ct.axisLine} domain={[0, targetPkg + 15]} />
-                          <Tooltip formatter={(v) => [`${v} pkg/ruta`]} {...ct.tooltip} />
-                          <ReferenceLine y={targetPkg + 10} stroke={PALETA.rojo} strokeDasharray="4 3" strokeWidth={1} />
-                          <ReferenceLine y={targetPkg + 5}  stroke={PALETA.ambar} strokeDasharray="4 3" strokeWidth={1} />
-                          <ReferenceLine y={targetPkg}      stroke={PALETA.verde} strokeDasharray="4 3" strokeWidth={1} />
-                          <ReferenceLine y={targetPkg - 5}  stroke={PALETA.ambar} strokeDasharray="4 3" strokeWidth={1} />
-                          <ReferenceLine y={targetPkg - 10} stroke={PALETA.rojo} strokeDasharray="4 3" strokeWidth={1} />
+                          <Tooltip formatter={(v) => [`${v} pkg/ruta`]} {...ct.tooltip} cursor={{ stroke: ct.axisLine }} />
+                          {/* Banda objetivo sombreada (más limpio que 5 líneas) */}
+                          <ReferenceArea y1={targetPkg - 5} y2={targetPkg + 5} fill={PALETA.verde} fillOpacity={ct.dark ? 0.12 : 0.08} stroke="none" />
+                          <ReferenceLine y={targetPkg} stroke={PALETA.verde} strokeDasharray="5 4" strokeWidth={1.25} />
+                          <ReferenceLine y={targetPkg + 10} stroke={PALETA.rojo} strokeDasharray="3 4" strokeWidth={1} strokeOpacity={0.55} />
+                          <Area type="monotone" dataKey="promedio" stroke="none" fill="url(#gradPromedio)" />
                           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                          <Line type="monotone" dataKey="promedio" stroke="#2563eb" strokeWidth={2}
+                          <Line type="monotone" dataKey="promedio" stroke="#6366f1" strokeWidth={2.5}
                             dot={(p: any) => {
                               if (!p.cx || !p.cy) return <g key={p.key} />;
                               const color = p?.payload?.zona==="ok"?PALETA.verde:p?.payload?.zona?.includes("peligroso")?PALETA.rojo:PALETA.ambar;
-                              return <circle key={p.key} cx={p.cx} cy={p.cy} r={3} fill={color} stroke="white" strokeWidth={1} />;
+                              return <circle key={p.key} cx={p.cx} cy={p.cy} r={3.5} fill={color} stroke={ct.dark ? "#0f172a" : "white"} strokeWidth={1.5} />;
                             }} name="Promedio" />
                         </ComposedChart>
                       </ResponsiveContainer>
@@ -561,18 +567,33 @@ export function VolumenesPanel() {
                   <p className="text-sm font-bold uppercase tracking-wide text-blue-700 dark:text-blue-300 mb-4">Volumen semanal</p>
                   {cargando && !dashboard.length ? <SkeletonChart height={250} /> : (
                     <ResponsiveContainer width="100%" height={250}>
-                      <ComposedChart data={chartData} margin={{ top: 5, right: 40, left: 0, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
-                        <XAxis dataKey="dia" tick={{ fontSize: 11, fontWeight: 600, fill: ct.axis }} stroke={ct.axisLine} />
-                        <YAxis tick={{ fontSize: 10, fill: ct.axis }} stroke={ct.axisLine} tickFormatter={v => v.toLocaleString("es-AR")} />
-                        <Tooltip content={<TooltipGrafico />} />
-                        <Legend wrapperStyle={{ fontSize: 11 }} />
-                        <Bar dataKey="Semana anterior" fill={PALETA.gris} opacity={0.45} radius={[3,3,0,0]} barSize={20} />
-                        <Bar dataKey="Esta semana" radius={[3,3,0,0]} barSize={20}>
-                          {chartData.map((e, i) => <Cell key={i} fill={e.esHoy ? "#1d4ed8" : "#3b82f6"} />)}
+                      <ComposedChart data={chartData} margin={{ top: 8, right: 24, left: 0, bottom: 5 }} barGap={2} barCategoryGap="22%">
+                        <defs>
+                          <linearGradient id="gradEsta" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#6366f1" stopOpacity={1} />
+                            <stop offset="100%" stopColor="#6366f1" stopOpacity={0.55} />
+                          </linearGradient>
+                          <linearGradient id="gradHoy" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#4338ca" stopOpacity={1} />
+                            <stop offset="100%" stopColor="#6366f1" stopOpacity={0.75} />
+                          </linearGradient>
+                          <linearGradient id="gradProy" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.95} />
+                            <stop offset="100%" stopColor="#a78bfa" stopOpacity={0.4} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} vertical={false} />
+                        <XAxis dataKey="dia" tick={{ fontSize: 11, fontWeight: 600, fill: ct.axis }} stroke={ct.axisLine} tickLine={false} />
+                        <YAxis tick={{ fontSize: 10, fill: ct.axis }} stroke={ct.axisLine} tickLine={false} axisLine={false} tickFormatter={v => v.toLocaleString("es-AR")} />
+                        <Tooltip content={<TooltipGrafico />} cursor={ct.tooltipCursor} />
+                        <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                          formatter={(value) => <span style={{ color: ct.legendColor }}>{value}</span>} />
+                        <Bar dataKey="Semana anterior" fill={PALETA.gris} opacity={ct.dark ? 0.35 : 0.4} radius={[4,4,0,0]} maxBarSize={26} />
+                        <Bar dataKey="Esta semana" radius={[4,4,0,0]} maxBarSize={26}>
+                          {chartData.map((e, i) => <Cell key={i} fill={e.esHoy ? "url(#gradHoy)" : "url(#gradEsta)"} />)}
                         </Bar>
-                        <Bar dataKey="Proyección mañana" fill="#7dd3fc" radius={[3,3,0,0]} barSize={20} />
-                        <Line type="monotone" dataKey="Promedio histórico" stroke="#f97316" strokeWidth={2.5} dot={{ r: 4, fill: "#f97316" }} connectNulls />
+                        <Bar dataKey="Proyección mañana" fill="url(#gradProy)" radius={[4,4,0,0]} maxBarSize={26} />
+                        <Line type="monotone" dataKey="Promedio histórico" stroke="#f97316" strokeWidth={2.5} dot={{ r: 3.5, fill: "#f97316", strokeWidth: 0 }} activeDot={{ r: 5 }} connectNulls />
                       </ComposedChart>
                     </ResponsiveContainer>
                   )}
