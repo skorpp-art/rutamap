@@ -485,8 +485,8 @@ export function VolumenesPanel() {
                           return (
                             <button key={l}
                               onClick={() => { if (!valOk) return; setPkgProyectado(v); setTipoProyeccion(tipo); setCalcPaquetes(v); }}
-                              className={cn("border rounded-xl p-3 text-center transition-all",
-                                valOk ? "hover:border-blue-400 hover:bg-blue-50/50 cursor-pointer" : "opacity-50 cursor-not-allowed",
+                              className={cn("border rounded-xl p-3 text-center",
+                                valOk ? "hover-lift hover:border-blue-400 cursor-pointer" : "opacity-50 cursor-not-allowed",
                                 sel ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 ring-2 ring-blue-400" : hl ? "border-blue-300 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/40" : "")}>
                               <p className="text-[10px] text-muted-foreground font-medium">{l}</p>
                               <p className={cn("text-xl font-bold tabular-nums mt-0.5", sel || hl ? "text-blue-700 dark:text-blue-300" : "")}>{valOk ? v.toLocaleString("es-AR") : "—"}</p>
@@ -532,7 +532,7 @@ export function VolumenesPanel() {
                   {bandas.length > 0 && (
                     <div className="border rounded-xl p-4 bg-background">
                       <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Historial — Promedio pkg/ruta</p>
-                      <ResponsiveContainer width="100%" height={150}>
+                      <ResponsiveContainer width="100%" height={180}>
                         <ComposedChart data={bandas.map(b => ({ dia: b.fecha.slice(5), promedio: Number(b.promedio_ruta), zona: b.zona_riesgo }))} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
                           <XAxis dataKey="dia" tick={{ fontSize: 9, fill: ct.axis }} stroke={ct.axisLine} interval={Math.floor(bandas.length / 6)} />
@@ -559,8 +559,8 @@ export function VolumenesPanel() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 <div className="lg:col-span-2 border rounded-xl p-5 bg-background">
                   <p className="text-sm font-bold uppercase tracking-wide text-blue-700 dark:text-blue-300 mb-4">Volumen semanal</p>
-                  {cargando && !dashboard.length ? <SkeletonChart height={200} /> : (
-                    <ResponsiveContainer width="100%" height={200}>
+                  {cargando && !dashboard.length ? <SkeletonChart height={250} /> : (
+                    <ResponsiveContainer width="100%" height={250}>
                       <ComposedChart data={chartData} margin={{ top: 5, right: 40, left: 0, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
                         <XAxis dataKey="dia" tick={{ fontSize: 11, fontWeight: 600, fill: ct.axis }} stroke={ct.axisLine} />

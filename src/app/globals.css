@@ -156,8 +156,31 @@
 .animate-fade-up { animation: rm-fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-pop-in  { animation: rm-pop-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
+/* Lift táctil para tarjetas/elementos clickeables */
+.hover-lift {
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease;
+  will-change: transform;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 16px -4px rgb(16 24 40 / 0.10), 0 4px 6px -2px rgb(16 24 40 / 0.05);
+}
+.hover-lift:active { transform: translateY(0); }
+
+/* Entrada escalonada de hijos directos (listas/grillas) */
+.stagger-children > * { animation: rm-fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.stagger-children > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.06s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.10s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.14s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.18s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.22s; }
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-in, .animate-fade-up, .animate-pop-in { animation: none !important; }
+  .animate-fade-in, .animate-fade-up, .animate-pop-in,
+  .stagger-children > * { animation: none !important; }
+  .hover-lift { transition: none; }
+  .hover-lift:hover { transform: none; }
 }
 
 /* Recoloreo y hover suaves en los poligonos del mapa (heatmap, seleccion) */
