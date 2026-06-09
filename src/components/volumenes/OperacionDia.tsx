@@ -498,10 +498,13 @@ export function OperacionDia({
         {/* Fecha */}
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" className="h-7 w-7"
+            disabled={fecha <= addDias(hoy(), -3)}
             onClick={() => setFecha(addDias(fecha, -1))}>
             <ChevronLeft className="h-3.5 w-3.5" />
           </Button>
-          <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
+          <input type="date" value={fecha}
+            min={addDias(hoy(), -3)} max={addDias(hoy(), 3)}
+            onChange={e => setFecha(e.target.value)}
             className="border rounded px-2 py-1 text-xs h-7 bg-background" />
           <Button variant="ghost" size="icon" className="h-7 w-7" disabled={fecha >= addDias(hoy(), 3)}
             onClick={() => setFecha(addDias(fecha, 1))}>
@@ -509,9 +512,34 @@ export function OperacionDia({
           </Button>
         </div>
 
+        {/* Chips días recientes */}
+        <div className="flex items-center gap-1">
+          {[-2, -1, 0].map(d => {
+            const f = addDias(hoy(), d);
+            const lbl = d === 0 ? "Hoy" : d === -1 ? "Ayer" : new Date(f + "T12:00:00").toLocaleDateString("es-AR", { weekday: "short" });
+            return (
+              <button key={d}
+                onClick={() => setFecha(f)}
+                className={cn(
+                  "h-6 px-2 rounded text-[10px] font-medium border transition-colors",
+                  fecha === f
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted/50 text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground"
+                )}>
+                {lbl}
+              </button>
+            );
+          })}
+        </div>
+
         <span className="text-xs text-muted-foreground capitalize hidden sm:inline">
           {fmtFecha(fecha)}
         </span>
+        {fecha < hoy() && (
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900 font-medium">
+            Editando día pasado
+          </span>
+        )}
         {tipoProyeccion && (
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900 font-medium">
             Proyección {tipoProyeccion === "min" ? "Mínima" : tipoProyeccion === "esperado" ? "Esperada" : "Máxima"} — {pkgTotal.toLocaleString("es-AR")} paq
