@@ -104,6 +104,23 @@ export async function guardarOperacionBulk(
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
+// Total de paquetes importados de clientes para una fecha
+export async function getTotalPaquetesFecha(
+  fecha: string
+): Promise<{ ok: boolean; total?: number; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("clientes_diarios")
+      .select("paquetes")
+      .eq("fecha", fecha);
+    if (error) return { ok: false, error: error.message };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const total = (data ?? []).reduce((s: number, r: any) => s + (r.paquetes ?? 0), 0);
+    return { ok: true, total };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
 // Resumen para el cálculo en tiempo real
 export async function getResumenOperacion(
   fecha: string,
