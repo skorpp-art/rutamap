@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import {
   getOperacionDia, inicializarOperacionDia,
-  guardarOperacionBulk,
+  guardarOperacionBulk, getTotalPaquetesFecha,
 } from "@/app/actions/operacion";
 import { getAnalisisRecorridos } from "@/app/actions/operaciones-diarias";
 import type { AnalisisRecorrido } from "@/app/actions/operaciones-diarias";
@@ -156,12 +156,18 @@ export function OperacionDia({
     try {
       // Inicializar silenciosamente (puede fallar si ya existen)
       try { await inicializarOperacionDia(f); } catch { /* ignorar */ }
-      const res = await getOperacionDia(f);
+      const [res, pkgRes] = await Promise.all([
+        getOperacionDia(f),
+        getTotalPaquetesFecha(f),
+      ]);
       if (res.ok && res.data && res.data.length > 0) {
         setRutas(res.data);
         setEditados({});
       } else if (!res.ok) {
         toast.error("Error al cargar operación del día", { description: res.error });
+      }
+      if (pkgRes.ok && pkgRes.total && pkgRes.total > 0) {
+        setPkgTotal(pkgRes.total);
       }
     } catch (e) {
       toast.error("Error al cargar rutas", { description: String(e) });
