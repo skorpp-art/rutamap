@@ -662,6 +662,7 @@ export function AnalisisOperaciones() {
                         <th className="text-right px-3 py-2 text-muted-foreground font-medium">Rutas</th>
                         <th className="text-right px-3 py-2 text-muted-foreground font-medium">Prom.</th>
                         <th className="text-right px-3 py-2 text-muted-foreground font-medium">X%</th>
+                        <th className="text-right px-3 py-2 text-muted-foreground font-medium">Efect.</th>
                         <th className="text-right px-3 py-2 text-muted-foreground font-medium">Chof.@30</th>
                         <th className="text-left px-3 py-2 text-muted-foreground font-medium">Estado</th>
                         <th className="text-center px-2 py-2 text-muted-foreground font-medium text-[10px]">Borrar</th>
@@ -694,6 +695,16 @@ export function AnalisisOperaciones() {
                               </td>
                               <td className={cn("px-3 py-1.5 text-right tabular-nums", d.pct_x_fuera > 5 ? "text-amber-600 dark:text-amber-300 font-semibold" : "text-muted-foreground")}>
                                 {d.pct_x_fuera > 0 ? `${d.pct_x_fuera}%` : "—"}
+                              </td>
+                              <td className="px-3 py-1.5 text-right tabular-nums">
+                                {d.efectividad_pct != null ? (
+                                  <span className={cn("font-semibold",
+                                    d.efectividad_pct >= 90 ? "text-emerald-600 dark:text-emerald-300" :
+                                    d.efectividad_pct >= 75 ? "text-amber-600 dark:text-amber-300" : "text-red-500")}
+                                    title={`Proyectado: ${d.proyectado_pkg} · Real: ${d.total_paquetes}`}>
+                                    {d.efectividad_pct}%
+                                  </span>
+                                ) : <span className="text-muted-foreground/40">—</span>}
                               </td>
                               <td className="px-3 py-1.5 text-right tabular-nums text-blue-700 dark:text-blue-300 font-semibold">
                                 {d.choferes_30 > 0 ? d.choferes_30 : "—"}
@@ -866,7 +877,7 @@ export function AnalisisOperaciones() {
                     </tr>
                     {exp && (
                       <tr>
-                        <td colSpan={9} className="bg-muted/20 dark:bg-muted/10 border-b p-0">
+                        <td colSpan={11} className="bg-muted/20 dark:bg-muted/10 border-b p-0">
                           <PatronDiaInline codigo={r.codigo} />
                         </td>
                       </tr>

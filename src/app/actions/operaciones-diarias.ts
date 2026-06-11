@@ -92,6 +92,8 @@ export interface DashboardUnificado {
   pct_x_fuera: number;
   choferes_30: number;
   choferes_35: number;
+  proyectado_pkg: number | null;
+  efectividad_pct: number | null;
   estado: string;
   tiene_clientes: boolean;
   tiene_ops: boolean;
