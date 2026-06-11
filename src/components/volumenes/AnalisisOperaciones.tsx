@@ -599,49 +599,64 @@ export function AnalisisOperaciones() {
                 )}
               </div>
 
-              {/* Gráfico de evolución */}
-              <div className="border rounded-xl p-5 bg-background">
-                <p className="text-sm font-bold mb-4">Evolución diaria — últimos {Math.min(14, dashboard.length)} días</p>
-                <ResponsiveContainer width="100%" height={280}>
-                  <ComposedChart data={chartData} margin={{ top: 8, right: 24, left: 0, bottom: 5 }} barGap={2} barCategoryGap="20%">
-                    <defs>
-                      <linearGradient id="gradPaquetes" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#6366f1" stopOpacity={0.95} />
-                        <stop offset="100%" stopColor="#6366f1" stopOpacity={0.5} />
-                      </linearGradient>
-                      <linearGradient id="gradChoferes" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={PALETA.verde} stopOpacity={0.8} />
-                        <stop offset="100%" stopColor={PALETA.verde} stopOpacity={0.35} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} vertical={false} />
-                    <XAxis dataKey="dia" tick={{ fontSize: 10, fill: ct.axis }} stroke={ct.axisLine} tickLine={false} />
-                    <YAxis yAxisId="left" tick={{ fontSize: 10, fill: ct.axis }} stroke={ct.axisLine} tickLine={false} axisLine={false} tickFormatter={v => v.toLocaleString("es-AR")} />
-                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: ct.axis }} stroke={ct.axisLine} tickLine={false} axisLine={false} domain={[0, 60]} />
-                    <Tooltip content={<TooltipUnif />} cursor={ct.tooltipCursor} />
-                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
-                      formatter={(value) => <span style={{ color: ct.legendColor }}>{value}</span>} />
-                    {/* Banda objetivo 25–35 sombreada */}
-                    {tieneOps && (
-                      <ReferenceArea yAxisId="right" y1={25} y2={35} fill={PALETA.verde} fillOpacity={ct.dark ? 0.10 : 0.07} stroke="none" />
-                    )}
-                    {tieneClientes && (
-                      <Bar yAxisId="left" dataKey="paquetes" name="Paquetes totales" fill="url(#gradPaquetes)" radius={[4,4,0,0]} maxBarSize={22} />
-                    )}
-                    {tieneOps && (
-                      <>
-                        <Bar yAxisId="left" dataKey="choferes" name="Choferes @30" fill="url(#gradChoferes)" radius={[4,4,0,0]} maxBarSize={12} />
-                        <Line yAxisId="right" type="monotone" dataKey="promedio" stroke="#f97316" strokeWidth={2.5} name="Prom pkg/ruta" dot={{ r: 3.5, fill: "#f97316", strokeWidth: 0 }} activeDot={{ r: 5 }} connectNulls />
-                        <ReferenceLine yAxisId="right" y={30} stroke={PALETA.verde} strokeDasharray="5 4" strokeWidth={1.25} />
-                        <ReferenceLine yAxisId="right" y={40} stroke={PALETA.rojo} strokeDasharray="3 4" strokeWidth={1} strokeOpacity={0.5} />
-                      </>
-                    )}
-                  </ComposedChart>
-                </ResponsiveContainer>
-                <div className="flex gap-3 mt-1 text-[9px] text-muted-foreground">
-                  <span className="text-red-400">- - - 35 (máx)</span>
-                  <span className="text-green-600 dark:text-green-300">— — 30 (P.E.)</span>
-                  <span className="text-amber-400">- - - 25 (mín)</span>
+              {/* Gráficos de evolución */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="border rounded-xl p-5 bg-background">
+                  <p className="text-sm font-bold mb-4">Paquetes — últimos {Math.min(14, dashboard.length)} días</p>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <ComposedChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 5 }} barCategoryGap="20%">
+                      <defs>
+                        <linearGradient id="gradPaquetes" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#6366f1" stopOpacity={0.95} />
+                          <stop offset="100%" stopColor="#6366f1" stopOpacity={0.5} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} vertical={false} />
+                      <XAxis dataKey="dia" tick={{ fontSize: 10, fill: ct.axis }} stroke={ct.axisLine} tickLine={false} />
+                      <YAxis tick={{ fontSize: 10, fill: ct.axis }} stroke={ct.axisLine} tickLine={false} axisLine={false} tickFormatter={v => v.toLocaleString("es-AR")} />
+                      <Tooltip content={<TooltipUnif />} cursor={ct.tooltipCursor} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                        formatter={(value) => <span style={{ color: ct.legendColor }}>{value}</span>} />
+                      {tieneClientes && (
+                        <Bar dataKey="paquetes" name="Paquetes totales" fill="url(#gradPaquetes)" radius={[4,4,0,0]} maxBarSize={32} />
+                      )}
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="border rounded-xl p-5 bg-background">
+                  <p className="text-sm font-bold mb-4">Choferes y promedio/ruta — últimos {Math.min(14, dashboard.length)} días</p>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <ComposedChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 5 }} barCategoryGap="35%">
+                      <defs>
+                        <linearGradient id="gradChoferes" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={PALETA.verde} stopOpacity={0.85} />
+                          <stop offset="100%" stopColor={PALETA.verde} stopOpacity={0.4} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} vertical={false} />
+                      <XAxis dataKey="dia" tick={{ fontSize: 10, fill: ct.axis }} stroke={ct.axisLine} tickLine={false} />
+                      <YAxis yAxisId="left" tick={{ fontSize: 10, fill: ct.axis }} stroke={ct.axisLine} tickLine={false} axisLine={false} domain={[0, 'dataMax + 5']} />
+                      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: ct.axis }} stroke={ct.axisLine} tickLine={false} axisLine={false} domain={[0, 60]} />
+                      <Tooltip content={<TooltipUnif />} cursor={ct.tooltipCursor} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                        formatter={(value) => <span style={{ color: ct.legendColor }}>{value}</span>} />
+                      {tieneOps && (
+                        <ReferenceArea yAxisId="right" y1={25} y2={35} fill={PALETA.verde} fillOpacity={ct.dark ? 0.10 : 0.07} stroke="none" />
+                      )}
+                      {tieneOps && (
+                        <>
+                          <Bar yAxisId="left" dataKey="choferes" name="Choferes @30" fill="url(#gradChoferes)" radius={[4,4,0,0]} maxBarSize={28} />
+                          <Line yAxisId="right" type="monotone" dataKey="promedio" stroke="#f97316" strokeWidth={2.5} name="Prom pkg/ruta" dot={{ r: 3.5, fill: "#f97316", strokeWidth: 0 }} activeDot={{ r: 5 }} connectNulls />
+                          <ReferenceLine yAxisId="right" y={30} stroke={PALETA.verde} strokeDasharray="5 4" strokeWidth={1.25} />
+                          <ReferenceLine yAxisId="right" y={40} stroke={PALETA.rojo} strokeDasharray="3 4" strokeWidth={1} strokeOpacity={0.5} />
+                        </>
+                      )}
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                  <div className="flex gap-3 mt-1 text-[9px] text-muted-foreground">
+                    <span className="text-red-400">- - - 40 (máx)</span>
+                    <span className="text-green-600 dark:text-green-300">— — 30 (P.E.)</span>
+                  </div>
                 </div>
               </div>
 
