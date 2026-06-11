@@ -201,7 +201,9 @@ export function HistorialDias() {
                 <th className="text-right px-3 py-2.5 font-medium text-muted-foreground">Rutas</th>
                 <th className="text-right px-3 py-2.5 font-medium text-muted-foreground">Prom/ruta</th>
                 <th className="text-right px-3 py-2.5 font-medium text-muted-foreground">Alertas</th>
-                <th className="text-right px-3 py-2.5 font-medium text-muted-foreground">Chof.@30</th>
+                <th className="text-right px-3 py-2.5 font-medium text-muted-foreground">Choferes</th>
+                <th className="text-right px-3 py-2.5 font-medium text-muted-foreground">Prom/chofer</th>
+                <th className="text-right px-3 py-2.5 font-medium text-muted-foreground">Acierto proy.</th>
                 <th className="text-right px-3 py-2.5 font-medium text-muted-foreground">vs sem. ant.</th>
               </tr>
             </thead>
@@ -257,7 +259,20 @@ export function HistorialDias() {
                         ) : <span className="text-muted-foreground/30">—</span>}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums text-blue-700 dark:text-blue-300 font-semibold">
-                        {d.choferes_30 > 0 ? d.choferes_30 : "—"}
+                        {d.choferes_real != null ? d.choferes_real : (d.choferes_30 > 0 ? `~${d.choferes_30}` : "—")}
+                      </td>
+                      <td className={cn("px-3 py-2 text-right tabular-nums", colorProm(Number(d.prom_por_chofer_real ?? 0)))}>
+                        {d.prom_por_chofer_real != null ? d.prom_por_chofer_real : "—"}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {d.acierto_pct != null ? (
+                          <span className={cn("font-semibold",
+                            d.acierto_pct >= 90 ? "text-emerald-600 dark:text-emerald-300" :
+                            d.acierto_pct >= 75 ? "text-amber-600 dark:text-amber-300" : "text-red-500")}
+                            title={`Proyectado (prom. histórico): ${d.proyectado_pkg} · Real: ${d.total_paquetes}`}>
+                            {d.acierto_pct}%
+                          </span>
+                        ) : <span className="text-muted-foreground/40">—</span>}
                       </td>
                       <td className={cn("px-3 py-2 text-right tabular-nums font-medium",
                         d.vs_semana_ant == null ? "text-muted-foreground/40" :

@@ -596,42 +596,7 @@ export function VolumenesPanel() {
                   )}
                 </div>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                <div className="lg:col-span-2 border rounded-xl p-5 bg-background">
-                  <p className="text-sm font-bold uppercase tracking-wide text-blue-700 dark:text-blue-300 mb-4">Volumen semanal</p>
-                  {cargando && !dashboard.length ? <SkeletonChart height={250} /> : (
-                    <ResponsiveContainer width="100%" height={250}>
-                      <ComposedChart data={chartData} margin={{ top: 8, right: 24, left: 0, bottom: 5 }} barGap={2} barCategoryGap="22%">
-                        <defs>
-                          <linearGradient id="gradEsta" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#6366f1" stopOpacity={1} />
-                            <stop offset="100%" stopColor="#6366f1" stopOpacity={0.55} />
-                          </linearGradient>
-                          <linearGradient id="gradHoy" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#4338ca" stopOpacity={1} />
-                            <stop offset="100%" stopColor="#6366f1" stopOpacity={0.75} />
-                          </linearGradient>
-                          <linearGradient id="gradProy" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.95} />
-                            <stop offset="100%" stopColor="#a78bfa" stopOpacity={0.4} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} vertical={false} />
-                        <XAxis dataKey="dia" tick={{ fontSize: 11, fontWeight: 600, fill: ct.axis }} stroke={ct.axisLine} tickLine={false} />
-                        <YAxis tick={{ fontSize: 10, fill: ct.axis }} stroke={ct.axisLine} tickLine={false} axisLine={false} tickFormatter={v => v.toLocaleString("es-AR")} />
-                        <Tooltip content={<TooltipGrafico />} cursor={ct.tooltipCursor} />
-                        <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
-                          formatter={(value) => <span style={{ color: ct.legendColor }}>{value}</span>} />
-                        <Bar dataKey="Semana anterior" fill={PALETA.gris} opacity={ct.dark ? 0.35 : 0.4} radius={[4,4,0,0]} maxBarSize={26} />
-                        <Bar dataKey="Esta semana" radius={[4,4,0,0]} maxBarSize={26}>
-                          {chartData.map((e, i) => <Cell key={i} fill={e.esHoy ? "url(#gradHoy)" : "url(#gradEsta)"} />)}
-                        </Bar>
-                        <Bar dataKey="Proyección mañana" fill="url(#gradProy)" radius={[4,4,0,0]} maxBarSize={26} />
-                        <Line type="monotone" dataKey="Promedio histórico" stroke="#f97316" strokeWidth={2.5} dot={{ r: 3.5, fill: "#f97316", strokeWidth: 0 }} activeDot={{ r: 5 }} connectNulls />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  )}
-                </div>
+              <div className="grid grid-cols-1 gap-5">
                 {topClientes.length > 0 && (() => {
                   const top3 = Math.round(topClientes.slice(0, 3).reduce((s, c) => s + (c.pct ?? 0), 0));
                   const riesgo = top3 >= 50 ? "alto" : top3 >= 35 ? "medio" : "bajo";

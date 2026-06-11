@@ -155,6 +155,10 @@ export interface HistorialDiaV2 {
   rutas_en_alerta: number;
   pct_x_fuera: number;
   choferes_30: number;
+  choferes_real: number | null;
+  prom_por_chofer_real: number | null;
+  proyectado_pkg: number | null;
+  acierto_pct: number | null;
   vs_semana_ant: number | null;
   tiene_ops: boolean;
 }
