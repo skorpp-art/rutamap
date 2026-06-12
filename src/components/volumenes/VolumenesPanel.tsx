@@ -22,6 +22,7 @@ import { getRecomendacionesOperacion } from "@/app/actions/operaciones-diarias";
 import { OperacionDia } from "./OperacionDia";
 import { AnalisisOperaciones } from "./AnalisisOperaciones";
 import { PlantillasSemanales } from "./PlantillasSemanales";
+import { Feriados } from "./Feriados";
 import { KpisMonitoreo } from "./KpisMonitoreo";
 import { HistorialDias } from "./HistorialDias";
 import type {
@@ -656,6 +657,13 @@ export function VolumenesPanel() {
                 <p className="text-[10px] text-muted-foreground mt-0.5">Valores de referencia por semana del mes y día de la semana</p>
               </div>
               <PlantillasSemanales onUsarValor={(p) => { setPkgProyectado(p); setCalcPaquetes(p); setTipoProyeccion("esperado"); setTab("operacion"); }} />
+            </div>
+            <div>
+              <div className="px-5 py-3 bg-muted/30 border-b">
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">🗓 Feriados</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Días sin operación y ajuste de proyección posterior</p>
+              </div>
+              <Feriados />
             </div>
             <div>
               <div className="px-5 py-3 bg-muted/30 border-b">

@@ -560,3 +560,45 @@ export async function getCalorRecorridos(dias = 30): Promise<{
     return { ok: false, error: String(e) };
   }
 }
+
+// ─── Feriados ────────────────────────────────────────────────────────────────
+export interface Feriado {
+  fecha: string;
+  descripcion: string | null;
+}
+
+export async function getFeriados(desde?: string, hasta?: string): Promise<{
+  ok: boolean; data?: Feriado[]; error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("get_feriados", {
+      p_desde: desde ?? undefined, p_hasta: hasta ?? undefined,
+    });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, data: data as Feriado[] };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
+export async function marcarFeriado(fecha: string, descripcion?: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc("marcar_feriado", { p_fecha: fecha, p_descripcion: descripcion ?? null });
+    if (error) return { ok: false, error: error.message };
+    revalidatePath("/volumenes");
+    return { ok: true };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
+export async function eliminarFeriado(fecha: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc("eliminar_feriado", { p_fecha: fecha });
+    if (error) return { ok: false, error: error.message };
+    revalidatePath("/volumenes");
+    return { ok: true };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
