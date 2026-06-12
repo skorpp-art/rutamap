@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Save, RefreshCw, ChevronLeft, ChevronRight,
   FileDown, AlertTriangle, CheckCircle, Users, Clock,
-  Plus, Pencil, X, Lightbulb, Scissors, Sunrise,
+  Plus, Pencil, X, Lightbulb, Scissors, Sunrise, Trash2,
 } from "lucide-react";
 import {
   getOperacionDia, inicializarOperacionDia,
@@ -15,7 +15,7 @@ import {
 } from "@/app/actions/operacion";
 import { getAnalisisRecorridos } from "@/app/actions/operaciones-diarias";
 import type { AnalisisRecorrido } from "@/app/actions/operaciones-diarias";
-import { crearRecorrido, actualizarCamposRecorrido, getSiguienteCodigo } from "@/app/actions/recorridos";
+import { crearRecorrido, actualizarCamposRecorrido, getSiguienteCodigo, eliminarRecorrido } from "@/app/actions/recorridos";
 import { ZONA_COLOR as ZONA_HEX } from "@/lib/estados";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { OperacionRuta } from "@/app/actions/operacion";
@@ -141,6 +141,19 @@ export function OperacionDia({
       setModalRuta(null);
       // Reinicializar y recargar para que el nuevo/editado aparezca
       await inicializarOperacionDia(fecha);
+      await cargar(fecha);
+    } finally { setGuardandoRuta(false); }
+  }
+
+  async function eliminarRuta() {
+    if (!modalRuta || modalRuta.modo !== "editar" || !modalRuta.id) return;
+    if (!confirm(`¿Eliminar el recorrido ${modalRuta.codigo}? Esta acción no se puede deshacer.`)) return;
+    setGuardandoRuta(true);
+    try {
+      const res = await eliminarRecorrido(modalRuta.id);
+      if (!res.ok) { toast.error("Error al eliminar recorrido", { description: res.error }); return; }
+      toast.success(`Recorrido ${modalRuta.codigo} eliminado`);
+      setModalRuta(null);
       await cargar(fecha);
     } finally { setGuardandoRuta(false); }
   }
@@ -932,6 +945,12 @@ export function OperacionDia({
               </Button>
               <Button variant="outline" onClick={() => setModalRuta(null)}>Cancelar</Button>
             </div>
+            {modalRuta.modo === "editar" && (
+              <Button variant="outline" disabled={guardandoRuta} onClick={eliminarRuta}
+                className="w-full border-red-200 dark:border-red-900 text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 gap-1.5">
+                <Trash2 className="h-3.5 w-3.5" /> Eliminar recorrido
+              </Button>
+            )}
           </div>
         </div>
       )}
