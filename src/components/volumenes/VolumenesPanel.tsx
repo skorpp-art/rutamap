@@ -9,7 +9,7 @@ import {
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, ArrowLeft } from "lucide-react";
 import {
   getDashboardSemanalV2, getResumenSemanalV2,
   getTopClientes,
@@ -119,6 +119,7 @@ function CalidadDatosCard({ calidad }: { calidad: CalidadDatos[] }) {
 export function VolumenesPanel() {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<"proyeccion" | "operacion" | "analisis" | "herramientas">("proyeccion");
+  const [herramientaActiva, setHerramientaActiva] = useState<"plantillas" | "feriados" | "kpis" | "historial" | null>(null);
 
   // Permite saltar directo a una pestaña desde la paleta de comandos (?tab=…)
   useEffect(() => {
@@ -609,38 +610,52 @@ export function VolumenesPanel() {
 
         {tab === "analisis" && <AnalisisOperaciones />}
 
-        {tab === "herramientas" && (
-          <div className="divide-y">
-            <div>
-              <div className="px-5 py-3 bg-muted/30 border-b">
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">🗓 Plantillas semanales</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Valores de referencia por semana del mes y día de la semana</p>
+        {tab === "herramientas" && (() => {
+          const HERRAMIENTAS = [
+            { id: "plantillas", icono: "🗓", titulo: "Plantillas semanales", sub: "Valores de referencia por semana del mes y día de la semana" },
+            { id: "feriados", icono: "🗓", titulo: "Feriados", sub: "Días sin operación y ajuste de proyección posterior" },
+            { id: "kpis", icono: "📈", titulo: "Monitoreo de KPIs", sub: "Indicadores de performance a largo plazo" },
+            { id: "historial", icono: "📋", titulo: "Historial de días", sub: "Registro completo de operaciones pasadas" },
+          ] as const;
+          const activa = HERRAMIENTAS.find(h => h.id === herramientaActiva);
+
+          if (!activa) {
+            return (
+              <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {HERRAMIENTAS.map(h => (
+                  <button key={h.id} onClick={() => setHerramientaActiva(h.id)}
+                    className="text-left border rounded-xl p-4 bg-background hover:border-blue-400 hover:shadow-md transition-all hover-lift">
+                    <p className="text-sm font-bold">{h.icono} {h.titulo}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{h.sub}</p>
+                  </button>
+                ))}
               </div>
-              <PlantillasSemanales onUsarValor={(p) => { setPkgProyectado(p); setCalcPaquetes(p); setTipoProyeccion("esperado"); setTab("operacion"); }} />
-            </div>
+            );
+          }
+
+          return (
             <div>
-              <div className="px-5 py-3 bg-muted/30 border-b">
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">🗓 Feriados</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Días sin operación y ajuste de proyección posterior</p>
+              <div className="px-5 py-3 bg-muted/30 border-b flex items-center gap-3">
+                <button onClick={() => setHerramientaActiva(null)}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Herramientas
+                </button>
+                <div className="h-4 w-px bg-border" />
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{activa.icono} {activa.titulo}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{activa.sub}</p>
+                </div>
               </div>
-              <Feriados />
+              {activa.id === "plantillas" && (
+                <PlantillasSemanales onUsarValor={(p) => { setPkgProyectado(p); setCalcPaquetes(p); setTipoProyeccion("esperado"); setTab("operacion"); }} />
+              )}
+              {activa.id === "feriados" && <Feriados />}
+              {activa.id === "kpis" && <KpisMonitoreo />}
+              {activa.id === "historial" && <HistorialDias />}
             </div>
-            <div>
-              <div className="px-5 py-3 bg-muted/30 border-b">
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">📈 Monitoreo de KPIs</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Indicadores de performance a largo plazo</p>
-              </div>
-              <KpisMonitoreo />
-            </div>
-            <div>
-              <div className="px-5 py-3 bg-muted/30 border-b">
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">📋 Historial de días</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Registro completo de operaciones pasadas</p>
-              </div>
-              <HistorialDias />
-            </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
