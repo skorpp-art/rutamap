@@ -250,6 +250,8 @@ export function OperacionDia({
   const nFijos = activas.filter(r => r.tipo === "fijo").length;
   const nPreT = activas.filter(r => r.tipo === "pre_turno").length;
   const nCortes = activas.filter(r => r.tipo === "corte").length;
+  const comodinesActivos = activas.filter(r => r.tipo === "suplencia").length;
+  const comodinesTotal = rutasConEdits.filter(r => r.tipo === "suplencia").length;
   const promedio = nActivas > 0 && pkgTotal > 0 ? pkgTotal / nActivas : 0;
   const choferes = pkgTotal > 0 ? Math.ceil(pkgTotal / targetPkg) : nActivas;
   const estadoColor = promedio === 0 ? "text-muted-foreground"
@@ -764,6 +766,17 @@ export function OperacionDia({
             </button>
           ))}
         </div>
+        {/* Comodines — ver cuáles están habilitados */}
+        <button onClick={() => setFiltroTipo(filtroTipo === "suplencia" ? null : "suplencia")}
+          className={cn("text-[10px] px-2 py-0.5 rounded border transition-colors flex items-center gap-1",
+            filtroTipo === "suplencia" ? TIPO_BADGE.suplencia : "border-border text-muted-foreground hover:border-blue-400")}
+          title="Ver comodines habilitados">
+          Comodines
+          <span className={cn("font-bold tabular-nums px-1 rounded",
+            filtroTipo === "suplencia" ? "bg-white/40 dark:bg-black/20" : "bg-muted")}>
+            {comodinesActivos}/{comodinesTotal}
+          </span>
+        </button>
         <button onClick={() => setSoloActivos(v => !v)}
           className={cn("text-[10px] px-2 py-0.5 rounded border transition-colors",
             soloActivos ? "bg-blue-600 text-white border-blue-600" : "border-border text-muted-foreground")}>
