@@ -79,7 +79,17 @@ export function OperacionDia({
   const [mostrarAlerta, setMostrarAlerta] = useState(false);
   const [analisisHist, setAnalisisHist] = useState<AnalisisRecorrido[]>([]);
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
+  const [resumenAbierto, setResumenAbierto] = useState(true);
   const reportRef = useRef<HTMLDivElement>(null);
+
+  // Recordar si el resumen quedó plegado/desplegado entre sesiones
+  useEffect(() => {
+    const v = localStorage.getItem("operacion-resumen-abierto");
+    if (v !== null) setResumenAbierto(v === "1");
+  }, []);
+  useEffect(() => {
+    localStorage.setItem("operacion-resumen-abierto", resumenAbierto ? "1" : "0");
+  }, [resumenAbierto]);
   // Debounce para autoguardado al cambiar rutas ON/OFF
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -599,18 +609,35 @@ export function OperacionDia({
         </div>
       </div>
 
-      {/* ── Calculadora en tiempo real ── */}
-      <div className="px-5 py-3 border-b bg-slate-50/50 dark:bg-slate-800/40 flex items-center gap-4 flex-wrap">
-        {/* Estado */}
-        <div className="flex items-center gap-2">
-          {promedio === 0 ? <Clock className="h-5 w-5 text-muted-foreground" />
-            : promedio > 35 || promedio < 25 ? <AlertTriangle className="h-5 w-5 text-amber-500" />
-            : <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-300" />}
+      {/* ── Calculadora en tiempo real (plegable) ── */}
+      <div className="border-b bg-slate-50/50 dark:bg-slate-800/40">
+        {/* Barra delgada siempre visible: estado + resumen + toggle */}
+        <button onClick={() => setResumenAbierto(v => !v)}
+          className="w-full px-5 py-2 flex items-center gap-3 text-left hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors">
+          {promedio === 0 ? <Clock className="h-5 w-5 text-muted-foreground shrink-0" />
+            : promedio > 35 || promedio < 25 ? <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />
+            : <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-300 shrink-0" />}
           <span className={cn("text-sm font-bold", estadoColor)}>{estadoLabel}</span>
-        </div>
+          {/* Resumen compacto (solo cuando está plegado) */}
+          {!resumenAbierto && (
+            <span className="hidden sm:flex items-center gap-2 text-[11px] text-muted-foreground">
+              <span><b className="text-foreground tabular-nums">{nActivas}</b> rutas</span>
+              <span className="text-border">·</span>
+              <span><b className="text-blue-700 dark:text-blue-300 tabular-nums">{pkgTotal > 0 ? choferes : "—"}</b> chof.</span>
+              <span className="text-border">·</span>
+              <span>prom <b className={cn("tabular-nums", estadoColor)}>{promedio > 0 ? promedio.toFixed(1) : "—"}</b></span>
+              <span className="text-border">·</span>
+              <span><b className="text-foreground tabular-nums">{nFijos}</b> RF</span>
+            </span>
+          )}
+          <span className="ml-auto flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+            {resumenAbierto ? "Ocultar" : "Ver detalle"}
+            <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", resumenAbierto && "rotate-90")} />
+          </span>
+        </button>
 
-        <div className="h-5 w-px bg-border" />
-
+        {resumenAbierto && (
+        <div className="px-5 pb-3 flex items-center gap-4 flex-wrap">
         {[
           { label: "Rutas activas", valor: nActivas.toString(), sub: `${nFijos}F ${nPreT}PT ${nCortes}C` },
           { label: "Choferes necesarios", valor: pkgTotal > 0 ? choferes.toString() : "—", sub: `@ ${targetPkg} pkg/chofer`, hl: true },
@@ -668,6 +695,8 @@ export function OperacionDia({
                 style={{ left: `${Math.min(100, Math.max(0, ((promedio - 20) / 20) * 100))}%` }} />
             </div>
           </div>
+        )}
+        </div>
         )}
       </div>
 
