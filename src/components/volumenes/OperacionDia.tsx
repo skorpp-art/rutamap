@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Save, RefreshCw, ChevronLeft, ChevronRight,
   FileDown, AlertTriangle, CheckCircle, Users, Clock,
-  Plus, Pencil, X, Lightbulb, Scissors, Sunrise, Trash2,
+  Plus, Pencil, X, Lightbulb, Scissors, Sunrise, Trash2, Gauge,
 } from "lucide-react";
 import {
   getOperacionDia, inicializarOperacionDia,
@@ -78,18 +78,9 @@ export function OperacionDia({
   const [soloActivos, setSoloActivos] = useState(false);
   const [mostrarAlerta, setMostrarAlerta] = useState(false);
   const [analisisHist, setAnalisisHist] = useState<AnalisisRecorrido[]>([]);
-  const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
-  const [resumenAbierto, setResumenAbierto] = useState(true);
+  // Panel lateral derecho (estilo Drive): "resumen" | "sugerencias" | null
+  const [panelAbierto, setPanelAbierto] = useState<"resumen" | "sugerencias" | null>(null);
   const reportRef = useRef<HTMLDivElement>(null);
-
-  // Recordar si el resumen quedó plegado/desplegado entre sesiones
-  useEffect(() => {
-    const v = localStorage.getItem("operacion-resumen-abierto");
-    if (v !== null) setResumenAbierto(v === "1");
-  }, []);
-  useEffect(() => {
-    localStorage.setItem("operacion-resumen-abierto", resumenAbierto ? "1" : "0");
-  }, [resumenAbierto]);
   // Debounce para autoguardado al cambiar rutas ON/OFF
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -523,7 +514,7 @@ export function OperacionDia({
   const hayEdits = Object.keys(editados).length > 0;
 
   return (
-    <div className="flex flex-col h-full" ref={reportRef}>
+    <div className="flex flex-col h-full relative overflow-hidden" ref={reportRef}>
       {/* ── Header / Controls ── */}
       <div className="px-5 py-3 border-b flex items-center gap-3 flex-wrap bg-background">
         {/* Fecha */}
@@ -611,139 +602,152 @@ export function OperacionDia({
         </div>
       </div>
 
-      {/* ── Calculadora en tiempo real (plegable) ── */}
-      <div className="border-b bg-slate-50/50 dark:bg-slate-800/40">
-        {/* Barra delgada siempre visible: estado + resumen + toggle */}
-        <button onClick={() => setResumenAbierto(v => !v)}
-          className="w-full px-5 py-2 flex items-center gap-3 text-left hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors">
-          {promedio === 0 ? <Clock className="h-5 w-5 text-muted-foreground shrink-0" />
-            : promedio > 35 || promedio < 25 ? <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />
-            : <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-300 shrink-0" />}
-          <span className={cn("text-sm font-bold", estadoColor)}>{estadoLabel}</span>
-          {/* Resumen compacto (solo cuando está plegado) */}
-          {!resumenAbierto && (
-            <span className="hidden sm:flex items-center gap-2 text-[11px] text-muted-foreground">
-              <span><b className="text-foreground tabular-nums">{nActivas}</b> rutas</span>
-              <span className="text-border">·</span>
-              <span><b className="text-blue-700 dark:text-blue-300 tabular-nums">{pkgTotal > 0 ? choferes : "—"}</b> chof.</span>
-              <span className="text-border">·</span>
-              <span>prom <b className={cn("tabular-nums", estadoColor)}>{promedio > 0 ? promedio.toFixed(1) : "—"}</b></span>
-              <span className="text-border">·</span>
-              <span><b className="text-foreground tabular-nums">{nFijos}</b> RF</span>
-            </span>
-          )}
-          <span className="ml-auto flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
-            {resumenAbierto ? "Ocultar" : "Ver detalle"}
-            <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", resumenAbierto && "rotate-90")} />
-          </span>
+      {/* ── Rail lateral derecho (estilo Drive) ── */}
+      <div className="absolute right-0 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-1.5 bg-background/95 backdrop-blur border border-r-0 rounded-l-xl shadow-lg p-1.5">
+        <button onClick={() => setPanelAbierto(p => p === "resumen" ? null : "resumen")}
+          title="Rutas y paquetes"
+          className={cn("relative h-10 w-10 rounded-lg flex items-center justify-center transition-colors",
+            panelAbierto === "resumen" ? "bg-blue-600 text-white" : "text-muted-foreground hover:bg-accent")}>
+          <Gauge className="h-5 w-5" />
+          <span className={cn("absolute top-1 right-1 h-2 w-2 rounded-full ring-2 ring-background",
+            promedio === 0 ? "bg-slate-400" : promedio > 35 || promedio < 25 ? "bg-amber-500" : "bg-green-500")} />
         </button>
-
-        {resumenAbierto && (
-        <div className="px-5 pb-3 flex items-center gap-4 flex-wrap">
-        {[
-          { label: "Rutas activas", valor: nActivas.toString(), sub: `${nFijos}F ${nPreT}PT ${nCortes}C` },
-          { label: "Choferes necesarios", valor: pkgTotal > 0 ? choferes.toString() : "—", sub: `@ ${targetPkg} pkg/chofer`, hl: true },
-          { label: "Prom. pkg/ruta", valor: promedio > 0 ? promedio.toFixed(1) : "—", sub: "target 25–35" },
-          { label: "Piso fijos", valor: nFijos.toString(), sub: "RF activos" },
-        ].map(({ label, valor, sub, hl }) => (
-          <div key={label} className="text-center">
-            <p className="text-[9px] uppercase tracking-wide text-muted-foreground font-semibold">{label}</p>
-            <p className={cn("text-lg font-bold tabular-nums leading-tight", hl ? "text-blue-700 dark:text-blue-300" : "text-foreground")}>{valor}</p>
-            <p className="text-[9px] text-muted-foreground">{sub}</p>
-          </div>
-        ))}
-
-        {/* Capacidad máxima — paquetes antes de superar 40P */}
-        {nActivas > 0 && pkgTotal > 0 && (
-          <>
-            <div className="h-5 w-px bg-border" />
-            <div className={cn(
-              "border rounded-lg px-3 py-2 text-center min-w-[110px]",
-              margenHasta40 < 0 ? "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900" :
-              margenHasta35 < 200 ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900" :
-              "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900"
-            )}>
-              <p className="text-[9px] uppercase tracking-wide font-semibold text-muted-foreground">
-                Margen hasta 40P
-              </p>
-              <p className={cn("text-base font-bold tabular-nums",
-                margenHasta40 < 0 ? "text-red-600 dark:text-red-300" :
-                margenHasta35 < 200 ? "text-amber-600 dark:text-amber-300" :
-                "text-emerald-600 dark:text-emerald-300")}>
-                {margenHasta40 < 0
-                  ? `−${Math.abs(margenHasta40).toLocaleString("es-AR")} paq`
-                  : `+${margenHasta40.toLocaleString("es-AR")} paq`}
-              </p>
-              <p className="text-[9px] text-muted-foreground">
-                {margenHasta40 < 0
-                  ? "⚠ Superado"
-                  : `cap. ${capacidadMax40.toLocaleString("es-AR")} · ${pctBuffer}% libre`}
-              </p>
-            </div>
-          </>
-        )}
-
-        {/* Barra de banda */}
-        {promedio > 0 && (
-          <div className="flex-1 min-w-[120px]">
-            <div className="flex justify-between text-[8px] text-muted-foreground mb-0.5">
-              <span>20</span><span>25</span><span className="font-bold text-green-600 dark:text-green-300">30</span><span>35</span><span>40</span>
-            </div>
-            <div className="h-3 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden relative">
-              {/* Zona verde 25-35 */}
-              <div className="absolute h-full bg-green-200" style={{ left: "25%", width: "50%" }} />
-              {/* Indicador */}
-              <div className="absolute h-full w-1 bg-blue-700 rounded-full transition-all"
-                style={{ left: `${Math.min(100, Math.max(0, ((promedio - 20) / 20) * 100))}%` }} />
-            </div>
-          </div>
-        )}
-        </div>
+        {sugerencias.length > 0 && (
+          <button onClick={() => setPanelAbierto(p => p === "sugerencias" ? null : "sugerencias")}
+            title="Sugerencias de cortes y pre-turnos"
+            className={cn("relative h-10 w-10 rounded-lg flex items-center justify-center transition-colors",
+              panelAbierto === "sugerencias" ? "bg-amber-500 text-white" : "text-amber-600 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40")}>
+            <Lightbulb className="h-5 w-5" />
+            <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-background tabular-nums">
+              {sugerencias.length}
+            </span>
+          </button>
         )}
       </div>
 
-      {/* ── Sugerencias inteligentes (cortes / pre-turnos) ── */}
-      {sugerencias.length > 0 && (
-        <div className="border-b bg-amber-50/40 dark:bg-amber-950/40">
-          <button onClick={() => setMostrarSugerencias(v => !v)}
-            className="w-full px-5 py-2 flex items-center gap-2 text-left hover:bg-amber-50/70 dark:hover:bg-amber-950/60 transition-colors">
-            <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-300 shrink-0" />
-            <span className="text-xs font-bold text-amber-800 dark:text-amber-200">Sugerencias de cortes y pre-turnos</span>
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-200/70 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 tabular-nums">
-              {sugerencias.length}
-            </span>
-            <span className="hidden sm:inline text-[10px] text-amber-600/80 dark:text-amber-300/70">sobrecarga sostenida · últimos 30 días</span>
-            <span className="ml-auto flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-300">
-              {mostrarSugerencias ? "Ocultar" : "Ver"}
-              <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", mostrarSugerencias && "rotate-90")} />
-            </span>
-          </button>
-          {mostrarSugerencias && (
-            <div className="px-5 pb-3 grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[38vh] overflow-y-auto animate-fade-up">
-              {sugerencias.map(s => (
-                <div key={s.codigo} className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900 rounded-xl p-3 flex items-start gap-2.5 hover-lift">
-                  {s.tipoSugerido === "pre_turno"
-                    ? <Sunrise className="h-4 w-4 text-violet-600 dark:text-violet-300 shrink-0 mt-0.5" />
-                    : <Scissors className="h-4 w-4 text-orange-600 dark:text-orange-300 shrink-0 mt-0.5" />}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold">
-                      <span className="font-mono text-blue-700 dark:text-blue-300">{s.codigo}</span>
-                      <span className="text-muted-foreground font-normal"> · {s.zona}</span>
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{s.motivo}</p>
-                  </div>
-                  <Button size="sm" variant="outline"
-                    className={cn("h-7 gap-1 text-[10px] shrink-0",
-                      s.tipoSugerido === "pre_turno" ? "border-violet-300 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50" : "border-orange-300 dark:border-orange-800 text-orange-700 dark:text-orange-300 hover:bg-orange-50")}
-                    onClick={() => abrirSugerencia(s)}>
-                    <Plus className="h-3 w-3" />
-                    {s.tipoSugerido === "pre_turno" ? "Crear pre-turno" : "Crear corte"}
-                  </Button>
+      {/* ── Panel deslizable derecho ── */}
+      {panelAbierto && (
+        <>
+          {/* Click fuera para cerrar */}
+          <div className="absolute inset-0 z-30" onClick={() => setPanelAbierto(null)} />
+          <div className="absolute right-[52px] top-0 bottom-0 z-40 w-[340px] max-w-[80vw] bg-background border-l shadow-2xl flex flex-col animate-fade-up">
+
+            {panelAbierto === "resumen" && (
+              <>
+                <div className="px-4 py-3 border-b flex items-center gap-2 bg-slate-50/50 dark:bg-slate-800/40">
+                  {promedio === 0 ? <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                    : promedio > 35 || promedio < 25 ? <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
+                    : <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-300 shrink-0" />}
+                  <span className={cn("text-sm font-bold", estadoColor)}>{estadoLabel}</span>
+                  <button onClick={() => setPanelAbierto(null)} className="ml-auto text-muted-foreground hover:text-foreground">
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: "Rutas activas", valor: nActivas.toString(), sub: `${nFijos}F ${nPreT}PT ${nCortes}C` },
+                      { label: "Choferes necesarios", valor: pkgTotal > 0 ? choferes.toString() : "—", sub: `@ ${targetPkg} pkg/chofer`, hl: true },
+                      { label: "Prom. pkg/ruta", valor: promedio > 0 ? promedio.toFixed(1) : "—", sub: "target 25–35" },
+                      { label: "Piso fijos", valor: nFijos.toString(), sub: "RF activos" },
+                    ].map(({ label, valor, sub, hl }) => (
+                      <div key={label} className="border rounded-lg p-3 text-center bg-background">
+                        <p className="text-[9px] uppercase tracking-wide text-muted-foreground font-semibold">{label}</p>
+                        <p className={cn("text-xl font-bold tabular-nums leading-tight mt-0.5", hl ? "text-blue-700 dark:text-blue-300" : "text-foreground")}>{valor}</p>
+                        <p className="text-[9px] text-muted-foreground">{sub}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Capacidad máxima — paquetes antes de superar 40P */}
+                  {nActivas > 0 && pkgTotal > 0 && (
+                    <div className={cn(
+                      "border rounded-lg px-3 py-3 text-center",
+                      margenHasta40 < 0 ? "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900" :
+                      margenHasta35 < 200 ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900" :
+                      "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900"
+                    )}>
+                      <p className="text-[9px] uppercase tracking-wide font-semibold text-muted-foreground">
+                        Margen hasta 40P
+                      </p>
+                      <p className={cn("text-xl font-bold tabular-nums",
+                        margenHasta40 < 0 ? "text-red-600 dark:text-red-300" :
+                        margenHasta35 < 200 ? "text-amber-600 dark:text-amber-300" :
+                        "text-emerald-600 dark:text-emerald-300")}>
+                        {margenHasta40 < 0
+                          ? `−${Math.abs(margenHasta40).toLocaleString("es-AR")} paq`
+                          : `+${margenHasta40.toLocaleString("es-AR")} paq`}
+                      </p>
+                      <p className="text-[9px] text-muted-foreground">
+                        {margenHasta40 < 0
+                          ? "⚠ Superado"
+                          : `cap. ${capacidadMax40.toLocaleString("es-AR")} · ${pctBuffer}% libre`}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Barra de banda */}
+                  {promedio > 0 && (
+                    <div>
+                      <p className="text-[9px] uppercase tracking-wide text-muted-foreground font-semibold mb-1.5">Banda de carga</p>
+                      <div className="flex justify-between text-[8px] text-muted-foreground mb-0.5">
+                        <span>20</span><span>25</span><span className="font-bold text-green-600 dark:text-green-300">30</span><span>35</span><span>40</span>
+                      </div>
+                      <div className="h-3 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden relative">
+                        <div className="absolute h-full bg-green-200" style={{ left: "25%", width: "50%" }} />
+                        <div className="absolute h-full w-1 bg-blue-700 rounded-full transition-all"
+                          style={{ left: `${Math.min(100, Math.max(0, ((promedio - 20) / 20) * 100))}%` }} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {panelAbierto === "sugerencias" && (
+              <>
+                <div className="px-4 py-3 border-b flex items-center gap-2 bg-amber-50/50 dark:bg-amber-950/40">
+                  <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-300 shrink-0" />
+                  <span className="text-sm font-bold text-amber-800 dark:text-amber-200">Sugerencias</span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-200/70 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 tabular-nums">
+                    {sugerencias.length}
+                  </span>
+                  <button onClick={() => setPanelAbierto(null)} className="ml-auto text-muted-foreground hover:text-foreground">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="px-4 pt-2 pb-1">
+                  <p className="text-[10px] text-amber-600/80 dark:text-amber-300/70">Cortes y pre-turnos · sobrecarga sostenida · últimos 30 días</p>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 pt-2 space-y-2">
+                  {sugerencias.map(s => (
+                    <div key={s.codigo} className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900 rounded-xl p-3 space-y-2">
+                      <div className="flex items-start gap-2.5">
+                        {s.tipoSugerido === "pre_turno"
+                          ? <Sunrise className="h-4 w-4 text-violet-600 dark:text-violet-300 shrink-0 mt-0.5" />
+                          : <Scissors className="h-4 w-4 text-orange-600 dark:text-orange-300 shrink-0 mt-0.5" />}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold">
+                            <span className="font-mono text-blue-700 dark:text-blue-300">{s.codigo}</span>
+                            <span className="text-muted-foreground font-normal"> · {s.zona}</span>
+                          </p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{s.motivo}</p>
+                        </div>
+                      </div>
+                      <Button size="sm" variant="outline"
+                        className={cn("w-full h-7 gap-1 text-[10px]",
+                          s.tipoSugerido === "pre_turno" ? "border-violet-300 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50" : "border-orange-300 dark:border-orange-800 text-orange-700 dark:text-orange-300 hover:bg-orange-50")}
+                        onClick={() => { abrirSugerencia(s); setPanelAbierto(null); }}>
+                        <Plus className="h-3 w-3" />
+                        {s.tipoSugerido === "pre_turno" ? "Crear pre-turno" : "Crear corte"}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </>
       )}
 
       {/* ── Filtros ── */}
