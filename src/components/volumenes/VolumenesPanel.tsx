@@ -9,7 +9,7 @@ import {
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { RefreshCw, Users, CheckCircle, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import {
   getDashboardSemanalV2, getResumenSemanalV2,
   getTopClientes,
@@ -32,6 +32,7 @@ import type {
 } from "@/app/actions/volumenes";
 import { PALETA, ESTADO, clasificarRiesgo } from "@/lib/estados";
 import { useChartTheme } from "@/hooks/useChartTheme";
+import { useVolumenesStore } from "@/stores/volumenesStore";
 import { EstadoBadge } from "@/components/ui/estado-badge";
 import { NumeroAnimado } from "@/components/ui/numero-animado";
 import { SkeletonCards, SkeletonChart } from "@/components/ui/skeleton";
@@ -266,10 +267,33 @@ export function VolumenesPanel() {
   }
 
   const vsAnteriorPct = resumen?.vs_anterior_pct ?? 0;
-  const DeltaIcon = vsAnteriorPct > 2 ? TrendingUp : vsAnteriorPct < -2 ? TrendingDown : Minus;
-  const deltaColor = vsAnteriorPct > 2 ? "text-emerald-600 dark:text-emerald-300" : vsAnteriorPct < -2 ? "text-red-500" : "text-muted-foreground";
 
   const ct = useChartTheme();
+
+  // ── Publicar KPIs al header global (barra superior) ──────────────────────
+  const setKpis = useVolumenesStore(s => s.setKpis);
+  const setOnRefrescar = useVolumenesStore(s => s.setOnRefrescar);
+  useEffect(() => {
+    setKpis({
+      hoyTotal: resumen?.hoy_total ?? null,
+      choferesHoy,
+      semanaTotal: resumen?.semana_total ?? null,
+      semanaDias: resumen?.semana_dias ?? 0,
+      vsAnteriorPct,
+      anteriorTotal: resumen?.anterior_total ?? null,
+      proyectadoTotal: proyectadoTotal ?? null,
+      confianza,
+      precisionPct: precision?.pct ?? null,
+      precisionN: precision?.n ?? null,
+      rutasFijas: rutasFijasCount,
+      targetPkg,
+      cargando,
+    });
+  }, [resumen, choferesHoy, vsAnteriorPct, proyectadoTotal, confianza, precision, rutasFijasCount, targetPkg, cargando, setKpis]);
+  useEffect(() => {
+    setOnRefrescar(() => cargar);
+    return () => { setKpis(null); setOnRefrescar(null); };
+  }, [cargar, setOnRefrescar, setKpis]);
 
   // suppress unused warning
   void promDiaActual;
@@ -278,70 +302,6 @@ export function VolumenesPanel() {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <div className="border-b px-5 py-3 flex items-center gap-4 flex-wrap">
-        <div>
-          <h1 className="text-lg font-bold leading-tight">Volúmenes</h1>
-          <p className="text-[10px] text-muted-foreground">{RUTAS_FIJAS} recorridos fijos · objetivo {targetPkg} pkg/chofer</p>
-        </div>
-        <div className="flex items-center gap-4 ml-4 flex-wrap">
-          <div className="text-center">
-            <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Hoy</p>
-            <p className="text-base font-bold tabular-nums text-blue-700 dark:text-blue-300 leading-tight">
-              {resumen?.hoy_total ? resumen.hoy_total.toLocaleString("es-AR") : "—"}
-            </p>
-            <p className="text-[9px] text-muted-foreground">{choferesHoy > 0 ? `${choferesHoy} choferes` : "sin datos"}</p>
-          </div>
-          <div className="h-8 w-px bg-border" />
-          <div className="text-center">
-            <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Semana</p>
-            <p className="text-base font-bold tabular-nums leading-tight">
-              {resumen?.semana_total ? resumen.semana_total.toLocaleString("es-AR") : "—"}
-            </p>
-            <p className="text-[9px] text-muted-foreground">{resumen?.semana_dias ?? 0} días</p>
-          </div>
-          <div className="h-8 w-px bg-border" />
-          <div className="text-center">
-            <p className="text-[9px] uppercase tracking-widest text-muted-foreground">vs anterior</p>
-            <p className={cn("text-base font-bold tabular-nums leading-tight flex items-center gap-1", deltaColor)}>
-              <DeltaIcon className="h-3.5 w-3.5" />
-              {vsAnteriorPct !== 0 ? `${vsAnteriorPct > 0 ? "+" : ""}${vsAnteriorPct}%` : "—"}
-            </p>
-            <p className="text-[9px] text-muted-foreground">{resumen?.anterior_total ? resumen.anterior_total.toLocaleString("es-AR") : "—"}</p>
-          </div>
-          {proyectadoTotal && (
-            <>
-              <div className="h-8 w-px bg-border" />
-              <div className="text-center">
-                <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Proyección mañana</p>
-                <p className="text-base font-bold tabular-nums text-emerald-600 dark:text-emerald-300 leading-tight">
-                  {proyectadoTotal.toLocaleString("es-AR")}
-                </p>
-                <p className="text-[9px] text-muted-foreground">confianza {confianza}</p>
-              </div>
-            </>
-          )}
-          {precision && (
-            <>
-              <div className="h-8 w-px bg-border" />
-              <div className="text-center" title={`El volumen real estuvo en promedio a ${100 - precision.pct}% del esperado histórico (${precision.n} días)`}>
-                <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Precisión modelo</p>
-                <p className={cn("text-base font-bold tabular-nums leading-tight",
-                  precision.pct >= 85 ? "text-emerald-600 dark:text-emerald-300" :
-                  precision.pct >= 70 ? "text-amber-600 dark:text-amber-300" :
-                  "text-red-500 dark:text-red-300")}>
-                  {precision.pct}%
-                </p>
-                <p className="text-[9px] text-muted-foreground">real vs esperado</p>
-              </div>
-            </>
-          )}
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cargar} disabled={cargando}>
-            <RefreshCw className={cn("h-3.5 w-3.5", cargando && "animate-spin")} />
-          </Button>
-        </div>
-      </div>
 
       <div className="border-b px-3 sm:px-5 flex gap-0.5 overflow-x-auto no-scrollbar">
         {([

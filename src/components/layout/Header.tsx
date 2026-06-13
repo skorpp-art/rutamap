@@ -1,7 +1,8 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { MapPin, LogOut, User, ChevronDown, Truck, Map, Package, Lock, LogIn, Search } from "lucide-react";
+import { MapPin, LogOut, User, ChevronDown, Truck, Map, Package, Lock, LogIn, Search, RefreshCw, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,6 +21,8 @@ import {
 } from "@/components/ui/select";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useMapStore } from "@/stores/mapStore";
+import { useVolumenesStore } from "@/stores/volumenesStore";
+import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import type { Perfil, Zona } from "@/types/database.types";
 
@@ -40,6 +43,8 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { filtros, setFiltroZona } = useMapStore();
+  const kpis = useVolumenesStore((s) => s.kpis);
+  const onRefrescar = useVolumenesStore((s) => s.onRefrescar);
 
   async function handleLogout() {
     const supabase = createClient();
@@ -53,6 +58,7 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
   }
 
   return (
+    <>
     <header className="h-14 bg-brand-black border-b border-white/5 flex items-center px-4 gap-4 shrink-0">
       {/* Logo */}
       <div className="flex items-center gap-2.5 select-none">
@@ -87,29 +93,46 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
         </Select>
       </div>
 
-      {/* Navegación entre vistas */}
-      <div className="flex items-center gap-1">
-        <button
-          onClick={() => router.push("/")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ${
-            pathname === "/" ? "bg-brand-blue text-white shadow-sm ring-1 ring-white/10" : "text-white/70 hover:bg-white/10 hover:text-white"
-          }`}
-        >
-          <Map className="h-3.5 w-3.5" />
-          Mapa
-        </button>
-        <button
-          onClick={() => router.push("/volumenes")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ${
-            pathname === "/volumenes" ? "bg-brand-blue text-white shadow-sm ring-1 ring-white/10" : "text-white/70 hover:bg-white/10 hover:text-white"
-          }`}
-          title={esInvitado ? "Requiere iniciar sesión" : "Gestión de volúmenes"}
-        >
-          <Package className="h-3.5 w-3.5" />
-          Volúmenes
-          {esInvitado && <Lock className="h-3 w-3 opacity-60" />}
-        </button>
-      </div>
+      {/* KPIs de Volúmenes (solo en /volumenes) */}
+      {pathname === "/volumenes" && kpis && (
+        <div className="hidden md:flex items-center gap-3.5 ml-2 overflow-x-auto no-scrollbar">
+          <KpiItem label="Hoy" valor={kpis.hoyTotal ? kpis.hoyTotal.toLocaleString("es-AR") : "—"}
+            sub={kpis.choferesHoy > 0 ? `${kpis.choferesHoy} chof.` : "sin datos"} color="text-brand-sky" />
+          <Sep />
+          <KpiItem label="Semana" valor={kpis.semanaTotal ? kpis.semanaTotal.toLocaleString("es-AR") : "—"}
+            sub={`${kpis.semanaDias} días`} color="text-white" />
+          <Sep />
+          <KpiItem label="vs ant." color={kpis.vsAnteriorPct > 2 ? "text-emerald-400" : kpis.vsAnteriorPct < -2 ? "text-red-400" : "text-white/70"}
+            valor={
+              <span className="flex items-center gap-0.5">
+                <DeltaIcon pct={kpis.vsAnteriorPct} />
+                {kpis.vsAnteriorPct !== 0 ? `${kpis.vsAnteriorPct > 0 ? "+" : ""}${kpis.vsAnteriorPct}%` : "—"}
+              </span>
+            }
+            sub={kpis.anteriorTotal ? kpis.anteriorTotal.toLocaleString("es-AR") : "—"} />
+          {kpis.proyectadoTotal != null && (
+            <>
+              <Sep />
+              <KpiItem label="Proy. mañana" valor={kpis.proyectadoTotal.toLocaleString("es-AR")}
+                sub={`confianza ${kpis.confianza ?? "—"}`} color="text-emerald-400" />
+            </>
+          )}
+          {kpis.precisionPct != null && (
+            <>
+              <Sep />
+              <KpiItem label="Precisión" valor={`${kpis.precisionPct}%`} sub="real vs esperado"
+                color={kpis.precisionPct >= 85 ? "text-emerald-400" : kpis.precisionPct >= 70 ? "text-amber-400" : "text-red-400"} />
+            </>
+          )}
+          {onRefrescar && (
+            <button onClick={() => onRefrescar()} disabled={kpis.cargando}
+              className="ml-1 p-1.5 rounded-md text-white/60 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+              title="Actualizar">
+              <RefreshCw className={cn("h-3.5 w-3.5", kpis.cargando && "animate-spin")} />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Espacio flexible */}
       <div className="flex-1" />
@@ -188,5 +211,58 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
         </DropdownMenu>
       )}
     </header>
+
+    {/* Navegación flotante (esquina inferior derecha) */}
+    <div className="fixed bottom-5 right-5 z-[1000] flex items-center gap-1 p-1 rounded-full bg-brand-black/90 backdrop-blur-md border border-white/10 shadow-xl shadow-black/30">
+      <button
+        onClick={() => router.push("/")}
+        className={cn(
+          "flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-150",
+          pathname === "/" ? "bg-brand-blue text-white shadow-sm" : "text-white/70 hover:bg-white/10 hover:text-white"
+        )}
+      >
+        <Map className="h-4 w-4" />
+        Mapa
+      </button>
+      <button
+        onClick={() => router.push("/volumenes")}
+        className={cn(
+          "flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-150",
+          pathname === "/volumenes" ? "bg-brand-blue text-white shadow-sm" : "text-white/70 hover:bg-white/10 hover:text-white"
+        )}
+        title={esInvitado ? "Requiere iniciar sesión" : "Gestión de volúmenes"}
+      >
+        <Package className="h-4 w-4" />
+        Volúmenes
+        {esInvitado && <Lock className="h-3 w-3 opacity-60" />}
+      </button>
+    </div>
+    </>
+  );
+}
+
+function Sep() {
+  return <div className="h-7 w-px bg-white/10 shrink-0" />;
+}
+
+function DeltaIcon({ pct }: { pct: number }) {
+  const Icon = pct > 2 ? TrendingUp : pct < -2 ? TrendingDown : Minus;
+  return <Icon className="h-3.5 w-3.5" />;
+}
+
+function KpiItem({
+  label, valor, sub, color,
+}: {
+  label: string;
+  valor: ReactNode;
+  sub: string;
+  color: string;
+}) {
+  return (
+    <div className="text-center shrink-0">
+      <p className="text-[8px] uppercase tracking-widest text-white/40 leading-tight">{label}</p>
+      <p className={cn("text-sm font-bold tabular-nums leading-tight", color)}>{valor}</p>
+      <p className="text-[8px] text-white/40 leading-tight">{sub}</p>
+    </div>
   );
 }
