@@ -816,13 +816,12 @@ export function OperacionDia({
           <table className="w-full text-xs">
             <thead className="sticky top-0 z-10 bg-muted/40 dark:bg-muted/20 border-b backdrop-blur-sm">
               <tr>
-                <th className="w-10 px-3 py-2.5 text-center text-muted-foreground font-medium">ON</th>
+                <th className="w-16 px-3 py-2.5 text-center text-muted-foreground font-medium">ON</th>
                 <th className="text-left px-3 py-2.5 text-muted-foreground font-medium">Código</th>
                 <th className="text-left px-3 py-2.5 text-muted-foreground font-medium">Nombre</th>
                 <th className="text-left px-3 py-2.5 text-muted-foreground font-medium">Zona</th>
                 <th className="text-left px-3 py-2.5 text-muted-foreground font-medium">Tipo</th>
                 <th className="text-left px-3 py-2.5 text-muted-foreground font-medium">Notas del día</th>
-                <th className="w-8 px-2 py-2.5" />
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -834,18 +833,25 @@ export function OperacionDia({
                       !r.activo ? "opacity-40 bg-slate-50 dark:bg-slate-800/40" : "hover:bg-accent/20",
                       modificada && "bg-amber-50/40 dark:bg-amber-950/40"
                     )}>
-                    {/* Toggle ON/OFF */}
+                    {/* Toggle ON/OFF + Editar */}
                     <td className="px-3 py-2 text-center">
-                      <button onClick={() => toggleRuta(r.recorrido_id)}
-                        className={cn(
-                          "h-5 w-9 rounded-full transition-colors relative inline-flex items-center",
-                          r.activo ? "bg-blue-600" : "bg-slate-300"
-                        )}>
-                        <span className={cn(
-                          "h-4 w-4 rounded-full bg-white shadow transition-transform",
-                          r.activo ? "translate-x-4" : "translate-x-0.5"
-                        )} />
-                      </button>
+                      <div className="flex items-center justify-center gap-2">
+                        <button onClick={() => toggleRuta(r.recorrido_id)}
+                          className={cn(
+                            "h-5 w-9 rounded-full transition-colors relative inline-flex items-center shrink-0",
+                            r.activo ? "bg-blue-600" : "bg-slate-300"
+                          )}>
+                          <span className={cn(
+                            "h-4 w-4 rounded-full bg-white shadow transition-transform",
+                            r.activo ? "translate-x-4" : "translate-x-0.5"
+                          )} />
+                        </button>
+                        <button onClick={() => abrirEditar(r)}
+                          className="text-muted-foreground/40 hover:text-blue-600 transition-colors shrink-0"
+                          title="Editar recorrido">
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      </div>
                     </td>
                     <td className="px-3 py-2 font-mono font-bold">
                       <div className="flex items-center gap-1.5">
@@ -868,14 +874,6 @@ export function OperacionDia({
                         onChange={e => setNota(r.recorrido_id, e.target.value)}
                         className="w-full border-0 border-b border-dashed border-slate-300 dark:border-slate-600 bg-transparent text-xs focus:outline-none focus:border-blue-400 py-0.5 placeholder:text-slate-300"
                       />
-                    </td>
-                    {/* Editar recorrido */}
-                    <td className="px-2 py-2 text-center">
-                      <button onClick={() => abrirEditar(r)}
-                        className="text-muted-foreground/40 hover:text-blue-600 transition-colors"
-                        title="Editar recorrido">
-                        <Pencil className="h-3 w-3" />
-                      </button>
                     </td>
                   </tr>
                 );
