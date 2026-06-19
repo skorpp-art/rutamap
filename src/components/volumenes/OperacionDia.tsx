@@ -26,6 +26,7 @@ const TIPOS_OPT = [
   { valor: "pre_turno", label: "Pre-Turno" },
   { valor: "corte",     label: "Corte" },
   { valor: "suplencia", label: "Comodín" },
+  { valor: "unificado", label: "Unificado" },
 ] as const;
 const COLORES_ZONA = ZONA_HEX;
 
@@ -45,9 +46,10 @@ const TIPO_BADGE: Record<string, string> = {
   pre_turno: "bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-900",
   corte: "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-900",
   suplencia: "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700",
+  unificado: "bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-900",
 };
 const TIPO_LABEL: Record<string, string> = {
-  fijo: "Fijo", pre_turno: "Pre-T", corte: "Corte", suplencia: "Cmd",
+  fijo: "Fijo", pre_turno: "Pre-T", corte: "Corte", suplencia: "Cmd", unificado: "Unif.",
 };
 const ZONA_COLOR: Record<string, string> = {
   CABA: "bg-red-500", Norte: "bg-amber-500", Sur: "bg-green-600", Oeste: "bg-blue-600",
@@ -122,7 +124,7 @@ export function OperacionDia({
           codigo: modalRuta.codigo.trim().toUpperCase(),
           nombre: modalRuta.nombre.trim(),
           zona: modalRuta.zona as "Oeste" | "Norte" | "Sur" | "CABA",
-          tipo: modalRuta.tipo as "fijo" | "suplencia" | "corte" | "pre_turno",
+          tipo: modalRuta.tipo as "fijo" | "suplencia" | "corte" | "pre_turno" | "unificado",
           color: COLORES_ZONA[modalRuta.zona] ?? "#6b7280",
         });
         if (!res.ok) { toast.error("Error al crear recorrido", { description: res.error }); return; }
@@ -133,7 +135,7 @@ export function OperacionDia({
           codigo: modalRuta.codigo.trim().toUpperCase(),
           nombre: modalRuta.nombre.trim(),
           zona: modalRuta.zona as "Oeste" | "Norte" | "Sur" | "CABA",
-          tipo: modalRuta.tipo as "fijo" | "suplencia" | "corte" | "pre_turno",
+          tipo: modalRuta.tipo as "fijo" | "suplencia" | "corte" | "pre_turno" | "unificado",
           color: COLORES_ZONA[modalRuta.zona] ?? "#6b7280",
         });
         if (!res.ok) { toast.error("Error al actualizar", { description: res.error }); return; }
@@ -241,6 +243,7 @@ export function OperacionDia({
   const nFijos = activas.filter(r => r.tipo === "fijo").length;
   const nPreT = activas.filter(r => r.tipo === "pre_turno").length;
   const nCortes = activas.filter(r => r.tipo === "corte").length;
+  const nUnificados = activas.filter(r => r.tipo === "unificado").length;
   const comodinesActivos = activas.filter(r => r.tipo === "suplencia").length;
   const comodinesTotal = rutasConEdits.filter(r => r.tipo === "suplencia").length;
   const promedio = nActivas > 0 && pkgTotal > 0 ? pkgTotal / nActivas : 0;
@@ -372,7 +375,7 @@ export function OperacionDia({
         : margenHasta35 < 200 ? { r: 217, g: 119, b: 6 }
         : { r: 22, g: 163, b: 74 };
       const cards = [
-        { label: "RUTAS ACTIVAS", valor: nActivas.toString(), sub: `${nFijos}F · ${nPreT}PT · ${nCortes}C`, r: 37, g: 99, b: 235 },
+        { label: "RUTAS ACTIVAS", valor: nActivas.toString(), sub: `${nFijos}F · ${nPreT}PT · ${nCortes}C · ${nUnificados}U`, r: 37, g: 99, b: 235 },
         { label: "CHOFERES", valor: choferes.toString(), sub: `@ ${targetPkg} pkg/chofer`, r: 22, g: 163, b: 74 },
         { label: "PAQUETES", valor: pkgTotal > 0 ? pkgTotal.toLocaleString("es-AR") : "—", sub: "proyectados", r: 124, g: 58, b: 237 },
         { label: "PROM/RUTA", valor: promedio > 0 ? promedio.toFixed(1) : "—", sub: `target ${targetPkg}±5`, r: promedio > 0 && promedio >= targetPkg-5 && promedio <= targetPkg+5 ? 22 : 220, g: promedio > 0 && promedio >= targetPkg-5 && promedio <= targetPkg+5 ? 163 : 38, b: promedio > 0 && promedio >= targetPkg-5 && promedio <= targetPkg+5 ? 74 : 38 },
@@ -646,7 +649,7 @@ export function OperacionDia({
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { label: "Rutas activas", valor: nActivas.toString(), sub: `${nFijos}F ${nPreT}PT ${nCortes}C` },
+                      { label: "Rutas activas", valor: nActivas.toString(), sub: `${nFijos}F ${nPreT}PT ${nCortes}C ${nUnificados}U` },
                       { label: "Choferes necesarios", valor: pkgTotal > 0 ? choferes.toString() : "—", sub: `@ ${targetPkg} pkg/chofer`, hl: true },
                       { label: "Prom. pkg/ruta", valor: promedio > 0 ? promedio.toFixed(1) : "—", sub: "target 25–35" },
                       { label: "Piso fijos", valor: nFijos.toString(), sub: "RF activos" },
@@ -762,7 +765,7 @@ export function OperacionDia({
           ))}
         </div>
         <div className="flex gap-1">
-          {["fijo","pre_turno","corte"].map(t => (
+          {["fijo","pre_turno","corte","unificado"].map(t => (
             <button key={t} onClick={() => setFiltroTipo(filtroTipo === t ? null : t)}
               className={cn("text-[10px] px-2 py-0.5 rounded border transition-colors",
                 filtroTipo === t ? TIPO_BADGE[t] : "border-border text-muted-foreground hover:border-blue-400")}>
