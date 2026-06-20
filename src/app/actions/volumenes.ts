@@ -481,7 +481,7 @@ export interface PlantillaCelda {
   dia_semana: number;
   dia_nombre: string;
   tipo_semana: string;
-  factor_semana: number;
+  factor_semana: number | null;
   paquetes_base: number;
   rutas_sugeridas: number | null;
   notas: string | null;
@@ -513,6 +513,23 @@ export async function upsertPlantillaSemanal(
     const { error } = await (supabase as any).rpc("upsert_plantilla_semanal", {
       p_semana: semana, p_dia: dia, p_paquetes: paquetes,
       p_rutas: rutas, p_notas: notas,
+    });
+    if (error) return { ok: false, error: error.message };
+    revalidatePath("/volumenes");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+export async function upsertFactorSemana(
+  semana: number, factor: number | null
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc("upsert_factor_semana", {
+      p_semana: semana, p_factor: factor,
     });
     if (error) return { ok: false, error: error.message };
     revalidatePath("/volumenes");

@@ -25,6 +25,7 @@ import { PlantillasSemanales } from "./PlantillasSemanales";
 import { Feriados } from "./Feriados";
 import { KpisMonitoreo } from "./KpisMonitoreo";
 import { HistorialDias } from "./HistorialDias";
+import { InformeMensual } from "./InformeMensual";
 import type {
   DashboardDiaV2, ResumenSemanalV2, ClienteDia,
   ProyeccionDiaV2, BandaControl, CalidadDatos,
@@ -119,7 +120,7 @@ function CalidadDatosCard({ calidad }: { calidad: CalidadDatos[] }) {
 export function VolumenesPanel() {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<"proyeccion" | "operacion" | "analisis" | "herramientas">("proyeccion");
-  const [herramientaActiva, setHerramientaActiva] = useState<"plantillas" | "feriados" | "kpis" | "historial" | null>(null);
+  const [herramientaActiva, setHerramientaActiva] = useState<"plantillas" | "feriados" | "kpis" | "historial" | "informe" | null>(null);
 
   // Permite saltar directo a una pestaña desde la paleta de comandos (?tab=…)
   useEffect(() => {
@@ -616,6 +617,7 @@ export function VolumenesPanel() {
             { id: "feriados", icono: "🗓", titulo: "Feriados", sub: "Días sin operación y ajuste de proyección posterior" },
             { id: "kpis", icono: "📈", titulo: "Monitoreo de KPIs", sub: "Indicadores de performance a largo plazo" },
             { id: "historial", icono: "📋", titulo: "Historial de días", sub: "Registro completo de operaciones pasadas" },
+            { id: "informe", icono: "📄", titulo: "Informe del mes", sub: "Resumen mensual de paquetes y rutas, exportable a PDF" },
           ] as const;
           const activa = HERRAMIENTAS.find(h => h.id === herramientaActiva);
 
@@ -653,6 +655,7 @@ export function VolumenesPanel() {
               {activa.id === "feriados" && <Feriados />}
               {activa.id === "kpis" && <KpisMonitoreo />}
               {activa.id === "historial" && <HistorialDias />}
+              {activa.id === "informe" && <InformeMensual />}
             </div>
           );
         })()}

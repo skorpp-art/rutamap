@@ -4,21 +4,22 @@ import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { CalendarRange, Wand2, RefreshCw, History, ArrowRight } from "lucide-react";
+import { CalendarRange, Wand2, RefreshCw, History, ArrowRight, Info } from "lucide-react";
 import {
   getPlantillasSemanales,
   upsertPlantillaSemanal,
+  upsertFactorSemana,
   seedPlantillasDesdeHistorico,
   type PlantillaCelda,
 } from "@/app/actions/volumenes";
 
 const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-const SEMANAS: { n: number; label: string; sub: string; factor: number }[] = [
-  { n: 1, label: "Semana 1", sub: "Tarjetas", factor: 1.15 },
-  { n: 2, label: "Semana 2", sub: "Sueldos", factor: 1.08 },
-  { n: 3, label: "Semana 3", sub: "Baja", factor: 0.90 },
-  { n: 4, label: "Semana 4", sub: "Normal", factor: 1.0 },
-  { n: 5, label: "Semana 5", sub: "Cierre mes", factor: 1.0 },
+const SEMANAS: { n: number; label: string; sub: string }[] = [
+  { n: 1, label: "Semana 1", sub: "Tarjetas" },
+  { n: 2, label: "Semana 2", sub: "Sueldos" },
+  { n: 3, label: "Semana 3", sub: "Baja" },
+  { n: 4, label: "Semana 4", sub: "Normal" },
+  { n: 5, label: "Semana 5", sub: "Cierre mes" },
 ];
 
 function key(s: number, d: number) { return `${s}-${d}`; }
@@ -31,9 +32,11 @@ interface Props {
 export function PlantillasSemanales({ onUsarValor }: Props) {
   const [celdas, setCeldas] = useState<PlantillaCelda[]>([]);
   const [valores, setValores] = useState<Record<string, number>>({});
+  const [factores, setFactores] = useState<Record<number, number | null>>({});
   const [cargando, setCargando] = useState(false);
   const [sembrando, setSembrando] = useState(false);
   const [guardando, setGuardando] = useState<string | null>(null);
+  const [guardandoFactor, setGuardandoFactor] = useState<number | null>(null);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -42,8 +45,13 @@ export function PlantillasSemanales({ onUsarValor }: Props) {
       if (res.ok && res.data) {
         setCeldas(res.data);
         const v: Record<string, number> = {};
-        res.data.forEach((c) => { v[key(c.semana_mes, c.dia_semana)] = c.paquetes_base; });
+        const f: Record<number, number | null> = {};
+        res.data.forEach((c) => {
+          v[key(c.semana_mes, c.dia_semana)] = c.paquetes_base;
+          f[c.semana_mes] = c.factor_semana;
+        });
         setValores(v);
+        setFactores(f);
       } else {
         toast.error("Error al cargar plantillas", { description: res.error });
       }
@@ -67,6 +75,18 @@ export function PlantillasSemanales({ onUsarValor }: Props) {
         x.semana_mes === s && x.dia_semana === d ? { ...x, paquetes_base: valor } : x
       ));
     } finally { setGuardando(null); }
+  }
+
+  async function guardarFactor(s: number, raw: string) {
+    const valor = raw.trim() === "" ? null : Number(raw);
+    if (valor !== null && Number.isNaN(valor)) return;
+    if (factores[s] === valor) return; // sin cambios
+    setGuardandoFactor(s);
+    try {
+      const res = await upsertFactorSemana(s, valor);
+      if (!res.ok) { toast.error("No se pudo guardar el %", { description: res.error }); return; }
+      setFactores((prev) => ({ ...prev, [s]: valor }));
+    } finally { setGuardandoFactor(null); }
   }
 
   async function sembrar() {
@@ -120,6 +140,15 @@ export function PlantillasSemanales({ onUsarValor }: Props) {
         <span>Estacionalidad ya aplicada por la proyección — acá cargás el volumen real esperado.</span>
       </div>
 
+      {/* Aviso % manual */}
+      <div className="flex items-start gap-2 text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-2">
+        <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+        <span>
+          El <strong>% por semana</strong> ahora se ingresa manualmente — dejá el campo vacío si todavía es ambiguo.
+          Recién tiene sentido calcularlo en automático cuando haya ~3 meses de datos guardados.
+        </span>
+      </div>
+
       {/* Grilla */}
       <div className="border rounded-xl overflow-x-auto bg-background">
         <table className="w-full text-xs border-collapse min-w-[760px]">
@@ -140,14 +169,25 @@ export function PlantillasSemanales({ onUsarValor }: Props) {
                   <div className="font-semibold">{sem.label}</div>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <span className="text-[10px] text-muted-foreground">{sem.sub}</span>
-                    <span className={cn(
-                      "text-[9px] font-bold px-1 py-px rounded",
-                      sem.factor > 1 ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
-                        : sem.factor < 1 ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-                    )}>
-                      {sem.factor > 1 ? "+" : ""}{Math.round((sem.factor - 1) * 100)}%
-                    </span>
+                    <div className="flex items-center gap-0.5">
+                      <input
+                        type="number"
+                        step="1"
+                        placeholder="—"
+                        defaultValue={factores[sem.n] ?? ""}
+                        onBlur={(e) => guardarFactor(sem.n, e.target.value)}
+                        title="% manual de esta semana (vacío = sin dato suficiente)"
+                        className={cn(
+                          "w-12 text-[9px] font-bold px-1 py-px rounded border text-center tabular-nums",
+                          "focus:outline-none focus:ring-1 focus:ring-blue-400",
+                          guardandoFactor === sem.n && "ring-1 ring-emerald-400",
+                          (factores[sem.n] ?? 0) > 0 ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                            : (factores[sem.n] ?? 0) < 0 ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+                        )}
+                      />
+                      <span className="text-[9px] text-muted-foreground">%</span>
+                    </div>
                   </div>
                 </td>
 
