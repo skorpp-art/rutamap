@@ -93,9 +93,12 @@ export function OperacionDia({
     codigo: string; nombre: string; zona: string; tipo: string;
   } | null>(null);
   const [guardandoRuta, setGuardandoRuta] = useState(false);
+  // Borradores en cola para agregar varios recorridos juntos (solo modo "nuevo")
+  const [draftsNuevos, setDraftsNuevos] = useState<{ codigo: string; nombre: string; zona: string; tipo: string }[]>([]);
 
   async function abrirNuevo() {
     const res = await getSiguienteCodigo("Oeste", "fijo");
+    setDraftsNuevos([]);
     setModalRuta({ modo: "nuevo", codigo: res.codigo ?? "", nombre: "", zona: "Oeste", tipo: "fijo" });
   }
 
@@ -112,37 +115,73 @@ export function OperacionDia({
     setModalRuta({ modo: "editar", id: r.recorrido_id, codigo: r.codigo, nombre: r.nombre, zona: r.zona, tipo: r.tipo });
   }
 
+  // Agrega el borrador actual del modal a la cola y limpia el formulario para el siguiente
+  function agregarDraftALaLista() {
+    if (!modalRuta || modalRuta.modo !== "nuevo") return;
+    if (!modalRuta.codigo.trim() || !modalRuta.nombre.trim()) {
+      toast.error("Código y nombre son obligatorios"); return;
+    }
+    setDraftsNuevos(prev => [...prev, {
+      codigo: modalRuta.codigo.trim().toUpperCase(),
+      nombre: modalRuta.nombre.trim(),
+      zona: modalRuta.zona,
+      tipo: modalRuta.tipo,
+    }]);
+    setModalRuta(m => m ? { ...m, nombre: "" } : m);
+    actualizarCodigoAuto(modalRuta.zona, modalRuta.tipo);
+  }
+
+  function quitarDraft(i: number) {
+    setDraftsNuevos(prev => prev.filter((_, idx) => idx !== i));
+  }
+
   async function guardarRuta() {
     if (!modalRuta) return;
+    if (modalRuta.modo === "nuevo") {
+      const actual = modalRuta.codigo.trim() && modalRuta.nombre.trim()
+        ? [{ codigo: modalRuta.codigo.trim().toUpperCase(), nombre: modalRuta.nombre.trim(), zona: modalRuta.zona, tipo: modalRuta.tipo }]
+        : [];
+      const todos = [...draftsNuevos, ...actual];
+      if (todos.length === 0) { toast.error("Código y nombre son obligatorios"); return; }
+      setGuardandoRuta(true);
+      try {
+        let okCount = 0;
+        for (const d of todos) {
+          const res = await crearRecorrido({
+            codigo: d.codigo.trim().toUpperCase(),
+            nombre: d.nombre.trim(),
+            zona: d.zona as "Oeste" | "Norte" | "Sur" | "CABA",
+            tipo: d.tipo as "fijo" | "suplencia" | "corte" | "pre_turno" | "unificado",
+            color: COLORES_ZONA[d.zona] ?? "#6b7280",
+          });
+          if (!res.ok) { toast.error(`Error al crear ${d.codigo}`, { description: res.error }); }
+          else okCount++;
+        }
+        if (okCount > 0) toast.success(`${okCount} recorrido${okCount > 1 ? "s" : ""} creado${okCount > 1 ? "s" : ""}`);
+        setModalRuta(null);
+        setDraftsNuevos([]);
+        await inicializarOperacionDia(fecha);
+        await cargar(fecha);
+      } finally { setGuardandoRuta(false); }
+      return;
+    }
+
     if (!modalRuta.codigo.trim() || !modalRuta.nombre.trim()) {
       toast.error("Código y nombre son obligatorios"); return;
     }
     setGuardandoRuta(true);
     try {
-      if (modalRuta.modo === "nuevo") {
-        const res = await crearRecorrido({
-          codigo: modalRuta.codigo.trim().toUpperCase(),
-          nombre: modalRuta.nombre.trim(),
-          zona: modalRuta.zona as "Oeste" | "Norte" | "Sur" | "CABA",
-          tipo: modalRuta.tipo as "fijo" | "suplencia" | "corte" | "pre_turno" | "unificado",
-          color: COLORES_ZONA[modalRuta.zona] ?? "#6b7280",
-        });
-        if (!res.ok) { toast.error("Error al crear recorrido", { description: res.error }); return; }
-        toast.success(`Recorrido ${modalRuta.codigo.toUpperCase()} creado`);
-      } else {
-        if (!modalRuta.id) return;
-        const res = await actualizarCamposRecorrido(modalRuta.id, {
-          codigo: modalRuta.codigo.trim().toUpperCase(),
-          nombre: modalRuta.nombre.trim(),
-          zona: modalRuta.zona as "Oeste" | "Norte" | "Sur" | "CABA",
-          tipo: modalRuta.tipo as "fijo" | "suplencia" | "corte" | "pre_turno" | "unificado",
-          color: COLORES_ZONA[modalRuta.zona] ?? "#6b7280",
-        });
-        if (!res.ok) { toast.error("Error al actualizar", { description: res.error }); return; }
-        toast.success(`Recorrido actualizado`);
-      }
+      if (!modalRuta.id) return;
+      const res = await actualizarCamposRecorrido(modalRuta.id, {
+        codigo: modalRuta.codigo.trim().toUpperCase(),
+        nombre: modalRuta.nombre.trim(),
+        zona: modalRuta.zona as "Oeste" | "Norte" | "Sur" | "CABA",
+        tipo: modalRuta.tipo as "fijo" | "suplencia" | "corte" | "pre_turno" | "unificado",
+        color: COLORES_ZONA[modalRuta.zona] ?? "#6b7280",
+      });
+      if (!res.ok) { toast.error("Error al actualizar", { description: res.error }); return; }
+      toast.success(`Recorrido actualizado`);
       setModalRuta(null);
-      // Reinicializar y recargar para que el nuevo/editado aparezca
       await inicializarOperacionDia(fecha);
       await cargar(fecha);
     } finally { setGuardandoRuta(false); }
@@ -225,6 +264,7 @@ export function OperacionDia({
     });
 
   function abrirSugerencia(s: typeof sugerencias[number]) {
+    setDraftsNuevos([]);
     setModalRuta({ modo: "nuevo", codigo: "", nombre: `Corte de ${s.codigo} — ${s.nombre}`.slice(0, 80), zona: s.zona, tipo: s.tipoSugerido });
     actualizarCodigoAuto(s.zona, s.tipoSugerido);
   }
@@ -314,6 +354,25 @@ export function OperacionDia({
       const res = await guardarOperacionBulk(fecha, payload);
       if (!res.ok) { toast.error("Error al guardar", { description: res.error }); return; }
       toast.success("Operación del día guardada");
+      await cargar(fecha);
+    } finally { setGuardando(false); }
+  }
+
+  // Deshabilitar TODOS los recorridos de todas las zonas (empezar de cero)
+  async function limpiarRecorridos() {
+    if (!confirm("¿Deshabilitar TODOS los recorridos de todas las zonas? Vas a empezar de cero para armar la operación del día.")) return;
+    setGuardando(true);
+    try {
+      const payload = rutas.map(r => ({
+        recorrido_id: r.recorrido_id,
+        activo: false,
+        notas_dia: r.notas_dia ?? null,
+        paquetes_asignados: r.paquetes_asignados ?? 0,
+      }));
+      const res = await guardarOperacionBulk(fecha, payload);
+      if (!res.ok) { toast.error("Error al limpiar recorridos", { description: res.error }); return; }
+      setEditados({});
+      toast.success("Todos los recorridos fueron deshabilitados");
       await cargar(fecha);
     } finally { setGuardando(false); }
   }
@@ -789,6 +848,12 @@ export function OperacionDia({
             soloActivos ? "bg-blue-600 text-white border-blue-600" : "border-border text-muted-foreground")}>
           Solo activos
         </button>
+        <button onClick={limpiarRecorridos} disabled={guardando}
+          className="text-[10px] px-2 py-0.5 rounded border border-red-200 dark:border-red-900 text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors flex items-center gap-1 disabled:opacity-50"
+          title="Deshabilitar todos los recorridos de todas las zonas">
+          <Trash2 className="h-3 w-3" />
+          Limpiar recorridos
+        </button>
         <span className="text-[10px] text-muted-foreground ml-2">
           {nActivas}/{rutas.length} · {rutasFiltradas.length} visibles
         </span>
@@ -913,10 +978,31 @@ export function OperacionDia({
               <p className="font-bold text-base">
                 {modalRuta.modo === "nuevo" ? "Agregar recorrido" : "Editar recorrido"}
               </p>
-              <button onClick={() => setModalRuta(null)} className="text-muted-foreground hover:text-foreground">
+              <button onClick={() => { setModalRuta(null); setDraftsNuevos([]); }} className="text-muted-foreground hover:text-foreground">
                 <X className="h-4 w-4" />
               </button>
             </div>
+
+            {modalRuta.modo === "nuevo" && draftsNuevos.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
+                  En la cola ({draftsNuevos.length})
+                </p>
+                <div className="space-y-1 max-h-28 overflow-y-auto">
+                  {draftsNuevos.map((d, i) => (
+                    <div key={i} className="flex items-center justify-between gap-2 bg-muted/50 rounded-lg px-2.5 py-1.5">
+                      <div className="text-xs truncate">
+                        <span className="font-mono font-bold">{d.codigo}</span>
+                        <span className="text-muted-foreground"> · {d.nombre}</span>
+                      </div>
+                      <button onClick={() => quitarDraft(i)} className="text-muted-foreground hover:text-red-600 shrink-0">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-3">
               {/* PASO 1: Zona + Tipo → genera código automáticamente */}
@@ -985,12 +1071,24 @@ export function OperacionDia({
               </div>
             </div>
 
+            {modalRuta.modo === "nuevo" && (
+              <Button variant="outline" className="w-full gap-1.5" onClick={agregarDraftALaLista} disabled={guardandoRuta}>
+                <Plus className="h-3.5 w-3.5" /> Agregar a la lista y seguir cargando
+              </Button>
+            )}
+
             <div className="flex gap-2">
               <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                 onClick={guardarRuta} disabled={guardandoRuta}>
-                {guardandoRuta ? "Guardando…" : modalRuta.modo === "nuevo" ? "Agregar" : "Guardar cambios"}
+                {guardandoRuta
+                  ? "Guardando…"
+                  : modalRuta.modo === "nuevo"
+                    ? (draftsNuevos.length > 0 || (modalRuta.codigo.trim() && modalRuta.nombre.trim())
+                        ? `Guardar ${draftsNuevos.length + (modalRuta.codigo.trim() && modalRuta.nombre.trim() ? 1 : 0)} recorrido${draftsNuevos.length + (modalRuta.codigo.trim() && modalRuta.nombre.trim() ? 1 : 0) > 1 ? "s" : ""}`
+                        : "Agregar")
+                    : "Guardar cambios"}
               </Button>
-              <Button variant="outline" onClick={() => setModalRuta(null)}>Cancelar</Button>
+              <Button variant="outline" onClick={() => { setModalRuta(null); setDraftsNuevos([]); }}>Cancelar</Button>
             </div>
             {modalRuta.modo === "editar" && (
               <Button variant="outline" disabled={guardandoRuta} onClick={eliminarRuta}
