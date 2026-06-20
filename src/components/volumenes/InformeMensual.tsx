@@ -33,8 +33,8 @@ interface Resumen {
   diasConAlerta: number;
   mejorDia: HistorialDiaV2 | null;
   peorDia: HistorialDiaV2 | null;
-  porSemana: { semana: number; total: number; dias: number; prom: number }[];
-  porDiaSemana: { dia: string; total: number; dias: number; prom: number; promRuta: number }[];
+  porSemana: { semana: number; total: number; dias: number; prom: number; promProyectado: number | null; aciertoProm: number | null }[];
+  porDiaSemana: { dia: string; total: number; dias: number; prom: number; promRuta: number; promProyectado: number | null; aciertoProm: number | null }[];
 }
 
 function resumirMes(dias: HistorialDiaV2[]): Resumen | null {
@@ -60,23 +60,31 @@ function resumirMes(dias: HistorialDiaV2[]): Resumen | null {
   const peorDia = operados.length > 0
     ? operados.reduce((a, d) => (d.total_paquetes < a.total_paquetes ? d : a))
     : null;
-  const porSemanaMap = new Map<number, { total: number; dias: number }>();
+  const porSemanaMap = new Map<number, { total: number; dias: number; sumaProy: number; nProy: number; sumaAcierto: number; nAcierto: number }>();
   operados.forEach((d) => {
-    const cur = porSemanaMap.get(d.semana_mes) ?? { total: 0, dias: 0 };
+    const cur = porSemanaMap.get(d.semana_mes) ?? { total: 0, dias: 0, sumaProy: 0, nProy: 0, sumaAcierto: 0, nAcierto: 0 };
     cur.total += d.total_paquetes;
     cur.dias += 1;
+    if (d.proyectado_pkg != null) { cur.sumaProy += d.proyectado_pkg; cur.nProy += 1; }
+    if (d.acierto_pct != null) { cur.sumaAcierto += d.acierto_pct; cur.nAcierto += 1; }
     porSemanaMap.set(d.semana_mes, cur);
   });
   const porSemana = Array.from(porSemanaMap.entries())
-    .map(([semana, v]) => ({ semana, total: v.total, dias: v.dias, prom: v.dias > 0 ? v.total / v.dias : 0 }))
+    .map(([semana, v]) => ({
+      semana, total: v.total, dias: v.dias, prom: v.dias > 0 ? v.total / v.dias : 0,
+      promProyectado: v.nProy > 0 ? v.sumaProy / v.nProy : null,
+      aciertoProm: v.nAcierto > 0 ? v.sumaAcierto / v.nAcierto : null,
+    }))
     .sort((a, b) => a.semana - b.semana);
 
-  const porDiaSemanaMap = new Map<string, { total: number; dias: number; sumaProm: number }>();
+  const porDiaSemanaMap = new Map<string, { total: number; dias: number; sumaProm: number; sumaProy: number; nProy: number; sumaAcierto: number; nAcierto: number }>();
   operados.forEach((d) => {
-    const cur = porDiaSemanaMap.get(d.dia_semana) ?? { total: 0, dias: 0, sumaProm: 0 };
+    const cur = porDiaSemanaMap.get(d.dia_semana) ?? { total: 0, dias: 0, sumaProm: 0, sumaProy: 0, nProy: 0, sumaAcierto: 0, nAcierto: 0 };
     cur.total += d.total_paquetes;
     cur.dias += 1;
     cur.sumaProm += Number(d.prom_por_ruta || 0);
+    if (d.proyectado_pkg != null) { cur.sumaProy += d.proyectado_pkg; cur.nProy += 1; }
+    if (d.acierto_pct != null) { cur.sumaAcierto += d.acierto_pct; cur.nAcierto += 1; }
     porDiaSemanaMap.set(d.dia_semana, cur);
   });
   const porDiaSemana = Array.from(porDiaSemanaMap.entries())
@@ -84,6 +92,8 @@ function resumirMes(dias: HistorialDiaV2[]): Resumen | null {
       dia, total: v.total, dias: v.dias,
       prom: v.dias > 0 ? v.total / v.dias : 0,
       promRuta: v.dias > 0 ? v.sumaProm / v.dias : 0,
+      promProyectado: v.nProy > 0 ? v.sumaProy / v.nProy : null,
+      aciertoProm: v.nAcierto > 0 ? v.sumaAcierto / v.nAcierto : null,
     }))
     .sort((a, b) => DIA_ORDEN.indexOf(a.dia) - DIA_ORDEN.indexOf(b.dia));
 
@@ -259,18 +269,20 @@ export function InformeMensual() {
       pdf.setFontSize(7.5);
       pdf.setTextColor(100, 116, 139);
       pdf.text("SEMANA", M + 2, y + 4);
-      pdf.text("DÍAS", M + 60, y + 4);
-      pdf.text("TOTAL PAQ.", M + 90, y + 4);
-      pdf.text("PROM/DÍA", M + 130, y + 4);
+      pdf.text("DÍAS", M + 55, y + 4);
+      pdf.text("REAL/DÍA", M + 75, y + 4);
+      pdf.text("PRONOST.", M + 105, y + 4);
+      pdf.text("ACIERTO", M + 135, y + 4);
       y += 6;
       resumen.porSemana.forEach((s) => {
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(8.5);
         pdf.setTextColor(30, 41, 59);
         pdf.text(`Semana ${s.semana} (${SEMANA_LABELS[s.semana] ?? ""})`, M + 2, y + 5);
-        pdf.text(s.dias.toString(), M + 60, y + 5);
-        pdf.text(s.total.toLocaleString("es-AR"), M + 90, y + 5);
-        pdf.text(Math.round(s.prom).toLocaleString("es-AR"), M + 130, y + 5);
+        pdf.text(s.dias.toString(), M + 55, y + 5);
+        pdf.text(Math.round(s.prom).toLocaleString("es-AR"), M + 75, y + 5);
+        pdf.text(s.promProyectado != null ? Math.round(s.promProyectado).toLocaleString("es-AR") : "—", M + 105, y + 5);
+        pdf.text(s.aciertoProm != null ? `${Math.round(s.aciertoProm)}%` : "—", M + 135, y + 5);
         pdf.setDrawColor(241, 245, 249);
         pdf.line(M, y + 7, PW - M, y + 7);
         y += 7;
@@ -290,20 +302,22 @@ export function InformeMensual() {
       pdf.setFontSize(7.5);
       pdf.setTextColor(100, 116, 139);
       pdf.text("DÍA", M + 2, y + 4);
-      pdf.text("DÍAS", M + 60, y + 4);
-      pdf.text("TOTAL PAQ.", M + 90, y + 4);
-      pdf.text("PROM/DÍA", M + 130, y + 4);
-      pdf.text("PROM/RUTA", M + 160, y + 4);
+      pdf.text("DÍAS", M + 40, y + 4);
+      pdf.text("REAL/DÍA", M + 58, y + 4);
+      pdf.text("PRONOST.", M + 88, y + 4);
+      pdf.text("ACIERTO", M + 118, y + 4);
+      pdf.text("PROM/RUTA", M + 145, y + 4);
       y += 6;
       resumen.porDiaSemana.forEach((d) => {
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(8.5);
         pdf.setTextColor(30, 41, 59);
         pdf.text(d.dia, M + 2, y + 5);
-        pdf.text(d.dias.toString(), M + 60, y + 5);
-        pdf.text(d.total.toLocaleString("es-AR"), M + 90, y + 5);
-        pdf.text(Math.round(d.prom).toLocaleString("es-AR"), M + 130, y + 5);
-        pdf.text(d.promRuta > 0 ? d.promRuta.toFixed(1) : "—", M + 160, y + 5);
+        pdf.text(d.dias.toString(), M + 40, y + 5);
+        pdf.text(Math.round(d.prom).toLocaleString("es-AR"), M + 58, y + 5);
+        pdf.text(d.promProyectado != null ? Math.round(d.promProyectado).toLocaleString("es-AR") : "—", M + 88, y + 5);
+        pdf.text(d.aciertoProm != null ? `${Math.round(d.aciertoProm)}%` : "—", M + 118, y + 5);
+        pdf.text(d.promRuta > 0 ? d.promRuta.toFixed(1) : "—", M + 145, y + 5);
         pdf.setDrawColor(241, 245, 249);
         pdf.line(M, y + 7, PW - M, y + 7);
         y += 7;
@@ -424,7 +438,9 @@ export function InformeMensual() {
                   <th className="text-left px-3 py-2 font-semibold">Semana</th>
                   <th className="text-right px-3 py-2 font-semibold">Días</th>
                   <th className="text-right px-3 py-2 font-semibold">Total paq.</th>
-                  <th className="text-right px-3 py-2 font-semibold">Prom/día</th>
+                  <th className="text-right px-3 py-2 font-semibold">Real (prom/día)</th>
+                  <th className="text-right px-3 py-2 font-semibold">Pronosticado</th>
+                  <th className="text-right px-3 py-2 font-semibold">Acierto</th>
                 </tr>
               </thead>
               <tbody>
@@ -434,6 +450,15 @@ export function InformeMensual() {
                     <td className="px-3 py-2 text-right tabular-nums">{s.dias}</td>
                     <td className="px-3 py-2 text-right tabular-nums font-bold">{s.total.toLocaleString("es-AR")}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{Math.round(s.prom).toLocaleString("es-AR")}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
+                      {s.promProyectado != null ? Math.round(s.promProyectado).toLocaleString("es-AR") : "—"}
+                    </td>
+                    <td className={cn("px-3 py-2 text-right tabular-nums font-semibold",
+                      s.aciertoProm == null ? "text-muted-foreground/40" :
+                      s.aciertoProm >= 90 ? "text-emerald-600 dark:text-emerald-300" :
+                      s.aciertoProm >= 75 ? "text-amber-600 dark:text-amber-300" : "text-red-500")}>
+                      {s.aciertoProm != null ? `${Math.round(s.aciertoProm)}%` : "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -451,8 +476,9 @@ export function InformeMensual() {
                   <tr>
                     <th className="text-left px-3 py-2 font-semibold">Día</th>
                     <th className="text-right px-3 py-2 font-semibold">Días</th>
-                    <th className="text-right px-3 py-2 font-semibold">Total paq.</th>
-                    <th className="text-right px-3 py-2 font-semibold">Prom/día</th>
+                    <th className="text-right px-3 py-2 font-semibold">Real (prom/día)</th>
+                    <th className="text-right px-3 py-2 font-semibold">Pronosticado</th>
+                    <th className="text-right px-3 py-2 font-semibold">Acierto</th>
                     <th className="text-right px-3 py-2 font-semibold">Prom/ruta</th>
                   </tr>
                 </thead>
@@ -464,8 +490,16 @@ export function InformeMensual() {
                         diaSeleccionado === d.dia && "bg-blue-50/60 dark:bg-blue-950/40")}>
                       <td className="px-3 py-2 font-medium">{d.dia}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{d.dias}</td>
-                      <td className="px-3 py-2 text-right tabular-nums font-bold">{d.total.toLocaleString("es-AR")}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{Math.round(d.prom).toLocaleString("es-AR")}</td>
+                      <td className="px-3 py-2 text-right tabular-nums font-bold">{Math.round(d.prom).toLocaleString("es-AR")}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
+                        {d.promProyectado != null ? Math.round(d.promProyectado).toLocaleString("es-AR") : "—"}
+                      </td>
+                      <td className={cn("px-3 py-2 text-right tabular-nums font-semibold",
+                        d.aciertoProm == null ? "text-muted-foreground/40" :
+                        d.aciertoProm >= 90 ? "text-emerald-600 dark:text-emerald-300" :
+                        d.aciertoProm >= 75 ? "text-amber-600 dark:text-amber-300" : "text-red-500")}>
+                        {d.aciertoProm != null ? `${Math.round(d.aciertoProm)}%` : "—"}
+                      </td>
                       <td className="px-3 py-2 text-right tabular-nums">{d.promRuta > 0 ? d.promRuta.toFixed(1) : "—"}</td>
                     </tr>
                   ))}
@@ -483,10 +517,11 @@ export function InformeMensual() {
                   <thead className="bg-muted/20 border-b">
                     <tr>
                       <th className="text-left px-3 py-2 font-semibold">Fecha</th>
-                      <th className="text-right px-3 py-2 font-semibold">Paquetes</th>
+                      <th className="text-right px-3 py-2 font-semibold">Real</th>
+                      <th className="text-right px-3 py-2 font-semibold">Pronosticado</th>
+                      <th className="text-right px-3 py-2 font-semibold">Acierto</th>
                       <th className="text-right px-3 py-2 font-semibold">Rutas</th>
                       <th className="text-right px-3 py-2 font-semibold">Prom/ruta</th>
-                      <th className="text-right px-3 py-2 font-semibold">Acierto proy.</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -496,9 +531,17 @@ export function InformeMensual() {
                           {new Date(d.fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "2-digit" })}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums font-bold">{d.total_paquetes.toLocaleString("es-AR")}</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
+                          {d.proyectado_pkg != null ? d.proyectado_pkg.toLocaleString("es-AR") : "—"}
+                        </td>
+                        <td className={cn("px-3 py-2 text-right tabular-nums font-semibold",
+                          d.acierto_pct == null ? "text-muted-foreground/40" :
+                          d.acierto_pct >= 90 ? "text-emerald-600 dark:text-emerald-300" :
+                          d.acierto_pct >= 75 ? "text-amber-600 dark:text-amber-300" : "text-red-500")}>
+                          {d.acierto_pct != null ? `${d.acierto_pct}%` : "—"}
+                        </td>
                         <td className="px-3 py-2 text-right tabular-nums">{d.rutas_activas}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{Number(d.prom_por_ruta) > 0 ? d.prom_por_ruta : "—"}</td>
-                        <td className="px-3 py-2 text-right tabular-nums">{d.acierto_pct != null ? `${d.acierto_pct}%` : "—"}</td>
                       </tr>
                     ))}
                   </tbody>
