@@ -15,6 +15,7 @@ const MESES = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
 ];
 const SEMANA_LABELS: Record<number, string> = { 1: "Tarjetas", 2: "Sueldos", 3: "Baja", 4: "Normal", 5: "Cierre mes" };
+const DIA_ORDEN = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
 function mesKey(fecha: string) {
   return fecha.slice(0, 7); // YYYY-MM
@@ -33,6 +34,7 @@ interface Resumen {
   mejorDia: HistorialDiaV2 | null;
   peorDia: HistorialDiaV2 | null;
   porSemana: { semana: number; total: number; dias: number; prom: number }[];
+  porDiaSemana: { dia: string; total: number; dias: number; prom: number; promRuta: number }[];
 }
 
 function resumirMes(dias: HistorialDiaV2[]): Resumen | null {
@@ -69,13 +71,29 @@ function resumirMes(dias: HistorialDiaV2[]): Resumen | null {
     .map(([semana, v]) => ({ semana, total: v.total, dias: v.dias, prom: v.dias > 0 ? v.total / v.dias : 0 }))
     .sort((a, b) => a.semana - b.semana);
 
+  const porDiaSemanaMap = new Map<string, { total: number; dias: number; sumaProm: number }>();
+  operados.forEach((d) => {
+    const cur = porDiaSemanaMap.get(d.dia_semana) ?? { total: 0, dias: 0, sumaProm: 0 };
+    cur.total += d.total_paquetes;
+    cur.dias += 1;
+    cur.sumaProm += Number(d.prom_por_ruta || 0);
+    porDiaSemanaMap.set(d.dia_semana, cur);
+  });
+  const porDiaSemana = Array.from(porDiaSemanaMap.entries())
+    .map(([dia, v]) => ({
+      dia, total: v.total, dias: v.dias,
+      prom: v.dias > 0 ? v.total / v.dias : 0,
+      promRuta: v.dias > 0 ? v.sumaProm / v.dias : 0,
+    }))
+    .sort((a, b) => DIA_ORDEN.indexOf(a.dia) - DIA_ORDEN.indexOf(b.dia));
+
   const f = dias[0].fecha;
   const [y, m] = f.split("-");
   const mesLabel = `${MESES[Number(m) - 1]} ${y}`;
 
   return {
     mesLabel, dias, diasOperados: operados.length, totalPaquetes, promDiario, promPorRuta,
-    promChoferes, aciertoProm, diasConAlerta, mejorDia, peorDia, porSemana,
+    promChoferes, aciertoProm, diasConAlerta, mejorDia, peorDia, porSemana, porDiaSemana,
   };
 }
 
@@ -84,6 +102,7 @@ export function InformeMensual() {
   const [cargando, setCargando] = useState(true);
   const [mesSeleccionado, setMesSeleccionado] = useState<string | null>(null);
   const [exportando, setExportando] = useState(false);
+  const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(null);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -122,6 +141,13 @@ export function InformeMensual() {
     const dias = historial.filter((d) => mesKey(d.fecha) === anteriorKey);
     return resumirMes(dias);
   }, [historial, mesSeleccionado, mesesDisponibles]);
+
+  const diasDelDiaSeleccionado = useMemo(() => {
+    if (!resumen || !diaSeleccionado) return [];
+    return resumen.dias
+      .filter((d) => d.total_paquetes > 0 && d.dia_semana === diaSeleccionado)
+      .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  }, [resumen, diaSeleccionado]);
 
   const vsAnteriorPct = resumen && resumenAnterior && resumenAnterior.totalPaquetes > 0
     ? Math.round(((resumen.totalPaquetes - resumenAnterior.totalPaquetes) / resumenAnterior.totalPaquetes) * 1000) / 10
@@ -249,6 +275,39 @@ export function InformeMensual() {
         pdf.line(M, y + 7, PW - M, y + 7);
         y += 7;
       });
+      y += 8;
+
+      // Desglose por día de la semana
+      if (y + 12 + resumen.porDiaSemana.length * 7 > 280) { pdf.addPage(); y = 20; }
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text("DESGLOSE POR DÍA DE LA SEMANA", M, y);
+      y += 4;
+      pdf.setFillColor(241, 245, 249);
+      pdf.rect(M, y, PW - M * 2, 6, "F");
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text("DÍA", M + 2, y + 4);
+      pdf.text("DÍAS", M + 60, y + 4);
+      pdf.text("TOTAL PAQ.", M + 90, y + 4);
+      pdf.text("PROM/DÍA", M + 130, y + 4);
+      pdf.text("PROM/RUTA", M + 160, y + 4);
+      y += 6;
+      resumen.porDiaSemana.forEach((d) => {
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(8.5);
+        pdf.setTextColor(30, 41, 59);
+        pdf.text(d.dia, M + 2, y + 5);
+        pdf.text(d.dias.toString(), M + 60, y + 5);
+        pdf.text(d.total.toLocaleString("es-AR"), M + 90, y + 5);
+        pdf.text(Math.round(d.prom).toLocaleString("es-AR"), M + 130, y + 5);
+        pdf.text(d.promRuta > 0 ? d.promRuta.toFixed(1) : "—", M + 160, y + 5);
+        pdf.setDrawColor(241, 245, 249);
+        pdf.line(M, y + 7, PW - M, y + 7);
+        y += 7;
+      });
 
       pdf.setFont("helvetica", "italic");
       pdf.setFontSize(7);
@@ -279,7 +338,7 @@ export function InformeMensual() {
           {mesesDisponibles.length > 0 && (
             <select
               value={mesSeleccionado ?? ""}
-              onChange={(e) => setMesSeleccionado(e.target.value)}
+              onChange={(e) => { setMesSeleccionado(e.target.value); setDiaSeleccionado(null); }}
               className="h-8 text-xs border rounded-md px-2 bg-background"
             >
               {mesesDisponibles.map((m) => {
@@ -379,6 +438,73 @@ export function InformeMensual() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Por día de la semana */}
+          <div>
+            <p className="text-xs font-bold text-muted-foreground mb-2">
+              Por día de la semana <span className="font-normal">— clic en un día para ver el detalle de fechas</span>
+            </p>
+            <div className="border rounded-xl overflow-hidden">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/30 border-b">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-semibold">Día</th>
+                    <th className="text-right px-3 py-2 font-semibold">Días</th>
+                    <th className="text-right px-3 py-2 font-semibold">Total paq.</th>
+                    <th className="text-right px-3 py-2 font-semibold">Prom/día</th>
+                    <th className="text-right px-3 py-2 font-semibold">Prom/ruta</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resumen.porDiaSemana.map((d) => (
+                    <tr key={d.dia}
+                      onClick={() => setDiaSeleccionado((prev) => prev === d.dia ? null : d.dia)}
+                      className={cn("border-b last:border-0 cursor-pointer transition-colors hover:bg-accent/30",
+                        diaSeleccionado === d.dia && "bg-blue-50/60 dark:bg-blue-950/40")}>
+                      <td className="px-3 py-2 font-medium">{d.dia}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{d.dias}</td>
+                      <td className="px-3 py-2 text-right tabular-nums font-bold">{d.total.toLocaleString("es-AR")}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{Math.round(d.prom).toLocaleString("es-AR")}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{d.promRuta > 0 ? d.promRuta.toFixed(1) : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {diaSeleccionado && (
+              <div className="mt-3 border rounded-xl overflow-hidden">
+                <div className="px-3 py-2 bg-blue-50/60 dark:bg-blue-950/30 border-b flex items-center justify-between">
+                  <p className="text-xs font-bold">Detalle — todos los {diaSeleccionado} de {resumen.mesLabel}</p>
+                  <button onClick={() => setDiaSeleccionado(null)} className="text-xs text-muted-foreground hover:text-foreground">✕</button>
+                </div>
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/20 border-b">
+                    <tr>
+                      <th className="text-left px-3 py-2 font-semibold">Fecha</th>
+                      <th className="text-right px-3 py-2 font-semibold">Paquetes</th>
+                      <th className="text-right px-3 py-2 font-semibold">Rutas</th>
+                      <th className="text-right px-3 py-2 font-semibold">Prom/ruta</th>
+                      <th className="text-right px-3 py-2 font-semibold">Acierto proy.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {diasDelDiaSeleccionado.map((d) => (
+                      <tr key={d.fecha} className="border-b last:border-0">
+                        <td className="px-3 py-2 font-medium">
+                          {new Date(d.fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "2-digit" })}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums font-bold">{d.total_paquetes.toLocaleString("es-AR")}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{d.rutas_activas}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{Number(d.prom_por_ruta) > 0 ? d.prom_por_ruta : "—"}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{d.acierto_pct != null ? `${d.acierto_pct}%` : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </>
       )}
