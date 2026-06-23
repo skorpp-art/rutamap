@@ -66,6 +66,25 @@ export async function getAnalisisRecorridos(
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
+export interface CoactivacionHistorica {
+  fecha: string;
+  recorrido_id: string;
+}
+
+// Historial de qué recorridos estuvieron activos en cada fecha (para detectar
+// combinaciones atípicas: rutas que casi nunca se activan juntas)
+export async function getCoactivacionesHistoricas(
+  dias = 120
+): Promise<{ ok: boolean; data?: CoactivacionHistorica[]; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("get_coactivaciones_historicas", { p_dias: dias });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, data: (data ?? []) as CoactivacionHistorica[] };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
 export async function getPatronDiaSemana(
   codigo: string
 ): Promise<{ ok: boolean; data?: PatronDiaSemana[]; error?: string }> {

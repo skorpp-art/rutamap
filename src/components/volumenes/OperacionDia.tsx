@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button";
 import {
   Save, RefreshCw, ChevronLeft, ChevronRight,
   FileDown, AlertTriangle, CheckCircle, Users, Clock,
-  Plus, Pencil, X, Lightbulb, Scissors, Sunrise, Trash2, Gauge,
+  Plus, Pencil, X, Lightbulb, Scissors, Sunrise, Trash2, Gauge, Search,
 } from "lucide-react";
 import {
   getOperacionDia, inicializarOperacionDia,
   guardarOperacionBulk, getTotalPaquetesFecha,
 } from "@/app/actions/operacion";
-import { getAnalisisRecorridos } from "@/app/actions/operaciones-diarias";
+import { getAnalisisRecorridos, getCoactivacionesHistoricas } from "@/app/actions/operaciones-diarias";
 import type { AnalisisRecorrido } from "@/app/actions/operaciones-diarias";
 import { crearRecorrido, actualizarCamposRecorrido, getSiguienteCodigo, eliminarRecorrido } from "@/app/actions/recorridos";
 import { ZONA_COLOR as ZONA_HEX } from "@/lib/estados";
@@ -80,6 +80,9 @@ export function OperacionDia({
   const [soloActivos, setSoloActivos] = useState(false);
   const [mostrarAlerta, setMostrarAlerta] = useState(false);
   const [analisisHist, setAnalisisHist] = useState<AnalisisRecorrido[]>([]);
+  const [busqueda, setBusqueda] = useState("");
+  // Historial de activaciones: recorrido_id -> set de fechas en que estuvo activo (últimos 120 días)
+  const [historicoActivaciones, setHistoricoActivaciones] = useState<Record<string, Set<string>>>({});
   // Panel lateral derecho (estilo Drive): "resumen" | "sugerencias" | null
   const [panelAbierto, setPanelAbierto] = useState<"resumen" | "sugerencias" | null>(null);
   const reportRef = useRef<HTMLDivElement>(null);
@@ -238,6 +241,20 @@ export function OperacionDia({
     });
   }, []);
 
+  // Historial de coactivaciones (últimos 120 días) para detectar combinaciones atípicas
+  useEffect(() => {
+    getCoactivacionesHistoricas(120).then(res => {
+      if (res.ok && res.data) {
+        const map: Record<string, Set<string>> = {};
+        res.data.forEach(c => {
+          if (!map[c.recorrido_id]) map[c.recorrido_id] = new Set();
+          map[c.recorrido_id].add(c.fecha);
+        });
+        setHistoricoActivaciones(map);
+      }
+    });
+  }, []);
+
   // Merge local edits
   const rutasConEdits = rutas.map(r => ({ ...r, ...editados[r.recorrido_id] }));
 
@@ -270,12 +287,34 @@ export function OperacionDia({
   }
 
   // Filtrado
+  const busquedaNorm = busqueda.trim().toLowerCase();
   const rutasFiltradas = rutasConEdits.filter(r => {
     if (filtroZona && r.zona !== filtroZona) return false;
     if (filtroTipo && r.tipo !== filtroTipo) return false;
     if (soloActivos && !r.activo) return false;
+    if (busquedaNorm && !`${r.codigo} ${r.nombre}`.toLowerCase().includes(busquedaNorm)) return false;
     return true;
   });
+
+  // ── Detección de errores comunes: nombres parecidos y combinaciones atípicas ──
+  const STOPWORDS = new Set(["de", "la", "el", "los", "las", "con", "y", "del", "en", "san"]);
+  function palabrasClave(nombre: string): string[] {
+    return nombre
+      .toLowerCase()
+      .normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .split(/\s+/)
+      .filter(w => w.length >= 4 && !STOPWORDS.has(w));
+  }
+  function nombresSimilares(a: string, b: string): boolean {
+    const wa = palabrasClave(a), wb = palabrasClave(b);
+    return wa.some(w => wb.includes(w));
+  }
+  function esCombinacionAtipica(idA: string, idB: string): boolean {
+    const fa = historicoActivaciones[idA], fb = historicoActivaciones[idB];
+    if (!fa || !fb || fa.size < 5 || fb.size < 5) return false; // sin suficiente historial
+    const juntos = [...fa].filter(f => fb.has(f)).length;
+    return juntos / Math.min(fa.size, fb.size) < 0.15;
+  }
 
   // Cálculos en tiempo real
   const activas = rutasConEdits.filter(r => r.activo);
@@ -286,6 +325,20 @@ export function OperacionDia({
   const nUnificados = activas.filter(r => r.tipo === "unificado").length;
   const comodinesActivos = activas.filter(r => r.tipo === "suplencia").length;
   const comodinesTotal = rutasConEdits.filter(r => r.tipo === "suplencia").length;
+
+  // Checklist final: avisos de posibles duplicados / errores entre las rutas activas
+  const advertenciasActivas: string[] = [];
+  for (let i = 0; i < activas.length; i++) {
+    for (let j = i + 1; j < activas.length; j++) {
+      const a = activas[i], b = activas[j];
+      if (nombresSimilares(a.nombre, b.nombre)) {
+        advertenciasActivas.push(`"${a.codigo} — ${a.nombre}" y "${b.codigo} — ${b.nombre}" tienen nombres parecidos. ¿Es un duplicado o son zonas distintas?`);
+      }
+      if (esCombinacionAtipica(a.recorrido_id, b.recorrido_id)) {
+        advertenciasActivas.push(`Rara vez tenés activos juntos ${a.codigo} y ${b.codigo} — revisá si corresponde.`);
+      }
+    }
+  }
   const promedio = nActivas > 0 && pkgTotal > 0 ? pkgTotal / nActivas : 0;
   const choferes = pkgTotal > 0 ? Math.ceil(pkgTotal / targetPkg) : nActivas;
   const estadoColor = promedio === 0 ? "text-muted-foreground"
@@ -310,7 +363,23 @@ export function OperacionDia({
   function toggleRuta(recorrido_id: string) {
     setEditados(prev => {
       const ruta = rutasConEdits.find(r => r.recorrido_id === recorrido_id)!;
-      const siguiente = { ...prev, [recorrido_id]: { ...prev[recorrido_id], activo: !ruta.activo } };
+      const activando = !ruta.activo;
+      const siguiente = { ...prev, [recorrido_id]: { ...prev[recorrido_id], activo: activando } };
+
+      // Al activar: avisar si hay nombres parecidos o combinaciones atípicas con lo ya activo
+      if (activando) {
+        const otrasActivas = rutasConEdits.filter(r =>
+          r.recorrido_id !== recorrido_id && (siguiente[r.recorrido_id]?.activo ?? r.activo)
+        );
+        otrasActivas.forEach(otra => {
+          if (nombresSimilares(ruta.nombre, otra.nombre)) {
+            toast.warning(`"${ruta.nombre}" se parece a "${otra.nombre}" (ya activo) — ¿son zonas distintas?`);
+          }
+          if (esCombinacionAtipica(recorrido_id, otra.recorrido_id)) {
+            toast.warning(`Rara vez activás ${ruta.codigo} junto con ${otra.codigo} — revisá si es correcto`);
+          }
+        });
+      }
 
       // Programar autoguardado 2 segundos después de la última acción
       if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
@@ -857,6 +926,14 @@ export function OperacionDia({
         <span className="text-[10px] text-muted-foreground ml-2">
           {nActivas}/{rutas.length} · {rutasFiltradas.length} visibles
         </span>
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+          <input
+            type="text" value={busqueda} onChange={e => setBusqueda(e.target.value)}
+            placeholder="Buscar código o nombre…"
+            className="text-[10px] pl-6 pr-2 py-1 rounded border border-border bg-background w-40 focus:outline-none focus:ring-1 focus:ring-blue-400"
+          />
+        </div>
         <Button size="sm" variant="outline" onClick={abrirNuevo}
           className="ml-auto h-7 gap-1 text-xs">
           <Plus className="h-3 w-3" />
@@ -1193,6 +1270,46 @@ export function OperacionDia({
                 ⚠ No hay paquetes asignados. El PDF se exportará sin cálculo de promedio.
               </p>
             )}
+
+            {/* Avisos de posibles duplicados / combinaciones raras */}
+            {advertenciasActivas.length > 0 && (
+              <div className="rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 p-3 space-y-1.5 max-h-32 overflow-y-auto">
+                <p className="text-[10px] uppercase tracking-wide font-bold text-red-700 dark:text-red-300">
+                  Revisá esto antes de exportar
+                </p>
+                {advertenciasActivas.map((a, i) => (
+                  <p key={i} className="text-xs text-red-700 dark:text-red-300 flex items-start gap-1.5">
+                    <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" /> {a}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {/* Checklist final: rutas activas agrupadas por zona */}
+            <div className="rounded-lg border p-3 space-y-2 max-h-40 overflow-y-auto">
+              <p className="text-[10px] uppercase tracking-wide font-bold text-muted-foreground">
+                Checklist final — {nActivas} recorridos activos
+              </p>
+              {ZONAS_OPT.map(z => {
+                const deZona = activas.filter(r => r.zona === z);
+                if (deZona.length === 0) return null;
+                return (
+                  <div key={z}>
+                    <p className="text-[10px] font-semibold flex items-center gap-1.5">
+                      <span className={cn("inline-block w-2 h-2 rounded-full", ZONA_COLOR[z])} />
+                      {z} ({deZona.length})
+                    </p>
+                    <ul className="text-xs text-muted-foreground pl-3.5 space-y-0.5">
+                      {deZona.map(r => (
+                        <li key={r.recorrido_id}>
+                          <span className="font-mono font-semibold">{r.codigo}</span> — {r.nombre}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
 
             {/* Botones */}
             <div className="flex flex-col gap-2">
