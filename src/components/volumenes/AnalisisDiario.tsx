@@ -178,7 +178,8 @@ function construirPayload(tardeRaw: TardeRaw | null, resumenRaw: ResumenRaw | nu
   const totalPaquetes = resumenRaw.totalPaquetes;
   const entregados = resumenRaw.estados.find(e => e.estado === "Entregado")?.cantidad ?? 0;
   const pctExito = totalPaquetes > 0 ? round2(entregados / totalPaquetes * 100) : 0;
-  const enCamino = resumenRaw.estados.find(e => e.estado.toLowerCase().includes("en camino al destinatario"))?.cantidad ?? 0;
+  // Demorado = todo lo "post-21hs" que no se entregó (en camino al destinatario, reprogramado, etc.)
+  const enCamino = Math.max(0, tardeRaw.post21.total - tardeRaw.post21.entregados);
   const enCaminoPct = totalPaquetes > 0 ? round2(enCamino / totalPaquetes * 100) : 0;
 
   const post21Total = tardeRaw.post21.total;
@@ -394,7 +395,7 @@ export function AnalisisDiario() {
             Análisis del Día
           </h2>
           <p className="text-xs text-muted-foreground">
-            Entregas post-21hs, estados del día y "en camino al destinatario" por cliente.
+            Entregas post-21hs, estados del día y demorados (todo lo post-21hs sin entregar) por cliente.
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -441,7 +442,7 @@ export function AnalisisDiario() {
                 <MiniKpi label="Total paquetes" valor={previa.resumen.total_paquetes.toLocaleString("es-AR")} />
                 <MiniKpi label="% éxito" valor={`${previa.resumen.pct_exito.toFixed(2)}%`} />
                 <MiniKpi label="Post-21" valor={`${previa.resumen.post21_total} (${previa.resumen.post21_pct_del_dia.toFixed(2)}%)`} />
-                <MiniKpi label="En camino al destinatario" valor={`${previa.resumen.en_camino_destinatario} (${previa.resumen.en_camino_destinatario_pct.toFixed(2)}%)`} />
+                <MiniKpi label="Demorados" valor={`${previa.resumen.en_camino_destinatario} (${previa.resumen.en_camino_destinatario_pct.toFixed(2)}%)`} />
               </div>
               <p className="text-[11px] text-muted-foreground">
                 {previa.clientes.length} clientes · {previa.tardeZona.length} zonas con tardanza · {previa.tardeChofer.length} choferes con tardanza
@@ -526,7 +527,8 @@ function DiaView({
             <KpiCard icon={CheckCircle} label="% éxito del día" valor={`${resumen.pct_exito.toFixed(2)}%`} color="text-emerald-600 dark:text-emerald-300" />
             <KpiCard icon={Clock} label="Post-21hs" valor={`${resumen.post21_total} (${resumen.post21_pct_del_dia.toFixed(2)}%)`}
               sub={`% éxito tardío: ${resumen.post21_pct_exito.toFixed(2)}%`} color="text-amber-600 dark:text-amber-300" />
-            <KpiCard icon={Truck} label="En camino al destinatario" valor={`${resumen.en_camino_destinatario} (${resumen.en_camino_destinatario_pct.toFixed(2)}%)`} color="text-violet-600 dark:text-violet-300" />
+            <KpiCard icon={Truck} label="Demorados" valor={`${resumen.en_camino_destinatario} (${resumen.en_camino_destinatario_pct.toFixed(2)}%)`}
+              sub="post-21hs sin entregar" color="text-violet-600 dark:text-violet-300" />
           </div>
 
           {/* Estados */}
@@ -552,10 +554,10 @@ function DiaView({
             </table>
           </div>
 
-          {/* Clientes — en camino al destinatario */}
+          {/* Clientes — demorados (en camino al destinatario) */}
           <div className="border rounded-xl overflow-hidden">
             <p className="text-xs font-bold px-4 py-2.5 bg-muted/30 border-b flex items-center gap-1.5">
-              <Users className="h-3.5 w-3.5" /> Clientes — "en camino al destinatario"
+              <Users className="h-3.5 w-3.5" /> Clientes — demorados ("en camino al destinatario")
             </p>
             <div className="max-h-80 overflow-y-auto">
               <table className="w-full text-xs">
@@ -564,7 +566,7 @@ function DiaView({
                     <th className="text-left px-4 py-2 font-medium text-muted-foreground">Cliente</th>
                     <th className="text-right px-4 py-2 font-medium text-muted-foreground">Paquetes</th>
                     <th className="text-right px-4 py-2 font-medium text-muted-foreground">% del día</th>
-                    <th className="text-right px-4 py-2 font-medium text-muted-foreground">En camino</th>
+                    <th className="text-right px-4 py-2 font-medium text-muted-foreground">Demorados</th>
                     <th className="text-right px-4 py-2 font-medium text-muted-foreground">% propio</th>
                   </tr>
                 </thead>
@@ -685,11 +687,11 @@ function HistoricoView({
           {/* KPIs globales del período */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <KpiCard icon={Package} label="Total paquetes del período" valor={totalesPeriodo.total.toLocaleString("es-AR")} color="text-blue-600 dark:text-blue-300" />
-            <KpiCard icon={Clock} label="Total post-21hs (demorados)" valor={totalesPeriodo.post21.toLocaleString("es-AR")}
+            <KpiCard icon={Clock} label="Total post-21hs" valor={totalesPeriodo.post21.toLocaleString("es-AR")}
               sub={totalesPeriodo.total > 0 ? `${round2(totalesPeriodo.post21 / totalesPeriodo.total * 100).toFixed(2)}% del total` : undefined}
               color="text-amber-600 dark:text-amber-300" />
-            <KpiCard icon={Truck} label="Total en camino al destinatario" valor={totalesPeriodo.enCamino.toLocaleString("es-AR")}
-              sub={totalesPeriodo.total > 0 ? `${round2(totalesPeriodo.enCamino / totalesPeriodo.total * 100).toFixed(2)}% del total` : undefined}
+            <KpiCard icon={Truck} label="Total demorados" valor={totalesPeriodo.enCamino.toLocaleString("es-AR")}
+              sub={totalesPeriodo.total > 0 ? `${round2(totalesPeriodo.enCamino / totalesPeriodo.total * 100).toFixed(2)}% del total — post-21hs sin entregar` : undefined}
               color="text-violet-600 dark:text-violet-300" />
           </div>
 
@@ -733,9 +735,10 @@ function HistoricoView({
             )}
           </div>
 
-          {/* En camino al destinatario por día */}
+          {/* Demorados ("en camino al destinatario") por día */}
           <div className="border rounded-xl p-4">
-            <p className="text-xs font-bold mb-2">"En camino al destinatario" por día — cantidad y % del día</p>
+            <p className="text-xs font-bold mb-2">Demorados por día — cantidad y % del día</p>
+            <p className="text-[10px] text-muted-foreground mb-2">Demorado = todo lo post-21hs que no fue entregado ("en camino al destinatario")</p>
             {chartGeneral.length === 0 ? (
               <EmptyState icon={Truck} title="Sin datos en este rango" />
             ) : (
@@ -746,7 +749,7 @@ function HistoricoView({
                   <YAxis yAxisId="cant" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
                   <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} unit="%" />
                   <Tooltip {...ct.tooltip} />
-                  <Bar yAxisId="cant" dataKey="enCaminoTotal" name="En camino al destinatario" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                  <Bar yAxisId="cant" dataKey="enCaminoTotal" name="Demorados" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
                   <Line yAxisId="pct" type="monotone" dataKey="enCaminoPct" name="% del día" stroke="#6d28d9" strokeWidth={2} dot={false} />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -766,7 +769,7 @@ function HistoricoView({
                   <YAxis type="category" dataKey="cliente" width={130} tick={{ fontSize: 10, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
                   <Tooltip {...ct.tooltip} labelFormatter={(_, p) => p?.[0]?.payload?.clienteCompleto ?? ""} />
                   <Bar dataKey="total" name="Paquetes totales" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-                  <Bar dataKey="enCamino" name="En camino al destinatario" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="enCamino" name="Demorados" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
                 </ComposedChart>
               </ResponsiveContainer>
             )}
@@ -774,7 +777,7 @@ function HistoricoView({
         </div>
       ) : (
         <div className="border rounded-xl p-4 space-y-4">
-          <p className="text-xs font-bold">% "en camino al destinatario" de {clienteSel}</p>
+          <p className="text-xs font-bold">% demorados de {clienteSel}</p>
           {chartCliente.length === 0 ? (
             <EmptyState icon={Users} title={`Sin datos de ${clienteSel} en este rango`} />
           ) : (
@@ -787,7 +790,7 @@ function HistoricoView({
                   <YAxis yAxisId="cant" orientation="right" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
                   <Tooltip {...ct.tooltip} />
                   <Bar yAxisId="cant" dataKey="cantidad" name="Paquetes del día" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
-                  <Line yAxisId="pct" type="monotone" dataKey="enCaminoPct" name="% en camino al destinatario" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line yAxisId="pct" type="monotone" dataKey="enCaminoPct" name="% demorados" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} />
                 </ComposedChart>
               </ResponsiveContainer>
 
@@ -799,7 +802,7 @@ function HistoricoView({
                   </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Total "en camino"</p>
+                  <p className="text-muted-foreground">Total demorados</p>
                   <p className="font-bold text-base tabular-nums">
                     {historicoCliente.reduce((s, d) => s + d.en_camino_destinatario, 0)}
                   </p>
@@ -817,7 +820,7 @@ function HistoricoView({
                   <tr>
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Fecha</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Paquetes</th>
-                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">En camino</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Demorados</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">%</th>
                   </tr>
                 </thead>
