@@ -119,57 +119,74 @@ function parseResumenPorCliente(rows: any[][]) {
   return out;
 }
 
-async function parseArchivos(files: File[]): Promise<{ payload: AnalisisDiarioPayload | null; warnings: string[] }> {
+interface TardeRaw {
+  fecha: string | null;
+  post21: { total: number; entregados: number; pctExito: number };
+  tardeZona: { nombre: string; cantidad: number; entregados: number; pctEfectividad: number }[];
+  tardeChofer: { nombre: string; cantidad: number; entregados: number; pctEfectividad: number }[];
+}
+interface ResumenRaw {
+  fecha: string | null;
+  totalPaquetes: number;
+  estados: EstadoDia[];
+  porCliente: { cliente: string; cantidad: number; pctDelDia: number; enCamino: number }[];
+}
+
+async function parseArchivoTarde(file: File): Promise<{ data: TardeRaw | null; warning?: string }> {
   const XLSX = await import("xlsx");
-  let resumenTarde: ReturnType<typeof parseResumenRendimiento> | null = null;
-  let tardeZona: ReturnType<typeof parseTardanzasTabla> = [];
-  let tardeChofer: ReturnType<typeof parseTardanzasTabla> = [];
-  let resumenGeneral: ReturnType<typeof parseResumenGeneral> | null = null;
-  let porCliente: ReturnType<typeof parseResumenPorCliente> = [];
-
-  for (const file of files) {
-    const buf = await file.arrayBuffer();
-    const wb = XLSX.read(buf, { type: "array" });
-    if (wb.SheetNames.includes("Resumen de Rendimiento")) {
-      resumenTarde = parseResumenRendimiento(sheetRows(XLSX, wb, "Resumen de Rendimiento"));
-    }
-    if (wb.SheetNames.includes("Tardanzas por Zona")) {
-      tardeZona = parseTardanzasTabla(sheetRows(XLSX, wb, "Tardanzas por Zona"));
-    }
-    if (wb.SheetNames.includes("Tardanzas por Chofer")) {
-      tardeChofer = parseTardanzasTabla(sheetRows(XLSX, wb, "Tardanzas por Chofer"));
-    }
-    if (wb.SheetNames.includes("Resumen General")) {
-      resumenGeneral = parseResumenGeneral(sheetRows(XLSX, wb, "Resumen General"));
-    }
-    if (wb.SheetNames.includes("Resumen por Cliente")) {
-      porCliente = parseResumenPorCliente(sheetRows(XLSX, wb, "Resumen por Cliente"));
-    }
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: "array" });
+  if (!wb.SheetNames.includes("Resumen de Rendimiento")) {
+    return { data: null, warning: "El archivo no parece ser \"Análisis Tarde\" (falta la hoja \"Resumen de Rendimiento\")." };
   }
+  const resumenTarde = parseResumenRendimiento(sheetRows(XLSX, wb, "Resumen de Rendimiento"));
+  const tardeZona = wb.SheetNames.includes("Tardanzas por Zona") ? parseTardanzasTabla(sheetRows(XLSX, wb, "Tardanzas por Zona")) : [];
+  const tardeChofer = wb.SheetNames.includes("Tardanzas por Chofer") ? parseTardanzasTabla(sheetRows(XLSX, wb, "Tardanzas por Chofer")) : [];
+  return {
+    data: {
+      fecha: resumenTarde.fecha,
+      post21: resumenTarde.post21,
+      tardeZona, tardeChofer,
+    },
+  };
+}
 
+async function parseArchivoResumen(file: File): Promise<{ data: ResumenRaw | null; warning?: string }> {
+  const XLSX = await import("xlsx");
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: "array" });
+  if (!wb.SheetNames.includes("Resumen General")) {
+    return { data: null, warning: "El archivo no parece ser \"Resumen de Envíos\" (falta la hoja \"Resumen General\")." };
+  }
+  const resumenGeneral = parseResumenGeneral(sheetRows(XLSX, wb, "Resumen General"));
+  const porCliente = wb.SheetNames.includes("Resumen por Cliente") ? parseResumenPorCliente(sheetRows(XLSX, wb, "Resumen por Cliente")) : [];
+  return { data: { fecha: resumenGeneral.fecha, totalPaquetes: resumenGeneral.totalPaquetes, estados: resumenGeneral.estados, porCliente } };
+}
+
+function construirPayload(tardeRaw: TardeRaw | null, resumenRaw: ResumenRaw | null): { payload: AnalisisDiarioPayload | null; warnings: string[] } {
   const warnings: string[] = [];
-  if (!resumenGeneral) warnings.push("No se encontró el archivo \"Resumen de Envíos\" (falta la hoja \"Resumen General\").");
-  if (!resumenTarde) warnings.push("No se encontró el archivo \"Análisis Tarde\" (falta la hoja \"Resumen de Rendimiento\").");
-  if (!resumenGeneral || !resumenTarde) return { payload: null, warnings };
+  if (!resumenRaw) warnings.push("Falta cargar el archivo \"Resumen de Envíos\".");
+  if (!tardeRaw) warnings.push("Falta cargar el archivo \"Análisis Tarde\".");
+  if (!resumenRaw || !tardeRaw) return { payload: null, warnings };
 
-  const fecha = resumenGeneral.fecha ?? resumenTarde.fecha;
+  const fecha = resumenRaw.fecha ?? tardeRaw.fecha;
   if (!fecha) {
     warnings.push("No se pudo detectar la fecha en ninguno de los dos archivos.");
     return { payload: null, warnings };
   }
 
-  const totalPaquetes = resumenGeneral.totalPaquetes;
-  const entregados = resumenGeneral.estados.find(e => e.estado === "Entregado")?.cantidad ?? 0;
+  const totalPaquetes = resumenRaw.totalPaquetes;
+  const entregados = resumenRaw.estados.find(e => e.estado === "Entregado")?.cantidad ?? 0;
   const pctExito = totalPaquetes > 0 ? round2(entregados / totalPaquetes * 100) : 0;
-  const enCamino = resumenGeneral.estados.find(e => e.estado.toLowerCase().includes("en camino al destinatario"))?.cantidad ?? 0;
+  const enCamino = resumenRaw.estados.find(e => e.estado.toLowerCase().includes("en camino al destinatario"))?.cantidad ?? 0;
   const enCaminoPct = totalPaquetes > 0 ? round2(enCamino / totalPaquetes * 100) : 0;
 
-  const post21Total = resumenTarde.post21.total;
-  const post21Entregados = resumenTarde.post21.entregados;
-  const post21PctExito = post21Total > 0 ? round2(post21Entregados / post21Total * 100) : resumenTarde.post21.pctExito;
+  const post21Total = tardeRaw.post21.total;
+  const post21Entregados = tardeRaw.post21.entregados;
+  const post21PctExito = post21Total > 0 ? round2(post21Entregados / post21Total * 100) : tardeRaw.post21.pctExito;
   const post21PctDelDia = totalPaquetes > 0 ? round2(post21Total / totalPaquetes * 100) : 0;
 
-  const clientes: ClienteDia[] = porCliente.map(c => ({
+  const clientes: ClienteDia[] = resumenRaw.porCliente.map(c => ({
     cliente: c.cliente,
     cantidad: c.cantidad,
     pct_del_dia: c.pctDelDia,
@@ -192,10 +209,10 @@ async function parseArchivos(files: File[]): Promise<{ payload: AnalisisDiarioPa
   return {
     payload: {
       fecha, resumen,
-      estados: resumenGeneral.estados,
+      estados: resumenRaw.estados,
       clientes,
-      tardeZona: tardeZona.map(z => ({ zona: z.nombre, cantidad: z.cantidad, entregados: z.entregados, pct_efectividad: z.pctEfectividad })),
-      tardeChofer: tardeChofer.map(c => ({ chofer: c.nombre, cantidad: c.cantidad, entregados: c.entregados, pct_efectividad: c.pctEfectividad })),
+      tardeZona: tardeRaw.tardeZona.map(z => ({ zona: z.nombre, cantidad: z.cantidad, entregados: z.entregados, pct_efectividad: z.pctEfectividad })),
+      tardeChofer: tardeRaw.tardeChofer.map(c => ({ chofer: c.nombre, cantidad: c.cantidad, entregados: c.entregados, pct_efectividad: c.pctEfectividad })),
     },
     warnings,
   };
@@ -206,13 +223,18 @@ type Vista = "dia" | "historico";
 
 export function AnalisisDiario() {
   const [vista, setVista] = useState<Vista>("dia");
-  const fileRef = useRef<HTMLInputElement>(null);
+  const fileTardeRef = useRef<HTMLInputElement>(null);
+  const fileResumenRef = useRef<HTMLInputElement>(null);
   const ct = useChartTheme();
 
-  // Carga / preview
-  const [previa, setPrevia] = useState<AnalisisDiarioPayload | null>(null);
-  const [warnings, setWarnings] = useState<string[]>([]);
+  // Carga / preview — cada archivo se sube por separado y se combinan acá
+  const [tardeRaw, setTardeRaw] = useState<TardeRaw | null>(null);
+  const [resumenRaw, setResumenRaw] = useState<ResumenRaw | null>(null);
   const [guardando, setGuardando] = useState(false);
+
+  const { payload: previa, warnings } = (tardeRaw || resumenRaw)
+    ? construirPayload(tardeRaw, resumenRaw)
+    : { payload: null, warnings: [] as string[] };
 
   // Día consultado
   const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
@@ -272,22 +294,43 @@ export function AnalisisDiario() {
 
   useEffect(() => { if (vista === "historico") cargarHistorico(); }, [vista, cargarHistorico]);
 
-  async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    if (!files.length) return;
+  async function handleFileTarde(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
     try {
-      const { payload, warnings: w } = await parseArchivos(files);
-      setWarnings(w);
-      if (!payload) {
-        toast.error("No se pudo procesar la carga", { description: w.join(" ") });
-        setPrevia(null);
+      const { data, warning } = await parseArchivoTarde(file);
+      if (!data) {
+        toast.error("No se pudo procesar \"Análisis Tarde\"", { description: warning });
         return;
       }
-      setPrevia(payload);
-      toast.success(`Detectado ${payload.fecha} — ${payload.resumen.total_paquetes.toLocaleString("es-AR")} paquetes`);
+      setTardeRaw(data);
+      toast.success(`"Análisis Tarde" cargado${data.fecha ? ` — ${data.fecha}` : ""}`);
     } catch (err) {
-      toast.error("Error al leer los archivos", { description: String(err) });
+      toast.error("Error al leer el archivo", { description: String(err) });
     }
+  }
+
+  async function handleFileResumen(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const { data, warning } = await parseArchivoResumen(file);
+      if (!data) {
+        toast.error("No se pudo procesar \"Resumen de Envíos\"", { description: warning });
+        return;
+      }
+      setResumenRaw(data);
+      toast.success(`"Resumen de Envíos" cargado${data.fecha ? ` — ${data.fecha}` : ""} — ${data.totalPaquetes.toLocaleString("es-AR")} paquetes`);
+    } catch (err) {
+      toast.error("Error al leer el archivo", { description: String(err) });
+    }
+  }
+
+  function descartarCarga() {
+    setTardeRaw(null);
+    setResumenRaw(null);
+    if (fileTardeRef.current) fileTardeRef.current.value = "";
+    if (fileResumenRef.current) fileResumenRef.current.value = "";
   }
 
   async function confirmarCarga() {
@@ -299,9 +342,7 @@ export function AnalisisDiario() {
       toast.success(`Análisis del ${previa.fecha} guardado`);
       setFecha(previa.fecha);
       setVista("dia");
-      setPrevia(null);
-      setWarnings([]);
-      if (fileRef.current) fileRef.current.value = "";
+      descartarCarga();
       await cargarDia(previa.fecha);
       const resC = await getClientesAnalisisDiario();
       if (resC.ok && resC.data) setClientesDisponibles(resC.data);
@@ -324,7 +365,7 @@ export function AnalisisDiario() {
   }));
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="h-full overflow-y-auto p-6 space-y-5">
       {/* Header */}
       <div className="flex items-start gap-3 flex-wrap">
         <div>
@@ -349,41 +390,50 @@ export function AnalisisDiario() {
               Histórico
             </button>
           </div>
-          <input ref={fileRef} type="file" accept=".xlsx,.xls" multiple className="hidden" onChange={handleFiles} />
-          <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" onClick={() => fileRef.current?.click()}>
-            <Upload className="h-3.5 w-3.5" />
-            Cargar reportes del día
+          <input ref={fileTardeRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileTarde} />
+          <input ref={fileResumenRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileResumen} />
+          <Button size="sm" variant={tardeRaw ? "secondary" : "outline"} className="gap-1.5 text-xs h-8" onClick={() => fileTardeRef.current?.click()}>
+            {tardeRaw ? <CheckCircle className="h-3.5 w-3.5" /> : <Upload className="h-3.5 w-3.5" />}
+            Análisis Tarde
+          </Button>
+          <Button size="sm" variant={resumenRaw ? "secondary" : "outline"} className="gap-1.5 text-xs h-8" onClick={() => fileResumenRef.current?.click()}>
+            {resumenRaw ? <CheckCircle className="h-3.5 w-3.5" /> : <Upload className="h-3.5 w-3.5" />}
+            Resumen de Envíos
           </Button>
         </div>
       </div>
 
       {/* Preview de carga */}
-      {previa && (
+      {(tardeRaw || resumenRaw) && (
         <div className="border rounded-xl p-4 space-y-3 bg-blue-50/40 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
           <div className="flex items-center gap-2">
             <FileSpreadsheet className="h-4 w-4 text-blue-600 dark:text-blue-300" />
-            <p className="text-sm font-bold">Vista previa — {previa.fecha}</p>
+            <p className="text-sm font-bold">Vista previa{previa ? ` — ${previa.fecha}` : ""}</p>
           </div>
           {warnings.length > 0 && (
             <div className="text-xs text-amber-700 dark:text-amber-300 space-y-1">
               {warnings.map((w, i) => <p key={i} className="flex items-center gap-1.5"><AlertTriangle className="h-3 w-3 shrink-0" /> {w}</p>)}
             </div>
           )}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <MiniKpi label="Total paquetes" valor={previa.resumen.total_paquetes.toLocaleString("es-AR")} />
-            <MiniKpi label="% éxito" valor={`${previa.resumen.pct_exito.toFixed(2)}%`} />
-            <MiniKpi label="Post-21" valor={`${previa.resumen.post21_total} (${previa.resumen.post21_pct_del_dia.toFixed(2)}%)`} />
-            <MiniKpi label="En camino al destinatario" valor={`${previa.resumen.en_camino_destinatario} (${previa.resumen.en_camino_destinatario_pct.toFixed(2)}%)`} />
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            {previa.clientes.length} clientes · {previa.tardeZona.length} zonas con tardanza · {previa.tardeChofer.length} choferes con tardanza
-          </p>
+          {previa && (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <MiniKpi label="Total paquetes" valor={previa.resumen.total_paquetes.toLocaleString("es-AR")} />
+                <MiniKpi label="% éxito" valor={`${previa.resumen.pct_exito.toFixed(2)}%`} />
+                <MiniKpi label="Post-21" valor={`${previa.resumen.post21_total} (${previa.resumen.post21_pct_del_dia.toFixed(2)}%)`} />
+                <MiniKpi label="En camino al destinatario" valor={`${previa.resumen.en_camino_destinatario} (${previa.resumen.en_camino_destinatario_pct.toFixed(2)}%)`} />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                {previa.clientes.length} clientes · {previa.tardeZona.length} zonas con tardanza · {previa.tardeChofer.length} choferes con tardanza
+              </p>
+            </>
+          )}
           <div className="flex gap-2">
-            <Button size="sm" onClick={confirmarCarga} disabled={guardando} className="gap-1.5">
+            <Button size="sm" onClick={confirmarCarga} disabled={guardando || !previa} className="gap-1.5">
               <CheckCircle className="h-3.5 w-3.5" />
               {guardando ? "Guardando…" : "Confirmar y guardar"}
             </Button>
-            <Button size="sm" variant="outline" onClick={() => { setPrevia(null); setWarnings([]); if (fileRef.current) fileRef.current.value = ""; }}>
+            <Button size="sm" variant="outline" onClick={descartarCarga}>
               Descartar
             </Button>
           </div>
