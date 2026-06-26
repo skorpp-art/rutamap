@@ -15,11 +15,11 @@ import {
 import {
   guardarAnalisisDiario, getAnalisisDiario, getAnalisisDiarioEstados,
   getAnalisisDiarioClientes, getAnalisisDiarioTarde, getAnalisisDiarioHistorico,
-  getHistoricoCliente, getClientesAnalisisDiario,
+  getHistoricoCliente, getClientesAnalisisDiario, getClientesTotalesPeriodo,
 } from "@/app/actions/analisis-diario";
 import type {
   AnalisisDiarioPayload, ResumenAnalisisDia, EstadoDia, ClienteDia,
-  TardeFila, HistoricoDia, HistoricoCliente,
+  TardeFila, HistoricoDia, HistoricoCliente, ClienteTotalPeriodo,
 } from "@/app/actions/analisis-diario";
 import { useChartTheme } from "@/hooks/useChartTheme";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -254,6 +254,7 @@ export function AnalisisDiario() {
   const [hasta, setHasta] = useState(() => new Date().toISOString().slice(0, 10));
   const [historicoGeneral, setHistoricoGeneral] = useState<HistoricoDia[]>([]);
   const [historicoCliente, setHistoricoCliente] = useState<HistoricoCliente[]>([]);
+  const [clientesTotales, setClientesTotales] = useState<ClienteTotalPeriodo[]>([]);
   const [cargandoHistorico, setCargandoHistorico] = useState(false);
 
   const cargarDia = useCallback(async (f: string) => {
@@ -281,8 +282,12 @@ export function AnalisisDiario() {
   const cargarHistorico = useCallback(async () => {
     setCargandoHistorico(true);
     try {
-      const resGen = await getAnalisisDiarioHistorico(desde, hasta);
+      const [resGen, resTotales] = await Promise.all([
+        getAnalisisDiarioHistorico(desde, hasta),
+        getClientesTotalesPeriodo(desde, hasta),
+      ]);
       setHistoricoGeneral(resGen.ok ? resGen.data ?? [] : []);
+      setClientesTotales(resTotales.ok ? resTotales.data ?? [] : []);
       if (clienteSel) {
         const resCli = await getHistoricoCliente(clienteSel, desde, hasta);
         setHistoricoCliente(resCli.ok ? resCli.data ?? [] : []);
@@ -354,15 +359,30 @@ export function AnalisisDiario() {
 
   const chartGeneral = historicoGeneral.map(d => ({
     dia: d.fecha.slice(5),
-    post21Pct: d.post21_pct_del_dia,
-    enCaminoPct: d.en_camino_destinatario_pct,
     total: d.total_paquetes,
+    pctExito: d.pct_exito,
+    post21Total: d.post21_total,
+    post21Pct: d.post21_pct_del_dia,
+    enCaminoTotal: d.en_camino_destinatario,
+    enCaminoPct: d.en_camino_destinatario_pct,
   }));
   const chartCliente = historicoCliente.map(d => ({
     dia: d.fecha.slice(5),
     enCaminoPct: d.en_camino_destinatario_pct,
     cantidad: d.cantidad,
   }));
+  const chartClientesTotales = clientesTotales.slice(0, 15).map(c => ({
+    cliente: c.cliente.length > 18 ? c.cliente.slice(0, 17) + "…" : c.cliente,
+    clienteCompleto: c.cliente,
+    total: c.total_paquetes,
+    enCamino: c.total_en_camino,
+    pctEnCamino: c.pct_en_camino,
+  }));
+  const totalesPeriodo = historicoGeneral.reduce((acc, d) => ({
+    total: acc.total + d.total_paquetes,
+    post21: acc.post21 + d.post21_total,
+    enCamino: acc.enCamino + d.en_camino_destinatario,
+  }), { total: 0, post21: 0, enCamino: 0 });
 
   return (
     <div className="h-full overflow-y-auto p-6 space-y-5">
@@ -454,6 +474,8 @@ export function AnalisisDiario() {
           clientesDisponibles={clientesDisponibles}
           cargando={cargandoHistorico}
           chartGeneral={chartGeneral} chartCliente={chartCliente}
+          chartClientesTotales={chartClientesTotales}
+          totalesPeriodo={totalesPeriodo}
           historicoCliente={historicoCliente}
           ct={ct}
         />
@@ -629,7 +651,7 @@ function TardeTabla({ titulo, icono: Icon, filas }: {
 // ── Vista Histórico ──────────────────────────────────────────────────────────
 function HistoricoView({
   desde, setDesde, hasta, setHasta, clienteSel, setClienteSel, clientesDisponibles,
-  cargando, chartGeneral, chartCliente, historicoCliente, ct,
+  cargando, chartGeneral, chartCliente, chartClientesTotales, totalesPeriodo, historicoCliente, ct,
 }: {
   desde: string; setDesde: (v: string) => void;
   hasta: string; setHasta: (v: string) => void;
@@ -637,7 +659,8 @@ function HistoricoView({
   clientesDisponibles: string[];
   cargando: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  chartGeneral: any[]; chartCliente: any[];
+  chartGeneral: any[]; chartCliente: any[]; chartClientesTotales: any[];
+  totalesPeriodo: { total: number; post21: number; enCamino: number };
   historicoCliente: HistoricoCliente[];
   ct: ReturnType<typeof useChartTheme>;
 }) {
@@ -658,22 +681,96 @@ function HistoricoView({
       </div>
 
       {!clienteSel ? (
-        <div className="border rounded-xl p-4">
-          <p className="text-xs font-bold mb-2">Evolución general — % post-21 y % "en camino al destinatario"</p>
-          {chartGeneral.length === 0 ? (
-            <EmptyState icon={Clock} title="Sin datos en este rango" />
-          ) : (
-            <ResponsiveContainer width="100%" height={280}>
-              <ComposedChart data={chartGeneral}>
-                <CartesianGrid stroke={ct.grid} strokeDasharray="3 3" />
-                <XAxis dataKey="dia" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
-                <YAxis tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} unit="%" />
-                <Tooltip {...ct.tooltip} />
-                <Line type="monotone" dataKey="post21Pct" name="% post-21" stroke="#f59e0b" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="enCaminoPct" name="% en camino al destinatario" stroke="#8b5cf6" strokeWidth={2} dot={false} />
-              </ComposedChart>
-            </ResponsiveContainer>
-          )}
+        <div className="space-y-5">
+          {/* KPIs globales del período */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <KpiCard icon={Package} label="Total paquetes del período" valor={totalesPeriodo.total.toLocaleString("es-AR")} color="text-blue-600 dark:text-blue-300" />
+            <KpiCard icon={Clock} label="Total post-21hs (demorados)" valor={totalesPeriodo.post21.toLocaleString("es-AR")}
+              sub={totalesPeriodo.total > 0 ? `${round2(totalesPeriodo.post21 / totalesPeriodo.total * 100).toFixed(2)}% del total` : undefined}
+              color="text-amber-600 dark:text-amber-300" />
+            <KpiCard icon={Truck} label="Total en camino al destinatario" valor={totalesPeriodo.enCamino.toLocaleString("es-AR")}
+              sub={totalesPeriodo.total > 0 ? `${round2(totalesPeriodo.enCamino / totalesPeriodo.total * 100).toFixed(2)}% del total` : undefined}
+              color="text-violet-600 dark:text-violet-300" />
+          </div>
+
+          {/* Paquetes totales del día */}
+          <div className="border rounded-xl p-4">
+            <p className="text-xs font-bold mb-2">Paquetes totales por día — y % de éxito</p>
+            {chartGeneral.length === 0 ? (
+              <EmptyState icon={Package} title="Sin datos en este rango" />
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <ComposedChart data={chartGeneral}>
+                  <CartesianGrid stroke={ct.grid} strokeDasharray="3 3" />
+                  <XAxis dataKey="dia" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
+                  <YAxis yAxisId="cant" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
+                  <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} unit="%" />
+                  <Tooltip {...ct.tooltip} />
+                  <Bar yAxisId="cant" dataKey="total" name="Paquetes totales" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Line yAxisId="pct" type="monotone" dataKey="pctExito" name="% éxito" stroke="#10b981" strokeWidth={2} dot={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* Demorados / post-21hs por día */}
+          <div className="border rounded-xl p-4">
+            <p className="text-xs font-bold mb-2">Demorados (post-21hs) por día — cantidad y % del día</p>
+            {chartGeneral.length === 0 ? (
+              <EmptyState icon={Clock} title="Sin datos en este rango" />
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <ComposedChart data={chartGeneral}>
+                  <CartesianGrid stroke={ct.grid} strokeDasharray="3 3" />
+                  <XAxis dataKey="dia" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
+                  <YAxis yAxisId="cant" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
+                  <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} unit="%" />
+                  <Tooltip {...ct.tooltip} />
+                  <Bar yAxisId="cant" dataKey="post21Total" name="Demorados (post-21hs)" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                  <Line yAxisId="pct" type="monotone" dataKey="post21Pct" name="% del día" stroke="#b45309" strokeWidth={2} dot={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* En camino al destinatario por día */}
+          <div className="border rounded-xl p-4">
+            <p className="text-xs font-bold mb-2">"En camino al destinatario" por día — cantidad y % del día</p>
+            {chartGeneral.length === 0 ? (
+              <EmptyState icon={Truck} title="Sin datos en este rango" />
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <ComposedChart data={chartGeneral}>
+                  <CartesianGrid stroke={ct.grid} strokeDasharray="3 3" />
+                  <XAxis dataKey="dia" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
+                  <YAxis yAxisId="cant" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
+                  <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} unit="%" />
+                  <Tooltip {...ct.tooltip} />
+                  <Bar yAxisId="cant" dataKey="enCaminoTotal" name="En camino al destinatario" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                  <Line yAxisId="pct" type="monotone" dataKey="enCaminoPct" name="% del día" stroke="#6d28d9" strokeWidth={2} dot={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* Total de paquetes por cliente (acumulado del período) */}
+          <div className="border rounded-xl p-4">
+            <p className="text-xs font-bold mb-2">Paquetes totales por cliente (top 15 del período)</p>
+            {chartClientesTotales.length === 0 ? (
+              <EmptyState icon={Users} title="Sin datos en este rango" />
+            ) : (
+              <ResponsiveContainer width="100%" height={Math.max(260, chartClientesTotales.length * 28)}>
+                <ComposedChart data={chartClientesTotales} layout="vertical" margin={{ left: 8 }}>
+                  <CartesianGrid stroke={ct.grid} strokeDasharray="3 3" />
+                  <XAxis type="number" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
+                  <YAxis type="category" dataKey="cliente" width={130} tick={{ fontSize: 10, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
+                  <Tooltip {...ct.tooltip} labelFormatter={(_, p) => p?.[0]?.payload?.clienteCompleto ?? ""} />
+                  <Bar dataKey="total" name="Paquetes totales" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="enCamino" name="En camino al destinatario" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            )}
+          </div>
         </div>
       ) : (
         <div className="border rounded-xl p-4 space-y-4">

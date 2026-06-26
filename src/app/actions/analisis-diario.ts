@@ -166,6 +166,26 @@ export async function getHistoricoCliente(
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
+export interface ClienteTotalPeriodo {
+  cliente: string;
+  total_paquetes: number;
+  total_en_camino: number;
+  pct_en_camino: number;
+  dias_con_datos: number;
+}
+
+export async function getClientesTotalesPeriodo(
+  desde: string, hasta: string
+): Promise<{ ok: boolean; data?: ClienteTotalPeriodo[]; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("get_clientes_totales_periodo", { p_desde: desde, p_hasta: hasta });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, data: (data ?? []) as ClienteTotalPeriodo[] };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
 export async function getClientesAnalisisDiario(): Promise<{ ok: boolean; data?: string[]; error?: string }> {
   try {
     const supabase = await createClient();
