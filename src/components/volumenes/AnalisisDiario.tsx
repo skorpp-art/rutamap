@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Upload, FileSpreadsheet, CheckCircle, AlertTriangle, Calendar,
-  Search, Package, Users, Clock, RefreshCw, Truck, MapPin,
+  Search, Package, Users, Clock, RefreshCw, Truck, MapPin, Layers,
 } from "lucide-react";
 import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid,
@@ -132,35 +132,82 @@ interface ResumenRaw {
   porCliente: { cliente: string; cantidad: number; pctDelDia: number; enCamino: number }[];
 }
 
-async function parseArchivoTarde(file: File): Promise<{ data: TardeRaw | null; warning?: string }> {
-  const XLSX = await import("xlsx");
-  const buf = await file.arrayBuffer();
-  const wb = XLSX.read(buf, { type: "array" });
-  if (!wb.SheetNames.includes("Resumen de Rendimiento")) {
-    return { data: null, warning: "El archivo no parece ser \"Análisis Tarde\" (falta la hoja \"Resumen de Rendimiento\")." };
-  }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extraerTarde(XLSX: typeof import("xlsx"), wb: any): TardeRaw | null {
+  if (!wb.SheetNames.includes("Resumen de Rendimiento")) return null;
   const resumenTarde = parseResumenRendimiento(sheetRows(XLSX, wb, "Resumen de Rendimiento"));
   const tardeZona = wb.SheetNames.includes("Tardanzas por Zona") ? parseTardanzasTabla(sheetRows(XLSX, wb, "Tardanzas por Zona")) : [];
   const tardeChofer = wb.SheetNames.includes("Tardanzas por Chofer") ? parseTardanzasTabla(sheetRows(XLSX, wb, "Tardanzas por Chofer")) : [];
-  return {
-    data: {
-      fecha: resumenTarde.fecha,
-      post21: resumenTarde.post21,
-      tardeZona, tardeChofer,
-    },
-  };
+  return { fecha: resumenTarde.fecha, post21: resumenTarde.post21, tardeZona, tardeChofer };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extraerResumen(XLSX: typeof import("xlsx"), wb: any): ResumenRaw | null {
+  if (!wb.SheetNames.includes("Resumen General")) return null;
+  const resumenGeneral = parseResumenGeneral(sheetRows(XLSX, wb, "Resumen General"));
+  const porCliente = wb.SheetNames.includes("Resumen por Cliente") ? parseResumenPorCliente(sheetRows(XLSX, wb, "Resumen por Cliente")) : [];
+  return { fecha: resumenGeneral.fecha, totalPaquetes: resumenGeneral.totalPaquetes, estados: resumenGeneral.estados, porCliente };
+}
+
+async function parseArchivoTarde(file: File): Promise<{ data: TardeRaw | null; warning?: string }> {
+  const XLSX = await import("xlsx");
+  const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
+  const data = extraerTarde(XLSX, wb);
+  if (!data) return { data: null, warning: "El archivo no parece ser \"Análisis Tarde\" (falta la hoja \"Resumen de Rendimiento\")." };
+  return { data };
 }
 
 async function parseArchivoResumen(file: File): Promise<{ data: ResumenRaw | null; warning?: string }> {
   const XLSX = await import("xlsx");
-  const buf = await file.arrayBuffer();
-  const wb = XLSX.read(buf, { type: "array" });
-  if (!wb.SheetNames.includes("Resumen General")) {
-    return { data: null, warning: "El archivo no parece ser \"Resumen de Envíos\" (falta la hoja \"Resumen General\")." };
+  const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
+  const data = extraerResumen(XLSX, wb);
+  if (!data) return { data: null, warning: "El archivo no parece ser \"Resumen de Envíos\" (falta la hoja \"Resumen General\")." };
+  return { data };
+}
+
+// ── Carga en lote (varios Excel del mes a la vez) ────────────────────────────
+export interface DiaLote {
+  fecha: string;
+  tarde: TardeRaw | null;
+  resumen: ResumenRaw | null;
+  payload: AnalisisDiarioPayload | null;
+  warnings: string[];
+}
+
+async function parseLote(files: File[]): Promise<{ dias: DiaLote[]; sinReconocer: string[] }> {
+  const XLSX = await import("xlsx");
+  const porFecha = new Map<string, { tarde: TardeRaw | null; resumen: ResumenRaw | null }>();
+  const sinReconocer: string[] = [];
+
+  for (const file of files) {
+    let wb;
+    try {
+      wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
+    } catch {
+      sinReconocer.push(`${file.name} (no se pudo leer)`);
+      continue;
+    }
+    const tarde = extraerTarde(XLSX, wb);
+    const resumen = extraerResumen(XLSX, wb);
+    const fecha = tarde?.fecha ?? resumen?.fecha ?? null;
+    if ((!tarde && !resumen) || !fecha) {
+      sinReconocer.push(file.name);
+      continue;
+    }
+    const slot = porFecha.get(fecha) ?? { tarde: null, resumen: null };
+    if (tarde) slot.tarde = tarde;
+    if (resumen) slot.resumen = resumen;
+    porFecha.set(fecha, slot);
   }
-  const resumenGeneral = parseResumenGeneral(sheetRows(XLSX, wb, "Resumen General"));
-  const porCliente = wb.SheetNames.includes("Resumen por Cliente") ? parseResumenPorCliente(sheetRows(XLSX, wb, "Resumen por Cliente")) : [];
-  return { data: { fecha: resumenGeneral.fecha, totalPaquetes: resumenGeneral.totalPaquetes, estados: resumenGeneral.estados, porCliente } };
+
+  const dias: DiaLote[] = [...porFecha.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([fecha, { tarde, resumen }]) => {
+      const { payload, warnings } = construirPayload(tarde, resumen);
+      return { fecha, tarde, resumen, payload, warnings };
+    });
+
+  return { dias, sinReconocer };
 }
 
 function construirPayload(tardeRaw: TardeRaw | null, resumenRaw: ResumenRaw | null): { payload: AnalisisDiarioPayload | null; warnings: string[] } {
@@ -226,12 +273,20 @@ export function AnalisisDiario() {
   const [vista, setVista] = useState<Vista>("dia");
   const fileTardeRef = useRef<HTMLInputElement>(null);
   const fileResumenRef = useRef<HTMLInputElement>(null);
+  const fileLoteRef = useRef<HTMLInputElement>(null);
   const ct = useChartTheme();
 
   // Carga / preview — cada archivo se sube por separado y se combinan acá
   const [tardeRaw, setTardeRaw] = useState<TardeRaw | null>(null);
   const [resumenRaw, setResumenRaw] = useState<ResumenRaw | null>(null);
   const [guardando, setGuardando] = useState(false);
+
+  // Carga en lote (varios Excel del mes a la vez)
+  const [lote, setLote] = useState<DiaLote[]>([]);
+  const [loteSinReconocer, setLoteSinReconocer] = useState<string[]>([]);
+  const [procesandoLote, setProcesandoLote] = useState(false);
+  const [guardandoLote, setGuardandoLote] = useState(false);
+  const [progresoLote, setProgresoLote] = useState<{ hechos: number; total: number } | null>(null);
 
   const { payload: previa, warnings } = (tardeRaw || resumenRaw)
     ? construirPayload(tardeRaw, resumenRaw)
@@ -355,6 +410,63 @@ export function AnalisisDiario() {
     } finally { setGuardando(false); }
   }
 
+  async function handleFilesLote(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    setProcesandoLote(true);
+    try {
+      const { dias, sinReconocer } = await parseLote(files);
+      setLote(dias);
+      setLoteSinReconocer(sinReconocer);
+      const completos = dias.filter(d => d.payload).length;
+      if (!dias.length) {
+        toast.error("No se reconoció ningún archivo válido en la selección.");
+      } else {
+        toast.success(`${dias.length} día(s) detectado(s) · ${completos} listo(s) para guardar`);
+      }
+    } catch (err) {
+      toast.error("Error al procesar el lote", { description: String(err) });
+    } finally {
+      setProcesandoLote(false);
+      if (fileLoteRef.current) fileLoteRef.current.value = "";
+    }
+  }
+
+  function descartarLote() {
+    setLote([]);
+    setLoteSinReconocer([]);
+    setProgresoLote(null);
+    if (fileLoteRef.current) fileLoteRef.current.value = "";
+  }
+
+  async function guardarLote() {
+    const guardables = lote.filter(d => d.payload);
+    if (!guardables.length) return;
+    setGuardandoLote(true);
+    setProgresoLote({ hechos: 0, total: guardables.length });
+    let ok = 0;
+    const fallidos: string[] = [];
+    try {
+      for (let i = 0; i < guardables.length; i++) {
+        const d = guardables[i];
+        const res = await guardarAnalisisDiario(d.payload!);
+        if (res.ok) ok++; else fallidos.push(d.fecha);
+        setProgresoLote({ hechos: i + 1, total: guardables.length });
+      }
+      if (fallidos.length) {
+        toast.error(`${ok} guardado(s), ${fallidos.length} con error`, { description: `Fallaron: ${fallidos.join(", ")}` });
+      } else {
+        toast.success(`${ok} día(s) guardado(s) correctamente`);
+      }
+      descartarLote();
+      const resC = await getClientesAnalisisDiario();
+      if (resC.ok && resC.data) setClientesDisponibles(resC.data);
+      if (vista === "dia") await cargarDia(fecha);
+    } finally {
+      setGuardandoLote(false);
+    }
+  }
+
   const tardeZonas = tarde.filter(t => t.tipo === "zona");
   const tardeChoferes = tarde.filter(t => t.tipo === "chofer");
 
@@ -413,6 +525,7 @@ export function AnalisisDiario() {
           </div>
           <input ref={fileTardeRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileTarde} />
           <input ref={fileResumenRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileResumen} />
+          <input ref={fileLoteRef} type="file" accept=".xlsx,.xls" multiple className="hidden" onChange={handleFilesLote} />
           <Button size="sm" variant={tardeRaw ? "secondary" : "outline"} className="gap-1.5 text-xs h-8" onClick={() => fileTardeRef.current?.click()}>
             {tardeRaw ? <CheckCircle className="h-3.5 w-3.5" /> : <Upload className="h-3.5 w-3.5" />}
             Análisis Tarde
@@ -421,8 +534,68 @@ export function AnalisisDiario() {
             {resumenRaw ? <CheckCircle className="h-3.5 w-3.5" /> : <Upload className="h-3.5 w-3.5" />}
             Resumen de Envíos
           </Button>
+          <div className="h-6 w-px bg-border" />
+          <Button size="sm" className="gap-1.5 text-xs h-8" onClick={() => fileLoteRef.current?.click()} disabled={procesandoLote}>
+            {procesandoLote ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Layers className="h-3.5 w-3.5" />}
+            Cargar lote del mes
+          </Button>
         </div>
       </div>
+
+      {/* Preview de carga en lote */}
+      {lote.length > 0 && (
+        <div className="border rounded-xl p-4 space-y-3 bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900">
+          <div className="flex items-center gap-2">
+            <Layers className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+            <p className="text-sm font-bold">
+              Lote — {lote.length} día(s) · {lote.filter(d => d.payload).length} listo(s) para guardar
+            </p>
+          </div>
+          {loteSinReconocer.length > 0 && (
+            <p className="text-xs text-amber-700 dark:text-amber-300 flex items-start gap-1.5">
+              <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" />
+              No se reconocieron {loteSinReconocer.length} archivo(s): {loteSinReconocer.slice(0, 6).join(", ")}{loteSinReconocer.length > 6 ? "…" : ""}
+            </p>
+          )}
+          <div className="max-h-72 overflow-y-auto border rounded-lg">
+            <table className="w-full text-xs">
+              <thead className="bg-muted/30 sticky top-0">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Fecha</th>
+                  <th className="text-center px-3 py-2 font-medium text-muted-foreground">A. Tarde</th>
+                  <th className="text-center px-3 py-2 font-medium text-muted-foreground">R. Envíos</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Paquetes</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Demorados</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {lote.map(d => (
+                  <tr key={d.fecha} className={cn(!d.payload && "bg-amber-50/40 dark:bg-amber-950/10")}>
+                    <td className="px-3 py-1.5 tabular-nums">{d.fecha}</td>
+                    <td className="px-3 py-1.5 text-center">{d.tarde ? <CheckCircle className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 inline" /> : "—"}</td>
+                    <td className="px-3 py-1.5 text-center">{d.resumen ? <CheckCircle className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 inline" /> : "—"}</td>
+                    <td className="px-3 py-1.5 text-right tabular-nums">{d.payload ? d.payload.resumen.total_paquetes.toLocaleString("es-AR") : "—"}</td>
+                    <td className="px-3 py-1.5 text-right tabular-nums">{d.payload ? `${d.payload.resumen.en_camino_destinatario} (${d.payload.resumen.en_camino_destinatario_pct.toFixed(1)}%)` : "—"}</td>
+                    <td className="px-3 py-1.5 text-muted-foreground">{d.payload ? "Listo" : d.warnings[0]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={guardarLote} disabled={guardandoLote || lote.every(d => !d.payload)} className="gap-1.5">
+              <CheckCircle className="h-3.5 w-3.5" />
+              {guardandoLote
+                ? `Guardando ${progresoLote?.hechos ?? 0}/${progresoLote?.total ?? 0}…`
+                : `Guardar ${lote.filter(d => d.payload).length} día(s)`}
+            </Button>
+            <Button size="sm" variant="outline" onClick={descartarLote} disabled={guardandoLote}>
+              Descartar lote
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Preview de carga */}
       {(tardeRaw || resumenRaw) && (
