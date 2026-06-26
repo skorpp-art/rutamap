@@ -677,15 +677,26 @@ function DiaView({
   tardeZonas: TardeFila[]; tardeChoferes: TardeFila[];
   onRefrescar: () => void;
 }) {
+  const [busqueda, setBusqueda] = useState("");
+  const [clienteSel, setClienteSel] = useState<string | null>(null);
+
   const clientesOrdenados = [...clientes].sort((a, b) => b.en_camino_destinatario - a.en_camino_destinatario || b.cantidad - a.cantidad);
+  const maxPctDia = Math.max(1, ...clientes.map(c => c.pct_del_dia));
+  const filtrados = clientesOrdenados.filter(c => c.cliente.toLowerCase().includes(busqueda.toLowerCase()));
+  const sel = clienteSel ? clientes.find(c => c.cliente === clienteSel) ?? null : null;
+  const maxEstado = Math.max(1, ...estados.map(e => e.cantidad));
+  const fechaLinda = new Date(fecha + "T12:00:00").toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-2">
-        <Calendar className="h-4 w-4 text-muted-foreground" />
-        <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
-          className="text-xs border rounded-md px-2 py-1 bg-background" />
-        <button onClick={onRefrescar} className="text-muted-foreground hover:text-foreground">
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 bg-muted/40 rounded-lg px-2.5 py-1.5">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
+            className="text-xs bg-transparent outline-none" />
+        </div>
+        {resumen && <span className="text-xs text-muted-foreground capitalize">{fechaLinda}</span>}
+        <button onClick={onRefrescar} className="text-muted-foreground hover:text-foreground ml-auto">
           <RefreshCw className={cn("h-3.5 w-3.5", cargando && "animate-spin")} />
         </button>
       </div>
@@ -695,75 +706,109 @@ function DiaView({
           description="Cargá los dos reportes (Resumen de Envíos + Análisis Tarde) para este día." />
       ) : resumen ? (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <KpiCard icon={Package} label="Total paquetes" valor={resumen.total_paquetes.toLocaleString("es-AR")} color="text-blue-600 dark:text-blue-300" />
-            <KpiCard icon={CheckCircle} label="% éxito del día" valor={`${resumen.pct_exito.toFixed(2)}%`} color="text-emerald-600 dark:text-emerald-300" />
-            <KpiCard icon={Clock} label="Post-21hs" valor={`${resumen.post21_total} (${resumen.post21_pct_del_dia.toFixed(2)}%)`}
-              sub={`% éxito tardío: ${resumen.post21_pct_exito.toFixed(2)}%`} color="text-amber-600 dark:text-amber-300" />
-            <KpiCard icon={Truck} label="Demorados" valor={`${resumen.en_camino_destinatario} (${resumen.en_camino_destinatario_pct.toFixed(2)}%)`}
-              sub="post-21hs sin entregar" color="text-violet-600 dark:text-violet-300" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <KpiCard icon={Package} label="Total paquetes" valor={resumen.total_paquetes.toLocaleString("es-AR")} tono="blue" />
+            <KpiCard icon={CheckCircle} label="% éxito del día" valor={`${resumen.pct_exito.toFixed(2)}%`}
+              sub={`${resumen.entregados.toLocaleString("es-AR")} entregados`} tono="emerald" />
+            <KpiCard icon={Clock} label="Post-21hs" valor={`${resumen.post21_total} · ${resumen.post21_pct_del_dia.toFixed(1)}%`}
+              sub={`% éxito tardío: ${resumen.post21_pct_exito.toFixed(1)}%`} tono="amber" />
+            <KpiCard icon={Truck} label="Demorados" valor={`${resumen.en_camino_destinatario} · ${resumen.en_camino_destinatario_pct.toFixed(1)}%`}
+              sub="post-21hs sin entregar" tono="violet" />
           </div>
 
-          {/* Estados */}
-          <div className="border rounded-xl overflow-hidden">
-            <p className="text-xs font-bold px-4 py-2.5 bg-muted/30 border-b">Resolución del día por estado</p>
-            <table className="w-full text-xs">
-              <thead className="bg-muted/20">
-                <tr>
-                  <th className="text-left px-4 py-2 font-medium text-muted-foreground">Estado</th>
-                  <th className="text-right px-4 py-2 font-medium text-muted-foreground">Cantidad</th>
-                  <th className="text-right px-4 py-2 font-medium text-muted-foreground">% del total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {estados.map(e => (
-                  <tr key={e.estado} className={cn(e.estado.toLowerCase().includes("en camino al destinatario") && "bg-violet-50/50 dark:bg-violet-950/20")}>
-                    <td className="px-4 py-1.5">{e.estado}</td>
-                    <td className="px-4 py-1.5 text-right tabular-nums">{e.cantidad.toLocaleString("es-AR")}</td>
-                    <td className="px-4 py-1.5 text-right tabular-nums">{e.pct.toFixed(2)}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <div className="grid lg:grid-cols-5 gap-4">
+            {/* Estados — con barra de proporción */}
+            <div className="lg:col-span-2 border rounded-2xl overflow-hidden bg-card shadow-sm">
+              <SeccionHeader icon={CheckCircle} titulo="Resolución del día por estado" tono="emerald" />
+              <div className="divide-y max-h-[22rem] overflow-y-auto">
+                {estados.map(e => {
+                  const esDemorado = e.estado.toLowerCase().includes("en camino al destinatario");
+                  const esEntregado = e.estado.toLowerCase().startsWith("entregado");
+                  const tono: Tono = esDemorado ? "violet" : esEntregado ? "emerald" : "blue";
+                  return (
+                    <div key={e.estado} className="px-4 py-2.5">
+                      <div className="flex items-center justify-between gap-3 mb-1">
+                        <span className="text-xs truncate">{e.estado}</span>
+                        <span className="text-xs tabular-nums shrink-0">
+                          <span className="font-semibold">{e.cantidad.toLocaleString("es-AR")}</span>
+                          <span className="text-muted-foreground"> · {e.pct.toFixed(1)}%</span>
+                        </span>
+                      </div>
+                      <BarraProp pct={e.cantidad / maxEstado * 100} tono={tono} />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
-          {/* Clientes — demorados (en camino al destinatario) */}
-          <div className="border rounded-xl overflow-hidden">
-            <p className="text-xs font-bold px-4 py-2.5 bg-muted/30 border-b flex items-center gap-1.5">
-              <Users className="h-3.5 w-3.5" /> Clientes — demorados ("en camino al destinatario")
-            </p>
-            <div className="max-h-80 overflow-y-auto">
-              <table className="w-full text-xs">
-                <thead className="bg-muted/20 sticky top-0">
-                  <tr>
-                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Cliente</th>
-                    <th className="text-right px-4 py-2 font-medium text-muted-foreground">Paquetes</th>
-                    <th className="text-right px-4 py-2 font-medium text-muted-foreground">% del día</th>
-                    <th className="text-right px-4 py-2 font-medium text-muted-foreground">Demorados</th>
-                    <th className="text-right px-4 py-2 font-medium text-muted-foreground">% propio</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {clientesOrdenados.map(c => (
-                    <tr key={c.cliente} className={cn(c.en_camino_destinatario > 0 && "bg-violet-50/40 dark:bg-violet-950/20")}>
-                      <td className="px-4 py-1.5">{c.cliente}</td>
-                      <td className="px-4 py-1.5 text-right tabular-nums">{c.cantidad.toLocaleString("es-AR")}</td>
-                      <td className="px-4 py-1.5 text-right tabular-nums">{c.pct_del_dia.toFixed(2)}%</td>
-                      <td className="px-4 py-1.5 text-right tabular-nums font-semibold">{c.en_camino_destinatario || "—"}</td>
-                      <td className="px-4 py-1.5 text-right tabular-nums">
-                        {c.en_camino_destinatario > 0 ? `${c.en_camino_destinatario_pct.toFixed(2)}%` : "—"}
-                      </td>
+            {/* Clientes — con búsqueda y análisis individual */}
+            <div className="lg:col-span-3 border rounded-2xl overflow-hidden bg-card shadow-sm">
+              <SeccionHeader icon={Users} titulo="Clientes del día" tono="blue">
+                <div className="flex items-center gap-1.5 bg-background border rounded-md px-2 py-1">
+                  <Search className="h-3.5 w-3.5 text-muted-foreground" />
+                  <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar cliente…"
+                    className="text-xs bg-transparent outline-none w-32 sm:w-40" />
+                </div>
+              </SeccionHeader>
+
+              {/* Detalle del cliente seleccionado */}
+              {sel && (
+                <div className="m-3 rounded-xl border bg-gradient-to-br from-violet-50 to-sky-50/40 dark:from-violet-950/30 dark:to-sky-950/10 border-violet-200/70 dark:border-violet-900/50 p-3">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <p className="text-sm font-bold flex items-center gap-1.5"><Users className="h-4 w-4 text-violet-600 dark:text-violet-300" /> {sel.cliente}</p>
+                    <button onClick={() => setClienteSel(null)} className="text-[11px] text-muted-foreground hover:text-foreground">Cerrar ✕</button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <MiniKpi label="Paquetes" valor={sel.cantidad.toLocaleString("es-AR")} />
+                    <MiniKpi label="% del día" valor={`${sel.pct_del_dia.toFixed(2)}%`} />
+                    <MiniKpi label={`Demorados (${sel.en_camino_destinatario_pct.toFixed(1)}%)`} valor={`${sel.en_camino_destinatario}`} />
+                  </div>
+                </div>
+              )}
+
+              <div className="max-h-[20rem] overflow-y-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/20 sticky top-0 z-10">
+                    <tr>
+                      <th className="text-left px-4 py-2 font-medium text-muted-foreground">Cliente</th>
+                      <th className="text-right px-3 py-2 font-medium text-muted-foreground">Paquetes</th>
+                      <th className="px-3 py-2 font-medium text-muted-foreground w-28">% del día</th>
+                      <th className="text-right px-4 py-2 font-medium text-muted-foreground">Demorados</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y">
+                    {filtrados.map(c => (
+                      <tr key={c.cliente} onClick={() => setClienteSel(c.cliente === clienteSel ? null : c.cliente)}
+                        className={cn("cursor-pointer hover:bg-muted/30 transition-colors",
+                          c.cliente === clienteSel && "bg-violet-50/60 dark:bg-violet-950/30")}>
+                        <td className="px-4 py-1.5 truncate max-w-[10rem]">{c.cliente}</td>
+                        <td className="px-3 py-1.5 text-right tabular-nums font-medium">{c.cantidad.toLocaleString("es-AR")}</td>
+                        <td className="px-3 py-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <BarraProp pct={c.pct_del_dia / maxPctDia * 100} tono="blue" />
+                            <span className="tabular-nums text-[10px] text-muted-foreground w-9 text-right shrink-0">{c.pct_del_dia.toFixed(1)}%</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-1.5 text-right tabular-nums">
+                          {c.en_camino_destinatario > 0
+                            ? <span className="font-semibold text-violet-600 dark:text-violet-300">{c.en_camino_destinatario} · {c.en_camino_destinatario_pct.toFixed(1)}%</span>
+                            : <span className="text-muted-foreground">—</span>}
+                        </td>
+                      </tr>
+                    ))}
+                    {filtrados.length === 0 && (
+                      <tr><td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">Sin clientes que coincidan</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
           {/* Post-21 por zona y chofer */}
           <div className="grid sm:grid-cols-2 gap-4">
-            <TardeTabla titulo="Post-21hs por zona" icono={MapPin} filas={tardeZonas} />
-            <TardeTabla titulo="Post-21hs por chofer" icono={Truck} filas={tardeChoferes} />
+            <TardeTabla titulo="Post-21hs por zona" icono={MapPin} filas={tardeZonas} tono="amber" />
+            <TardeTabla titulo="Post-21hs por chofer" icono={Truck} filas={tardeChoferes} tono="rose" />
           </div>
         </>
       ) : null}
@@ -771,53 +816,108 @@ function DiaView({
   );
 }
 
-function KpiCard({ icon: Icon, label, valor, sub, color }: {
-  icon: React.ComponentType<{ className?: string }>; label: string; valor: string; sub?: string; color: string;
+// ── Sistema de tonos (paleta cálida y armónica) ──────────────────────────────
+const TONOS = {
+  blue: {
+    card: "from-sky-50 to-blue-50/30 dark:from-sky-950/30 dark:to-blue-950/10 border-sky-200/70 dark:border-sky-900/50",
+    chip: "bg-sky-500/15 text-sky-600 dark:text-sky-300",
+    text: "text-sky-700 dark:text-sky-300",
+    bar: "bg-sky-500",
+  },
+  emerald: {
+    card: "from-emerald-50 to-teal-50/30 dark:from-emerald-950/30 dark:to-teal-950/10 border-emerald-200/70 dark:border-emerald-900/50",
+    chip: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
+    text: "text-emerald-700 dark:text-emerald-300",
+    bar: "bg-emerald-500",
+  },
+  amber: {
+    card: "from-amber-50 to-orange-50/30 dark:from-amber-950/30 dark:to-orange-950/10 border-amber-200/70 dark:border-amber-900/50",
+    chip: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
+    text: "text-amber-700 dark:text-amber-300",
+    bar: "bg-amber-500",
+  },
+  violet: {
+    card: "from-violet-50 to-fuchsia-50/30 dark:from-violet-950/30 dark:to-fuchsia-950/10 border-violet-200/70 dark:border-violet-900/50",
+    chip: "bg-violet-500/15 text-violet-600 dark:text-violet-300",
+    text: "text-violet-700 dark:text-violet-300",
+    bar: "bg-violet-500",
+  },
+  rose: {
+    card: "from-rose-50 to-pink-50/30 dark:from-rose-950/30 dark:to-pink-950/10 border-rose-200/70 dark:border-rose-900/50",
+    chip: "bg-rose-500/15 text-rose-600 dark:text-rose-300",
+    text: "text-rose-700 dark:text-rose-300",
+    bar: "bg-rose-500",
+  },
+} as const;
+type Tono = keyof typeof TONOS;
+
+function KpiCard({ icon: Icon, label, valor, sub, tono }: {
+  icon: React.ComponentType<{ className?: string }>; label: string; valor: string; sub?: string; tono: Tono;
 }) {
+  const t = TONOS[tono];
   return (
-    <div className="border rounded-xl p-3 bg-background">
-      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-        <Icon className={cn("h-3.5 w-3.5", color)} /> {label}
+    <div className={cn("rounded-2xl p-4 border bg-gradient-to-br shadow-sm", t.card)}>
+      <div className="flex items-center gap-2">
+        <span className={cn("inline-flex items-center justify-center h-7 w-7 rounded-lg", t.chip)}>
+          <Icon className="h-4 w-4" />
+        </span>
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium leading-tight">{label}</span>
       </div>
-      <p className={cn("text-lg font-bold tabular-nums mt-0.5", color)}>{valor}</p>
-      {sub && <p className="text-[10px] text-muted-foreground">{sub}</p>}
+      <p className={cn("text-2xl font-bold tabular-nums mt-2", t.text)}>{valor}</p>
+      {sub && <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>}
     </div>
   );
 }
 
-function TardeTabla({ titulo, icono: Icon, filas }: {
-  titulo: string; icono: React.ComponentType<{ className?: string }>; filas: TardeFila[];
+// Encabezado de sección reutilizable, con icono en chip de color
+function SeccionHeader({ icon: Icon, titulo, tono = "blue", children }: {
+  icon: React.ComponentType<{ className?: string }>; titulo: string; tono?: Tono; children?: React.ReactNode;
+}) {
+  const t = TONOS[tono];
+  return (
+    <div className="flex items-center gap-2 px-4 py-3 border-b bg-muted/20">
+      <span className={cn("inline-flex items-center justify-center h-6 w-6 rounded-md", t.chip)}>
+        <Icon className="h-3.5 w-3.5" />
+      </span>
+      <p className="text-sm font-semibold">{titulo}</p>
+      <div className="ml-auto flex items-center gap-2">{children}</div>
+    </div>
+  );
+}
+
+// Barra de proporción inline para celdas de tabla
+function BarraProp({ pct, tono = "blue" }: { pct: number; tono?: Tono }) {
+  return (
+    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+      <div className={cn("h-full rounded-full transition-all", TONOS[tono].bar)} style={{ width: `${Math.min(100, pct)}%` }} />
+    </div>
+  );
+}
+
+function TardeTabla({ titulo, icono: Icon, filas, tono = "amber" }: {
+  titulo: string; icono: React.ComponentType<{ className?: string }>; filas: TardeFila[]; tono?: Tono;
 }) {
   const ordenadas = [...filas].sort((a, b) => b.cantidad - a.cantidad);
+  const maxCant = Math.max(1, ...ordenadas.map(f => f.cantidad));
   return (
-    <div className="border rounded-xl overflow-hidden">
-      <p className="text-xs font-bold px-4 py-2.5 bg-muted/30 border-b flex items-center gap-1.5">
-        <Icon className="h-3.5 w-3.5" /> {titulo}
-      </p>
-      <div className="max-h-64 overflow-y-auto">
-        <table className="w-full text-xs">
-          <thead className="bg-muted/20 sticky top-0">
-            <tr>
-              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Nombre</th>
-              <th className="text-right px-3 py-2 font-medium text-muted-foreground">Tarde</th>
-              <th className="text-right px-3 py-2 font-medium text-muted-foreground">Entregados</th>
-              <th className="text-right px-3 py-2 font-medium text-muted-foreground">% efect.</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {ordenadas.map(f => (
-              <tr key={f.nombre}>
-                <td className="px-3 py-1.5">{f.nombre}</td>
-                <td className="px-3 py-1.5 text-right tabular-nums">{f.cantidad}</td>
-                <td className="px-3 py-1.5 text-right tabular-nums">{f.entregados}</td>
-                <td className="px-3 py-1.5 text-right tabular-nums">{f.pct_efectividad.toFixed(1)}%</td>
-              </tr>
-            ))}
-            {ordenadas.length === 0 && (
-              <tr><td colSpan={4} className="px-3 py-4 text-center text-muted-foreground">Sin datos</td></tr>
-            )}
-          </tbody>
-        </table>
+    <div className="border rounded-2xl overflow-hidden bg-card shadow-sm">
+      <SeccionHeader icon={Icon} titulo={titulo} tono={tono} />
+      <div className="max-h-72 overflow-y-auto divide-y">
+        {ordenadas.map(f => (
+          <div key={f.nombre} className="px-4 py-2.5">
+            <div className="flex items-center justify-between gap-3 mb-1">
+              <span className="text-xs truncate">{f.nombre}</span>
+              <span className="text-xs tabular-nums shrink-0">
+                <span className="font-semibold">{f.cantidad}</span>
+                <span className="text-muted-foreground"> tarde · {f.entregados} entreg. · {f.pct_efectividad.toFixed(0)}%</span>
+              </span>
+            </div>
+            <BarraProp pct={f.cantidad / maxCant * 100} tono={tono} />
+          </div>
+        ))}
+        {ordenadas.length === 0 && (
+          <div className="px-4 py-6 text-center text-xs text-muted-foreground">Sin datos</div>
+        )}
       </div>
     </div>
   );
@@ -841,17 +941,21 @@ function HistoricoView({
 }) {
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-2 flex-wrap">
-        <Calendar className="h-4 w-4 text-muted-foreground" />
-        <input type="date" value={desde} onChange={e => setDesde(e.target.value)} className="text-xs border rounded-md px-2 py-1 bg-background" />
-        <span className="text-xs text-muted-foreground">a</span>
-        <input type="date" value={hasta} onChange={e => setHasta(e.target.value)} className="text-xs border rounded-md px-2 py-1 bg-background" />
-        <Search className="h-4 w-4 text-muted-foreground ml-3" />
-        <select value={clienteSel} onChange={e => setClienteSel(e.target.value)}
-          className="text-xs border rounded-md px-2 py-1 bg-background min-w-48">
-          <option value="">Todos los días (general)</option>
-          {clientesDisponibles.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
+      <div className="flex items-center gap-3 flex-wrap bg-muted/30 rounded-xl px-3 py-2.5 border">
+        <div className="flex items-center gap-2 bg-background border rounded-lg px-2.5 py-1.5">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <input type="date" value={desde} onChange={e => setDesde(e.target.value)} className="text-xs bg-transparent outline-none" />
+          <span className="text-xs text-muted-foreground">→</span>
+          <input type="date" value={hasta} onChange={e => setHasta(e.target.value)} className="text-xs bg-transparent outline-none" />
+        </div>
+        <div className="flex items-center gap-2 bg-background border rounded-lg px-2.5 py-1.5">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <select value={clienteSel} onChange={e => setClienteSel(e.target.value)}
+            className="text-xs bg-transparent outline-none min-w-44">
+            <option value="">Resumen general del período</option>
+            {clientesDisponibles.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
         {cargando && <RefreshCw className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
       </div>
 
@@ -859,17 +963,17 @@ function HistoricoView({
         <div className="space-y-5">
           {/* KPIs globales del período */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <KpiCard icon={Package} label="Total paquetes del período" valor={totalesPeriodo.total.toLocaleString("es-AR")} color="text-blue-600 dark:text-blue-300" />
+            <KpiCard icon={Package} label="Total paquetes del período" valor={totalesPeriodo.total.toLocaleString("es-AR")} tono="blue" />
             <KpiCard icon={Clock} label="Total post-21hs" valor={totalesPeriodo.post21.toLocaleString("es-AR")}
               sub={totalesPeriodo.total > 0 ? `${round2(totalesPeriodo.post21 / totalesPeriodo.total * 100).toFixed(2)}% del total` : undefined}
-              color="text-amber-600 dark:text-amber-300" />
+              tono="amber" />
             <KpiCard icon={Truck} label="Total demorados" valor={totalesPeriodo.enCamino.toLocaleString("es-AR")}
               sub={totalesPeriodo.total > 0 ? `${round2(totalesPeriodo.enCamino / totalesPeriodo.total * 100).toFixed(2)}% del total — post-21hs sin entregar` : undefined}
-              color="text-violet-600 dark:text-violet-300" />
+              tono="violet" />
           </div>
 
           {/* Paquetes totales del día */}
-          <div className="border rounded-xl p-4">
+          <div className="border rounded-2xl p-4 bg-card shadow-sm">
             <p className="text-xs font-bold mb-2">Paquetes totales por día — y % de éxito</p>
             {chartGeneral.length === 0 ? (
               <EmptyState icon={Package} title="Sin datos en este rango" />
@@ -889,7 +993,7 @@ function HistoricoView({
           </div>
 
           {/* Demorados / post-21hs por día */}
-          <div className="border rounded-xl p-4">
+          <div className="border rounded-2xl p-4 bg-card shadow-sm">
             <p className="text-xs font-bold mb-2">Demorados (post-21hs) por día — cantidad y % del día</p>
             {chartGeneral.length === 0 ? (
               <EmptyState icon={Clock} title="Sin datos en este rango" />
@@ -909,7 +1013,7 @@ function HistoricoView({
           </div>
 
           {/* Demorados ("en camino al destinatario") por día */}
-          <div className="border rounded-xl p-4">
+          <div className="border rounded-2xl p-4 bg-card shadow-sm">
             <p className="text-xs font-bold mb-2">Demorados por día — cantidad y % del día</p>
             <p className="text-[10px] text-muted-foreground mb-2">Demorado = todo lo post-21hs que no fue entregado ("en camino al destinatario")</p>
             {chartGeneral.length === 0 ? (
@@ -930,7 +1034,7 @@ function HistoricoView({
           </div>
 
           {/* Total de paquetes por cliente (acumulado del período) */}
-          <div className="border rounded-xl p-4">
+          <div className="border rounded-2xl p-4 bg-card shadow-sm">
             <p className="text-xs font-bold mb-2">Paquetes totales por cliente (top 15 del período)</p>
             {chartClientesTotales.length === 0 ? (
               <EmptyState icon={Users} title="Sin datos en este rango" />
@@ -949,7 +1053,7 @@ function HistoricoView({
           </div>
         </div>
       ) : (
-        <div className="border rounded-xl p-4 space-y-4">
+        <div className="border rounded-2xl p-4 bg-card shadow-sm space-y-4">
           <p className="text-xs font-bold">% demorados de {clienteSel}</p>
           {chartCliente.length === 0 ? (
             <EmptyState icon={Users} title={`Sin datos de ${clienteSel} en este rango`} />
