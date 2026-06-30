@@ -728,7 +728,7 @@ function DiaView({
             <KpiCard icon={Clock} label="Post-21hs" valor={`${resumen.post21_total} · ${resumen.post21_pct_del_dia.toFixed(1)}%`}
               sub={`% éxito tardío: ${resumen.post21_pct_exito.toFixed(1)}%`} tono="amber" />
             <KpiCard icon={Truck} label="Demorados" valor={`${resumen.en_camino_destinatario} · ${resumen.en_camino_destinatario_pct.toFixed(1)}%`}
-              sub="post-21hs sin entregar" tono="violet" />
+              sub="en camino al destinatario + post-21hs sin entregar" tono="violet" />
           </div>
 
           <div className="grid lg:grid-cols-5 gap-4">
@@ -765,6 +765,9 @@ function DiaView({
                     className="text-xs bg-transparent outline-none w-32 sm:w-40" />
                 </div>
               </SeccionHeader>
+              <p className="text-[10px] text-muted-foreground px-4 pt-2">
+                No incluye los paquetes post-21hs sin entregar (esos no vienen discriminados por cliente en el Excel) — por eso la suma no llega al total de "Demorados" de arriba.
+              </p>
 
               {/* Detalle del cliente seleccionado */}
               {sel && (
@@ -776,7 +779,7 @@ function DiaView({
                   <div className="grid grid-cols-3 gap-2">
                     <MiniKpi label="Paquetes" valor={sel.cantidad.toLocaleString("es-AR")} />
                     <MiniKpi label="% del día" valor={`${sel.pct_del_dia.toFixed(2)}%`} />
-                    <MiniKpi label={`Demorados (${sel.en_camino_destinatario_pct.toFixed(1)}%)`} valor={`${sel.en_camino_destinatario}`} />
+                    <MiniKpi label={`En camino al destinatario (${sel.en_camino_destinatario_pct.toFixed(1)}%)`} valor={`${sel.en_camino_destinatario}`} />
                   </div>
                 </div>
               )}
@@ -788,7 +791,7 @@ function DiaView({
                       <th className="text-left px-4 py-2 font-medium text-muted-foreground">Cliente</th>
                       <th className="text-right px-3 py-2 font-medium text-muted-foreground">Paquetes</th>
                       <th className="px-3 py-2 font-medium text-muted-foreground w-28">% del día</th>
-                      <th className="text-right px-4 py-2 font-medium text-muted-foreground">Demorados</th>
+                      <th className="text-right px-4 py-2 font-medium text-muted-foreground">En camino al destinatario</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
