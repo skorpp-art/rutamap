@@ -227,8 +227,11 @@ function construirPayload(tardeRaw: TardeRaw | null, resumenRaw: ResumenRaw | nu
   const totalPaquetes = resumenRaw.totalPaquetes;
   const entregados = resumenRaw.estados.find(e => e.estado === "Entregado")?.cantidad ?? 0;
   const pctExito = totalPaquetes > 0 ? round2(entregados / totalPaquetes * 100) : 0;
-  // Demorado = todo lo "post-21hs" que no se entregó (en camino al destinatario, reprogramado, etc.)
-  const enCamino = Math.max(0, tardeRaw.post21.total - tardeRaw.post21.entregados);
+  // Demorado = paquetes con estado literal "En camino al destinatario" (deja afuera "reprogramado").
+  // Usamos el mismo estado real del Resumen de Envíos que ya se muestra en el desglose por cliente,
+  // en vez de inferirlo desde el archivo de Análisis Tarde (esa cifra podía no coincidir).
+  const enCamino = resumenRaw.estados.find(e => e.estado.toLowerCase().includes("en camino al destinatario"))?.cantidad
+    ?? resumenRaw.porCliente.reduce((s, c) => s + c.enCamino, 0);
   const enCaminoPct = totalPaquetes > 0 ? round2(enCamino / totalPaquetes * 100) : 0;
 
   const post21Total = tardeRaw.post21.total;
