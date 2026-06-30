@@ -197,84 +197,41 @@ export async function getClientesAnalisisDiario(): Promise<{ ok: boolean; data?:
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
-// ── Informe mensual de Mercado Libre / Flex ─────────────────────────────────
-export interface BatallaFlex { motivo: string; pct: number; exceso_pct: number | null }
-export interface MotivoFallido { motivo: string; pct: number; exceso_pct: number | null }
-export interface SellerBajoSameday { seller_id: string; nombre: string; envios_total: number; envios_sd: number; share_sd: number }
-export interface OportunidadGeografica { ciudad: string; envios: number; sla: number; sla_carrier: number; delta: number; post21_pct: number }
-export interface SellerOportunidad { seller_id: string; nombre: string; envios: number; sla: number }
-
-export interface InformeMlPayload {
-  periodo: string; // YYYY-MM-01
-  volumenTotal: number;
-  sla: { pct: number; promedio: number | null; delta: number | null };
-  visitas21: { pct: number; promedio: number | null; delta: number | null };
-  sameday: { pct: number; promedio: number | null; delta: number | null };
-  perfectDelivery: { pct: number; promedio: number | null; delta: number | null };
-  batallas: BatallaFlex[];
-  motivosFallidos: MotivoFallido[];
-  sellersBajoSameday: SellerBajoSameday[];
-  oportunidadesGeograficas: OportunidadGeografica[];
-  sellersOportunidad: SellerOportunidad[];
-  sellersOptimos: SellerOportunidad[];
-  sellersOportunidadSabado: { seller_id: string; nombre: string; envios_total: number; envios_sab: number; share_sab: number }[];
-  sellersOportunidadCapacidad: { seller_id: string; nombre: string; envios_total: number; upside_pct: number }[];
+// ── KPIs estilo "ML/Flex" calculados con datos propios (zonas y estados) ────
+export interface ZonaTotalPeriodo {
+  zona: string;
+  cantidad: number;
+  entregados: number;
+  pct_efectividad: number;
+  pct_del_total: number;
 }
 
-export interface InformeMlRow {
-  periodo: string;
-  volumen_total: number;
-  sla_pct: number | null; sla_promedio: number | null; sla_delta: number | null;
-  visitas21_pct: number | null; visitas21_promedio: number | null; visitas21_delta: number | null;
-  sameday_pct: number | null; sameday_promedio: number | null; sameday_delta: number | null;
-  perfect_delivery_pct: number | null; perfect_delivery_promedio: number | null; perfect_delivery_delta: number | null;
-  batallas: BatallaFlex[];
-  motivos_fallidos: MotivoFallido[];
-  sellers_bajo_sameday: SellerBajoSameday[];
-  oportunidades_geograficas: OportunidadGeografica[];
-  sellers_oportunidad: SellerOportunidad[];
-  sellers_optimos: SellerOportunidad[];
-  sellers_oportunidad_sabado: { seller_id: string; nombre: string; envios_total: number; envios_sab: number; share_sab: number }[];
-  sellers_oportunidad_capacidad: { seller_id: string; nombre: string; envios_total: number; upside_pct: number }[];
-}
-
-export async function guardarInformeMl(p: InformeMlPayload): Promise<{ ok: boolean; error?: string }> {
+export async function getZonasTotalesPeriodo(
+  desde: string, hasta: string
+): Promise<{ ok: boolean; data?: ZonaTotalPeriodo[]; error?: string }> {
   try {
     const supabase = await createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).rpc("guardar_informe_ml", {
-      p_periodo: p.periodo,
-      p_volumen_total: p.volumenTotal,
-      p_sla_pct: p.sla.pct, p_sla_promedio: p.sla.promedio, p_sla_delta: p.sla.delta,
-      p_visitas21_pct: p.visitas21.pct, p_visitas21_promedio: p.visitas21.promedio, p_visitas21_delta: p.visitas21.delta,
-      p_sameday_pct: p.sameday.pct, p_sameday_promedio: p.sameday.promedio, p_sameday_delta: p.sameday.delta,
-      p_perfect_pct: p.perfectDelivery.pct, p_perfect_promedio: p.perfectDelivery.promedio, p_perfect_delta: p.perfectDelivery.delta,
-      p_batallas: p.batallas, p_motivos: p.motivosFallidos, p_sellers_bajo: p.sellersBajoSameday,
-      p_geografia: p.oportunidadesGeograficas, p_sellers_oportunidad: p.sellersOportunidad, p_sellers_optimos: p.sellersOptimos,
-      p_sellers_sabado: p.sellersOportunidadSabado, p_sellers_capacidad: p.sellersOportunidadCapacidad,
-    });
+    const { data, error } = await (supabase as any).rpc("get_zonas_totales_periodo", { p_desde: desde, p_hasta: hasta });
     if (error) return { ok: false, error: error.message };
-    revalidatePath("/analisis-diario");
-    return { ok: true };
+    return { ok: true, data: (data ?? []) as ZonaTotalPeriodo[] };
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
-export async function getInformeMl(periodo: string): Promise<{ ok: boolean; data?: InformeMlRow | null; error?: string }> {
-  try {
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any).rpc("get_informe_ml", { p_periodo: periodo });
-    if (error) return { ok: false, error: error.message };
-    return { ok: true, data: (data ?? [])[0] ?? null };
-  } catch (e) { return { ok: false, error: String(e) }; }
+export interface EstadoTotalPeriodo {
+  estado: string;
+  cantidad: number;
+  pct: number;
 }
 
-export async function getPeriodosMl(): Promise<{ ok: boolean; data?: { periodo: string; volumen_total: number }[]; error?: string }> {
+export async function getEstadosTotalesPeriodo(
+  desde: string, hasta: string
+): Promise<{ ok: boolean; data?: EstadoTotalPeriodo[]; error?: string }> {
   try {
     const supabase = await createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any).rpc("get_periodos_ml");
+    const { data, error } = await (supabase as any).rpc("get_estados_totales_periodo", { p_desde: desde, p_hasta: hasta });
     if (error) return { ok: false, error: error.message };
-    return { ok: true, data: data ?? [] };
+    return { ok: true, data: (data ?? []) as EstadoTotalPeriodo[] };
   } catch (e) { return { ok: false, error: String(e) }; }
 }
