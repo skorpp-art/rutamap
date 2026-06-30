@@ -1053,46 +1053,45 @@ function HistoricoView({
           </div>
         </div>
       ) : (
-        <div className="border rounded-2xl p-4 bg-card shadow-sm space-y-4">
-          <p className="text-xs font-bold">% demorados de {clienteSel}</p>
-          {chartCliente.length === 0 ? (
-            <EmptyState icon={Users} title={`Sin datos de ${clienteSel} en este rango`} />
-          ) : (
+        <div className="space-y-4">
+          {historicoCliente.length === 0 ? (
+            <div className="border rounded-2xl p-4 bg-card shadow-sm">
+              <EmptyState icon={Users} title={`Sin datos de ${clienteSel} en este rango`} />
+            </div>
+          ) : (() => {
+            const totalPaq = historicoCliente.reduce((s, d) => s + d.cantidad, 0);
+            const totalDem = historicoCliente.reduce((s, d) => s + d.en_camino_destinatario, 0);
+            const pctDem = totalPaq > 0 ? round2(totalDem / totalPaq * 100) : 0;
+            const pctExito = round2(100 - pctDem);
+            return (
             <>
-              <ResponsiveContainer width="100%" height={260}>
-                <ComposedChart data={chartCliente}>
-                  <CartesianGrid stroke={ct.grid} strokeDasharray="3 3" />
-                  <XAxis dataKey="dia" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
-                  <YAxis yAxisId="pct" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} unit="%" />
-                  <YAxis yAxisId="cant" orientation="right" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
-                  <Tooltip {...ct.tooltip} />
-                  <Bar yAxisId="cant" dataKey="cantidad" name="Paquetes del día" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
-                  <Line yAxisId="pct" type="monotone" dataKey="enCaminoPct" name="% demorados" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} />
-                </ComposedChart>
-              </ResponsiveContainer>
-
-              <div className="flex items-center gap-4 text-xs bg-muted/30 rounded-lg p-3">
-                <div>
-                  <p className="text-muted-foreground">Promedio del período</p>
-                  <p className="font-bold text-base tabular-nums text-violet-600 dark:text-violet-300">
-                    {(historicoCliente.reduce((s, d) => s + d.en_camino_destinatario_pct, 0) / historicoCliente.length).toFixed(2)}%
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Total demorados</p>
-                  <p className="font-bold text-base tabular-nums">
-                    {historicoCliente.reduce((s, d) => s + d.en_camino_destinatario, 0)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Total paquetes</p>
-                  <p className="font-bold text-base tabular-nums">
-                    {historicoCliente.reduce((s, d) => s + d.cantidad, 0)}
-                  </p>
-                </div>
+              {/* Pantallazo del cliente para el CEO */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <KpiCard icon={Package} label={`Paquetes de ${clienteSel}`} valor={totalPaq.toLocaleString("es-AR")}
+                  sub={`${historicoCliente.length} día(s) con envíos`} tono="blue" />
+                <KpiCard icon={CheckCircle} label="% de éxito" valor={`${pctExito.toFixed(2)}%`}
+                  sub="entregados a tiempo" tono="emerald" />
+                <KpiCard icon={Truck} label="Paquetes demorados" valor={totalDem.toLocaleString("es-AR")}
+                  sub="post-21hs sin entregar" tono="violet" />
+                <KpiCard icon={Clock} label="% demorados s/ su total" valor={`${pctDem.toFixed(2)}%`}
+                  sub="cuánto de lo suyo se demora" tono="amber" />
               </div>
 
-              <table className="w-full text-xs">
+              <div className="border rounded-2xl p-4 bg-card shadow-sm space-y-4">
+                <p className="text-xs font-bold">Evolución diaria — paquetes y % demorados de {clienteSel}</p>
+                <ResponsiveContainer width="100%" height={260}>
+                  <ComposedChart data={chartCliente}>
+                    <CartesianGrid stroke={ct.grid} strokeDasharray="3 3" />
+                    <XAxis dataKey="dia" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
+                    <YAxis yAxisId="pct" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} unit="%" />
+                    <YAxis yAxisId="cant" orientation="right" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
+                    <Tooltip {...ct.tooltip} />
+                    <Bar yAxisId="cant" dataKey="cantidad" name="Paquetes del día" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
+                    <Line yAxisId="pct" type="monotone" dataKey="enCaminoPct" name="% demorados" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+
+                <table className="w-full text-xs">
                 <thead className="bg-muted/20">
                   <tr>
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Fecha</th>
@@ -1112,8 +1111,10 @@ function HistoricoView({
                   ))}
                 </tbody>
               </table>
+              </div>
             </>
-          )}
+            );
+          })()}
         </div>
       )}
     </div>
