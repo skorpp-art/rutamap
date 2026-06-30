@@ -993,141 +993,95 @@ function HistoricoView({
               tono="violet" />
           </div>
 
-          {/* KPIs estilo informe ML/Flex — calculados con datos propios (zonas y estados) */}
-          <div className="border rounded-2xl overflow-hidden bg-card shadow-sm">
-            <SeccionHeader icon={MapPin} titulo="Efectividad por zona (calculado con tus propios datos)" tono="blue" />
-            <p className="text-[11px] text-muted-foreground px-4 pt-2">
-              Equivalente a las "oportunidades geográficas" del informe de ML, usando las zonas de tu Análisis Tarde. Sameday y Perfect Delivery no son medibles hoy con los datos cargados.
-            </p>
-            {zonasTotales.length === 0 ? (
-              <div className="p-4"><EmptyState icon={MapPin} title="Sin datos de zonas en este rango" /></div>
-            ) : (
-              <div className="max-h-80 overflow-y-auto mt-2">
-                <table className="w-full text-xs">
-                  <thead className="bg-muted/20 sticky top-0">
-                    <tr>
-                      <th className="text-left px-4 py-2 font-medium text-muted-foreground">Zona</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground">Envíos</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground">% del total</th>
-                      <th className="px-3 py-2 font-medium text-muted-foreground w-32">% efectividad</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {zonasTotales.map(z => (
-                      <tr key={z.zona}>
-                        <td className="px-4 py-1.5 truncate max-w-[12rem]">{z.zona}</td>
-                        <td className="px-3 py-1.5 text-right tabular-nums">{z.cantidad.toLocaleString("es-AR")}</td>
-                        <td className="px-3 py-1.5 text-right tabular-nums">{z.pct_del_total.toFixed(2)}%</td>
-                        <td className="px-3 py-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <BarraProp pct={z.pct_efectividad} tono="blue" />
-                            <span className="tabular-nums text-[10px] text-muted-foreground w-9 text-right shrink-0">{z.pct_efectividad.toFixed(1)}%</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          <div className="border rounded-2xl overflow-hidden bg-card shadow-sm">
-            <SeccionHeader icon={AlertTriangle} titulo="Estados del período (calculado con tus propios datos)" tono="amber" />
-            <p className="text-[11px] text-muted-foreground px-4 pt-2">
-              Equivalente a "batallas FLEX" / "motivos de visitas fallidas" del informe de ML, usando los estados de tu Resumen de Envíos.
-            </p>
-            {estadosTotales.length === 0 ? (
-              <div className="p-4"><EmptyState icon={AlertTriangle} title="Sin datos de estados en este rango" /></div>
-            ) : (
-              <div className="divide-y max-h-80 overflow-y-auto mt-2">
-                {estadosTotales.map(e => (
-                  <div key={e.estado} className="px-4 py-2.5">
-                    <div className="flex items-center justify-between gap-3 mb-1">
-                      <span className="text-xs truncate">{e.estado}</span>
-                      <span className="text-xs tabular-nums shrink-0 font-semibold">
-                        {e.cantidad.toLocaleString("es-AR")} · {e.pct.toFixed(2)}%
-                      </span>
-                    </div>
-                    <BarraProp pct={e.pct / Math.max(1, ...estadosTotales.map(x => x.pct)) * 100} tono="amber" />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Paquetes totales del día */}
+          {/* Evolución diaria — un solo gráfico combinado en vez de 3 separados */}
           <div className="border rounded-2xl p-4 bg-card shadow-sm">
-            <p className="text-xs font-bold mb-2">Paquetes totales por día — y % de éxito</p>
+            <p className="text-xs font-bold mb-2">Evolución diaria — paquetes, post-21hs, demorados y % de éxito</p>
             {chartGeneral.length === 0 ? (
               <EmptyState icon={Package} title="Sin datos en este rango" />
             ) : (
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={240}>
                 <ComposedChart data={chartGeneral}>
                   <CartesianGrid stroke={ct.grid} strokeDasharray="3 3" />
                   <XAxis dataKey="dia" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
                   <YAxis yAxisId="cant" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
                   <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} unit="%" />
                   <Tooltip {...ct.tooltip} />
-                  <Bar yAxisId="cant" dataKey="total" name="Paquetes totales" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar yAxisId="cant" dataKey="total" name="Paquetes totales" fill="#3b82f6" radius={[3, 3, 0, 0]} />
+                  <Bar yAxisId="cant" dataKey="enCaminoTotal" name="Demorados" fill="#8b5cf6" radius={[3, 3, 0, 0]} />
                   <Line yAxisId="pct" type="monotone" dataKey="pctExito" name="% éxito" stroke="#10b981" strokeWidth={2} dot={false} />
                 </ComposedChart>
               </ResponsiveContainer>
             )}
           </div>
 
-          {/* Demorados / post-21hs por día */}
-          <div className="border rounded-2xl p-4 bg-card shadow-sm">
-            <p className="text-xs font-bold mb-2">Demorados (post-21hs) por día — cantidad y % del día</p>
-            {chartGeneral.length === 0 ? (
-              <EmptyState icon={Clock} title="Sin datos en este rango" />
-            ) : (
-              <ResponsiveContainer width="100%" height={260}>
-                <ComposedChart data={chartGeneral}>
-                  <CartesianGrid stroke={ct.grid} strokeDasharray="3 3" />
-                  <XAxis dataKey="dia" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
-                  <YAxis yAxisId="cant" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
-                  <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} unit="%" />
-                  <Tooltip {...ct.tooltip} />
-                  <Bar yAxisId="cant" dataKey="post21Total" name="Demorados (post-21hs)" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                  <Line yAxisId="pct" type="monotone" dataKey="post21Pct" name="% del día" stroke="#b45309" strokeWidth={2} dot={false} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            )}
-          </div>
+          {/* KPIs estilo informe ML/Flex — calculados con datos propios (zonas y estados), uno al lado del otro */}
+          <div className="grid lg:grid-cols-2 gap-4">
+            <div className="border rounded-2xl overflow-hidden bg-card shadow-sm">
+              <SeccionHeader icon={MapPin} titulo="Efectividad por zona" tono="blue" />
+              {zonasTotales.length === 0 ? (
+                <div className="p-4"><EmptyState icon={MapPin} title="Sin datos de zonas en este rango" /></div>
+              ) : (
+                <div className="max-h-52 overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/20 sticky top-0">
+                      <tr>
+                        <th className="text-left px-4 py-1.5 font-medium text-muted-foreground">Zona</th>
+                        <th className="text-right px-3 py-1.5 font-medium text-muted-foreground">Envíos</th>
+                        <th className="px-3 py-1.5 font-medium text-muted-foreground w-28">Efectividad</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {zonasTotales.map(z => (
+                        <tr key={z.zona}>
+                          <td className="px-4 py-1 truncate max-w-[10rem]">{z.zona}</td>
+                          <td className="px-3 py-1 text-right tabular-nums">{z.cantidad.toLocaleString("es-AR")}</td>
+                          <td className="px-3 py-1">
+                            <div className="flex items-center gap-1.5">
+                              <BarraProp pct={z.pct_efectividad} tono="blue" />
+                              <span className="tabular-nums text-[10px] text-muted-foreground w-8 text-right shrink-0">{z.pct_efectividad.toFixed(0)}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
 
-          {/* Demorados ("en camino al destinatario") por día */}
-          <div className="border rounded-2xl p-4 bg-card shadow-sm">
-            <p className="text-xs font-bold mb-2">Demorados por día — cantidad y % del día</p>
-            <p className="text-[10px] text-muted-foreground mb-2">Demorado = todo lo post-21hs que no fue entregado ("en camino al destinatario")</p>
-            {chartGeneral.length === 0 ? (
-              <EmptyState icon={Truck} title="Sin datos en este rango" />
-            ) : (
-              <ResponsiveContainer width="100%" height={260}>
-                <ComposedChart data={chartGeneral}>
-                  <CartesianGrid stroke={ct.grid} strokeDasharray="3 3" />
-                  <XAxis dataKey="dia" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
-                  <YAxis yAxisId="cant" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
-                  <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} unit="%" />
-                  <Tooltip {...ct.tooltip} />
-                  <Bar yAxisId="cant" dataKey="enCaminoTotal" name="Demorados" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                  <Line yAxisId="pct" type="monotone" dataKey="enCaminoPct" name="% del día" stroke="#6d28d9" strokeWidth={2} dot={false} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            )}
+            <div className="border rounded-2xl overflow-hidden bg-card shadow-sm">
+              <SeccionHeader icon={AlertTriangle} titulo="Estados del período" tono="amber" />
+              {estadosTotales.length === 0 ? (
+                <div className="p-4"><EmptyState icon={AlertTriangle} title="Sin datos de estados en este rango" /></div>
+              ) : (
+                <div className="divide-y max-h-52 overflow-y-auto">
+                  {estadosTotales.map(e => (
+                    <div key={e.estado} className="px-4 py-1.5">
+                      <div className="flex items-center justify-between gap-3 mb-0.5">
+                        <span className="text-[11px] truncate">{e.estado}</span>
+                        <span className="text-[11px] tabular-nums shrink-0 font-semibold">
+                          {e.cantidad.toLocaleString("es-AR")} · {e.pct.toFixed(1)}%
+                        </span>
+                      </div>
+                      <BarraProp pct={e.pct / Math.max(1, ...estadosTotales.map(x => x.pct)) * 100} tono="amber" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Total de paquetes por cliente (acumulado del período) */}
           <div className="border rounded-2xl p-4 bg-card shadow-sm">
-            <p className="text-xs font-bold mb-2">Paquetes totales por cliente (top 15 del período)</p>
+            <p className="text-xs font-bold mb-2">Paquetes totales por cliente (top 8 del período)</p>
             {chartClientesTotales.length === 0 ? (
               <EmptyState icon={Users} title="Sin datos en este rango" />
             ) : (
-              <ResponsiveContainer width="100%" height={Math.max(260, chartClientesTotales.length * 28)}>
-                <ComposedChart data={chartClientesTotales} layout="vertical" margin={{ left: 8 }}>
+              <ResponsiveContainer width="100%" height={Math.max(180, chartClientesTotales.slice(0, 8).length * 26)}>
+                <ComposedChart data={chartClientesTotales.slice(0, 8)} layout="vertical" margin={{ left: 8 }}>
                   <CartesianGrid stroke={ct.grid} strokeDasharray="3 3" />
                   <XAxis type="number" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
-                  <YAxis type="category" dataKey="cliente" width={130} tick={{ fontSize: 10, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
+                  <YAxis type="category" dataKey="cliente" width={120} tick={{ fontSize: 10, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
                   <Tooltip {...ct.tooltip} labelFormatter={(_, p) => p?.[0]?.payload?.clienteCompleto ?? ""} />
                   <Bar dataKey="total" name="Paquetes totales" fill="#3b82f6" radius={[0, 4, 4, 0]} />
                   <Bar dataKey="enCamino" name="Demorados" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
