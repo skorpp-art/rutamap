@@ -16,8 +16,6 @@ import {
   Pencil, Scissors, Undo2, Satellite, Map as MapIcon,
   Layers, BarChart2, ZoomIn, Wand2, Trash2, PenTool, Flame,
 } from "lucide-react";
-import { toPng } from "html-to-image";
-import { jsPDF } from "jspdf";
 import { cn } from "@/lib/utils";
 import { actualizarAreaRecorrido, actualizarTrazaRecorrido } from "@/app/actions/recorridos";
 import { getCalorRecorridos, type CalorRecorrido } from "@/app/actions/volumenes";
@@ -547,6 +545,10 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
     try {
       const el = document.getElementById("mapa-contenedor");
       if (!el) throw new Error("No se encontró el mapa");
+      const [{ toPng }, { jsPDF }] = await Promise.all([
+        import("html-to-image"),
+        import("jspdf"),
+      ]);
       const dataUrl = await toPng(el, {
         pixelRatio: 2,
         cacheBust: true,

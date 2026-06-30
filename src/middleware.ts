@@ -6,6 +6,15 @@ const RUTAS_PROTEGIDAS = ["/volumenes"];
 const RUTAS_AUTH = ["/login", "/registro"];
 
 export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+  const esRutaProtegida = RUTAS_PROTEGIDAS.some((r) => path.startsWith(r));
+  const esRutaAuth = RUTAS_AUTH.some((r) => path.startsWith(r));
+
+  // Rutas públicas (no protegidas ni de auth): no hace falta resolver la sesión
+  if (!esRutaProtegida && !esRutaAuth) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
   type SetOptions = Parameters<(typeof supabaseResponse)["cookies"]["set"]>[2];
 
@@ -34,10 +43,6 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const path = request.nextUrl.pathname;
-  const esRutaProtegida = RUTAS_PROTEGIDAS.some((r) => path.startsWith(r));
-  const esRutaAuth = RUTAS_AUTH.some((r) => path.startsWith(r));
 
   // Sin sesión en una ruta protegida (volúmenes) → redirigir a login
   if (!user && esRutaProtegida) {

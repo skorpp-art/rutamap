@@ -12,16 +12,6 @@ export interface VolumenFila {
   volumen: number;
 }
 
-export interface HistorialDia {
-  fecha: string;
-  total_volumen: number;
-  rutas_activas: number;
-  promedio: number;
-  choferes_30: number;
-  choferes_25: number;
-  choferes_35: number;
-}
-
 // Obtener volúmenes de una fecha
 export async function getVolumenesFecha(
   fecha: string // YYYY-MM-DD
@@ -83,74 +73,6 @@ export async function upsertVolumenesBulk(
     if (err) return { ok: false, error: err.error.message };
     revalidatePath("/");
     return { ok: true };
-  } catch (e) {
-    return { ok: false, error: String(e) };
-  }
-}
-
-// Historial de promedios para el gráfico
-export async function getHistorialPromedios(
-  dias = 30
-): Promise<{ ok: boolean; data?: HistorialDia[]; error?: string }> {
-  try {
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any).rpc("get_historial_promedios", {
-      p_dias: dias,
-    });
-    if (error) return { ok: false, error: error.message };
-    return { ok: true, data: data as HistorialDia[] };
-  } catch (e) {
-    return { ok: false, error: String(e) };
-  }
-}
-
-// ─── Dashboard semanal ────────────────────────────────────────────────────────
-export interface DashboardDia {
-  dia_semana: number;
-  dia_nombre: string;
-  fecha_actual: string;
-  fecha_anterior: string;
-  total_actual: number;
-  total_anterior: number;
-  promedio_hist: number;
-  rutas_actual: number;
-  choferes_30: number;
-}
-
-export interface ResumenSemanal {
-  hoy_total: number;
-  hoy_fecha: string;
-  semana_total: number;
-  semana_dias: number;
-  semana_prom_dia: number;
-  anterior_total: number;
-  vs_anterior_pct: number;
-}
-
-export async function getDashboardSemanal(): Promise<{
-  ok: boolean; data?: DashboardDia[]; error?: string;
-}> {
-  try {
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any).rpc("get_dashboard_semanal");
-    if (error) return { ok: false, error: error.message };
-    return { ok: true, data: data as DashboardDia[] };
-  } catch (e) {
-    return { ok: false, error: String(e) };
-  }
-}
-
-export async function getResumenSemanal(): Promise<{
-  ok: boolean; data?: ResumenSemanal; error?: string;
-}> {
-  try {
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any).rpc("get_resumen_semanal");
-    if (error) return { ok: false, error: error.message };
-    return { ok: true, data: (data as ResumenSemanal[])?.[0] };
   } catch (e) {
     return { ok: false, error: String(e) };
   }
@@ -363,22 +285,6 @@ export async function getProyeccionDiaV2(
     });
     if (error) return { ok: false, error: error.message };
     return { ok: true, data: (data as ProyeccionDiaV2[])?.[0] };
-  } catch (e) {
-    return { ok: false, error: String(e) };
-  }
-}
-
-export async function getProyeccionDia(
-  fecha: string
-): Promise<{ ok: boolean; data?: ProyeccionDia; error?: string }> {
-  try {
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any).rpc("get_proyeccion_dia", {
-      p_fecha: fecha,
-    });
-    if (error) return { ok: false, error: error.message };
-    return { ok: true, data: (data as ProyeccionDia[])?.[0] };
   } catch (e) {
     return { ok: false, error: String(e) };
   }
