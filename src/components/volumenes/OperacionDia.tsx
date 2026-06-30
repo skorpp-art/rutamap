@@ -749,7 +749,7 @@ export function OperacionDia({
             className={cn("relative h-10 w-10 rounded-lg flex items-center justify-center transition-colors",
               panelAbierto === "sugerencias" ? "bg-amber-500 text-white" : "text-amber-600 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40")}>
             <Lightbulb className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-background tabular-nums">
+            <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-background tabular-nums">
               {sugerencias.length}
             </span>
           </button>
@@ -783,9 +783,9 @@ export function OperacionDia({
                       { label: "Piso fijos", valor: nFijos.toString(), sub: "RF activos" },
                     ].map(({ label, valor, sub, hl }) => (
                       <div key={label} className="border rounded-lg p-3 text-center bg-background">
-                        <p className="text-[9px] uppercase tracking-wide text-muted-foreground font-semibold">{label}</p>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">{label}</p>
                         <p className={cn("text-xl font-bold tabular-nums leading-tight mt-0.5", hl ? "text-blue-700 dark:text-blue-300" : "text-foreground")}>{valor}</p>
-                        <p className="text-[9px] text-muted-foreground">{sub}</p>
+                        <p className="text-[10px] text-muted-foreground">{sub}</p>
                       </div>
                     ))}
                   </div>
@@ -798,7 +798,7 @@ export function OperacionDia({
                       margenHasta35 < 200 ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900" :
                       "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900"
                     )}>
-                      <p className="text-[9px] uppercase tracking-wide font-semibold text-muted-foreground">
+                      <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">
                         Margen hasta 40P
                       </p>
                       <p className={cn("text-xl font-bold tabular-nums",
@@ -809,7 +809,7 @@ export function OperacionDia({
                           ? `−${Math.abs(margenHasta40).toLocaleString("es-AR")} paq`
                           : `+${margenHasta40.toLocaleString("es-AR")} paq`}
                       </p>
-                      <p className="text-[9px] text-muted-foreground">
+                      <p className="text-[10px] text-muted-foreground">
                         {margenHasta40 < 0
                           ? "⚠ Superado"
                           : `cap. ${capacidadMax40.toLocaleString("es-AR")} · ${pctBuffer}% libre`}
@@ -820,8 +820,8 @@ export function OperacionDia({
                   {/* Barra de banda */}
                   {promedio > 0 && (
                     <div>
-                      <p className="text-[9px] uppercase tracking-wide text-muted-foreground font-semibold mb-1.5">Banda de carga</p>
-                      <div className="flex justify-between text-[8px] text-muted-foreground mb-0.5">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-1.5">Banda de carga</p>
+                      <div className="flex justify-between text-[10px] text-muted-foreground mb-0.5">
                         <span>20</span><span>25</span><span className="font-bold text-green-600 dark:text-green-300">30</span><span>35</span><span>40</span>
                       </div>
                       <div className="h-3 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden relative">
@@ -1123,7 +1123,7 @@ export function OperacionDia({
                 <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold flex items-center gap-2">
                   3. Código
                   {modalRuta.modo === "nuevo" && (
-                    <span className="text-[9px] text-emerald-600 dark:text-emerald-300 font-normal normal-case bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-300 font-normal normal-case bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">
                       Auto-generado · podés editarlo
                     </span>
                   )}
@@ -1206,17 +1206,17 @@ export function OperacionDia({
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Rutas</p>
                 <p className="text-xl font-bold">{nActivas}</p>
-                <p className="text-[9px] text-muted-foreground">{nFijos}F · {nPreT}PT · {nCortes}C</p>
+                <p className="text-[10px] text-muted-foreground">{nFijos}F · {nPreT}PT · {nCortes}C</p>
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Prom/ruta</p>
                 <p className={`text-xl font-bold ${estadoColor}`}>{promedio > 0 ? promedio.toFixed(1) : "—"}</p>
-                <p className="text-[9px] text-muted-foreground">target {targetPkg}±5</p>
+                <p className="text-[10px] text-muted-foreground">target {targetPkg}±5</p>
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Choferes</p>
                 <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{choferes}</p>
-                <p className="text-[9px] text-muted-foreground">@{targetPkg} pkg</p>
+                <p className="text-[10px] text-muted-foreground">@{targetPkg} pkg</p>
               </div>
             </div>
 

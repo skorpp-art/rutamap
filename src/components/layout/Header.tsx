@@ -62,11 +62,11 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
     <header className="h-14 bg-brand-black border-b border-white/5 flex items-center px-4 gap-4 shrink-0">
       {/* Logo */}
       <div className="flex items-center gap-2.5 select-none">
-        <div className="bg-gradient-to-br from-brand-blue to-brand-violet rounded-lg p-1.5 shadow-md ring-1 ring-white/10">
+        <div className="bg-gradient-to-br from-brand-blue to-blue-900 rounded-lg p-1.5 shadow-md ring-1 ring-white/10">
           <Truck className="h-4 w-4 text-white" />
         </div>
         <span className="font-bold text-white text-lg tracking-tight">
-          Ruta<span className="text-brand-sky">Map</span>
+          Ruta<span className="text-blue-300">Map</span>
         </span>
       </div>
 
@@ -75,12 +75,12 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
 
       {/* Selector de zona */}
       <div className="flex items-center gap-2">
-        <MapPin className="h-4 w-4 text-brand-sky shrink-0" />
+        <MapPin className="h-4 w-4 text-blue-300 shrink-0" />
         <Select
           value={filtros.zona ?? "todas"}
           onValueChange={handleZonaChange}
         >
-          <SelectTrigger className="w-44 h-8 bg-white/5 border-white/10 text-white text-sm hover:bg-white/10 focus:ring-brand-sky">
+          <SelectTrigger className="w-44 h-8 bg-white/5 border-white/10 text-white text-sm hover:bg-white/10 focus:ring-blue-300">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -97,7 +97,7 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
       {pathname === "/volumenes" && kpis && (
         <div className="hidden md:flex items-center gap-3.5 ml-2 overflow-x-auto no-scrollbar">
           <KpiItem label="Hoy" valor={kpis.hoyTotal ? kpis.hoyTotal.toLocaleString("es-AR") : "—"}
-            sub={kpis.choferesHoy > 0 ? `${kpis.choferesHoy} chof.` : "sin datos"} color="text-brand-sky" />
+            sub={kpis.choferesHoy > 0 ? `${kpis.choferesHoy} chof.` : "sin datos"} color="text-blue-300" />
           <Sep />
           <KpiItem label="Semana" valor={kpis.semanaTotal ? kpis.semanaTotal.toLocaleString("es-AR") : "—"}
             sub={`${kpis.semanaDias} días`} color="text-white" />
@@ -153,7 +153,7 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
 
       {/* Indicador de zona activa */}
       {filtros.zona && (
-        <span className="hidden sm:inline-flex items-center rounded-full bg-brand-blue/20 border border-brand-blue/40 px-3 py-1 text-xs text-brand-sky font-medium">
+        <span className="hidden sm:inline-flex items-center rounded-full bg-brand-blue/20 border border-brand-blue/40 px-3 py-1 text-xs text-blue-300 font-medium">
           Zona: {filtros.zona}
         </span>
       )}
@@ -272,9 +272,9 @@ function KpiItem({
 }) {
   return (
     <div className="text-center shrink-0">
-      <p className="text-[8px] uppercase tracking-widest text-white/40 leading-tight">{label}</p>
+      <p className="text-[10px] uppercase tracking-widest text-white/40 leading-tight">{label}</p>
       <p className={cn("text-sm font-bold tabular-nums leading-tight", color)}>{valor}</p>
-      <p className="text-[8px] text-white/40 leading-tight">{sub}</p>
+      <p className="text-[10px] text-white/40 leading-tight">{sub}</p>
     </div>
   );
 }

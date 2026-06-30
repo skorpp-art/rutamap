@@ -653,7 +653,7 @@ export function AnalisisOperaciones() {
                       )}
                     </ComposedChart>
                   </ResponsiveContainer>
-                  <div className="flex gap-3 mt-1 text-[9px] text-muted-foreground">
+                  <div className="flex gap-3 mt-1 text-[10px] text-muted-foreground">
                     <span className="text-red-400">- - - 40 (máx)</span>
                     <span className="text-green-600 dark:text-green-300">— — 30 (P.E.)</span>
                   </div>
@@ -884,9 +884,9 @@ export function AnalisisOperaciones() {
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex gap-1 flex-wrap">
-                          {r.pct_sobrecarga >= 50 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">⚠ Sobrecarga</span>}
-                          {r.prom_x_fuera >= 3 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">X Fuera alto</span>}
-                          {r.tendencia === "subiendo" && r.prom_total > 32 && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300">↑ Revisar</span>}
+                          {r.pct_sobrecarga >= 50 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">⚠ Sobrecarga</span>}
+                          {r.prom_x_fuera >= 3 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">X Fuera alto</span>}
+                          {r.tendencia === "subiendo" && r.prom_total > 32 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300">↑ Revisar</span>}
                         </div>
                       </td>
                     </tr>

@@ -392,9 +392,9 @@ export function VolumenesPanel() {
                           <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setTargetPkg(v => Math.min(100, v + 1))}>+</Button>
                         </div>
                         <div className="flex gap-1 mt-1">
-                          <span className="text-[9px] px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">Mín {targetPkg-5}</span>
-                          <span className="text-[9px] px-1 py-0.5 rounded bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-bold">Obj {targetPkg}</span>
-                          <span className="text-[9px] px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">Máx {targetPkg+5}</span>
+                          <span className="text-[10px] px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">Mín {targetPkg-5}</span>
+                          <span className="text-[10px] px-1 py-0.5 rounded bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-bold">Obj {targetPkg}</span>
+                          <span className="text-[10px] px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">Máx {targetPkg+5}</span>
                         </div>
                       </div>
                     </div>
@@ -435,7 +435,7 @@ export function VolumenesPanel() {
                             return <div className="absolute top-0 bottom-0 w-1 bg-blue-700 rounded-full shadow-md transition-all" style={{ left: `calc(${pct}% - 2px)` }} />;
                           })()}
                         </div>
-                        <div className="flex justify-between text-[9px] text-muted-foreground">
+                        <div className="flex justify-between text-[10px] text-muted-foreground">
                           <span>↓ Ineficiente ({targetPkg-10})</span>
                           <span className="font-semibold text-green-600 dark:text-green-300">P.E. ({targetPkg})</span>
                           <span>↑ Peligroso ({targetPkg+10})</span>
@@ -488,7 +488,7 @@ export function VolumenesPanel() {
                               <p className="text-[10px] text-muted-foreground font-medium">{l}</p>
                               <p className={cn("text-xl font-bold tabular-nums mt-0.5", sel || hl ? "text-blue-700 dark:text-blue-300" : "")}>{valOk ? v.toLocaleString("es-AR") : "—"}</p>
                               <p className="text-[10px] font-semibold text-blue-600 dark:text-blue-300 mt-0.5">{c > 0 ? `${c} choferes` : "—"}</p>
-                              {sel && <p className="text-[9px] text-emerald-600 dark:text-emerald-300 font-bold mt-0.5">✓ Seleccionado</p>}
+                              {sel && <p className="text-[10px] text-emerald-600 dark:text-emerald-300 font-bold mt-0.5">✓ Seleccionado</p>}
                             </button>
                           );
                         })}
@@ -501,7 +501,7 @@ export function VolumenesPanel() {
                           <div className="divide-y max-h-40 overflow-y-auto">
                             {recomendaciones.map(r => (
                               <div key={r.codigo} className="px-3 py-2 flex items-start gap-3">
-                                <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full font-bold shrink-0 mt-0.5",
+                                <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0 mt-0.5",
                                   r.prioridad === "alta" ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300" :
                                   r.prioridad === "media" ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400")}>
                                   {r.prioridad.toUpperCase()}

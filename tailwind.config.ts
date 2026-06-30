@@ -10,38 +10,30 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ── Color de firma RutaMap: índigo → violeta ──────────────────────
-        // Re-mapeo la escala `blue-*` de Tailwind al índigo de firma para que
-        // toda la app (botones, estados activos, paneles) adopte la nueva
+        // ── Color de firma Logística Hogareño: azul oscuro corporativo ────
+        // Re-mapeo la escala `blue-*` de Tailwind al azul de marca para que
+        // toda la app (botones, estados activos, paneles) adopte la
         // identidad sin tocar cada componente. Los colores de DATOS del mapa
         // usan hex (recorrido.*) y quedan intactos.
         blue: {
-          50: "#eef2ff",
-          100: "#e0e7ff",
-          200: "#c7d2fe",
-          300: "#a5b4fc",
-          400: "#818cf8",
-          500: "#6366f1",
-          600: "#4f46e5",
-          700: "#4338ca",
-          800: "#3730a3",
-          900: "#312e81",
-          950: "#1e1b4b",
+          50: "#eff6ff",
+          100: "#dbeafe",
+          200: "#bfdbfe",
+          300: "#93c5fd",
+          400: "#60a5fa",
+          500: "#2563eb",
+          600: "#1d4ed8",
+          700: "#1e40af",
+          800: "#1e3a8a",
+          900: "#172554",
+          950: "#0f1a3d",
         },
         // Colores corporativos Logística Hogareño
         brand: {
           blue: {
-            DEFAULT: "#4f46e5",
-            dark: "#4338ca",
-            light: "#6366f1",
-          },
-          sky: {
-            DEFAULT: "#818cf8",
-            dark: "#a5b4fc",
-          },
-          violet: {
-            DEFAULT: "#8b5cf6",
-            dark: "#7c3aed",
+            DEFAULT: "#1d4ed8",
+            dark: "#1e3a8a",
+            light: "#2563eb",
           },
           black: "#0b1120",
         },

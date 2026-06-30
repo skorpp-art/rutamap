@@ -676,7 +676,7 @@ export function AnalisisDiario() {
 function MiniKpi({ label, valor }: { label: string; valor: string }) {
   return (
     <div className="bg-background border rounded-lg px-3 py-2 text-center">
-      <p className="text-[9px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="text-sm font-bold tabular-nums">{valor}</p>
     </div>
   );
@@ -728,18 +728,18 @@ function DiaView({
             <KpiCard icon={Clock} label="Post-21hs" valor={`${resumen.post21_total} · ${resumen.post21_pct_del_dia.toFixed(1)}%`}
               sub={`% éxito tardío: ${resumen.post21_pct_exito.toFixed(1)}%`} tono="amber" />
             <KpiCard icon={Truck} label="Demorados" valor={`${resumen.en_camino_destinatario} · ${resumen.en_camino_destinatario_pct.toFixed(1)}%`}
-              sub="en camino al destinatario + post-21hs sin entregar" tono="violet" />
+              sub="en camino al destinatario + post-21hs sin entregar" tono="red" />
           </div>
 
           <div className="grid lg:grid-cols-5 gap-4">
             {/* Estados — con barra de proporción */}
-            <div className="lg:col-span-2 border rounded-2xl overflow-hidden bg-card shadow-sm">
+            <div className="lg:col-span-2 border rounded-xl overflow-hidden bg-card shadow-sm">
               <SeccionHeader icon={CheckCircle} titulo="Resolución del día por estado" tono="emerald" />
               <div className="divide-y max-h-[22rem] overflow-y-auto">
                 {estados.map(e => {
                   const esDemorado = e.estado.toLowerCase().includes("en camino al destinatario");
                   const esEntregado = e.estado.toLowerCase().startsWith("entregado");
-                  const tono: Tono = esDemorado ? "violet" : esEntregado ? "emerald" : "blue";
+                  const tono: Tono = esDemorado ? "red" : esEntregado ? "emerald" : "blue";
                   return (
                     <div key={e.estado} className="px-4 py-2.5">
                       <div className="flex items-center justify-between gap-3 mb-1">
@@ -757,7 +757,7 @@ function DiaView({
             </div>
 
             {/* Clientes — con búsqueda y análisis individual */}
-            <div className="lg:col-span-3 border rounded-2xl overflow-hidden bg-card shadow-sm">
+            <div className="lg:col-span-3 border rounded-xl overflow-hidden bg-card shadow-sm">
               <SeccionHeader icon={Users} titulo="Clientes del día" tono="blue">
                 <div className="flex items-center gap-1.5 bg-background border rounded-md px-2 py-1">
                   <Search className="h-3.5 w-3.5 text-muted-foreground" />
@@ -829,36 +829,32 @@ function DiaView({
 }
 
 // ── Sistema de tonos (paleta cálida y armónica) ──────────────────────────────
+// Sistema de tonos semántico — 1 color = 1 significado en toda la app:
+// blue = volumen/neutral, emerald = éxito, amber = atención, red = crítico.
 const TONOS = {
   blue: {
-    card: "from-sky-50 to-blue-50/30 dark:from-sky-950/30 dark:to-blue-950/10 border-sky-200/70 dark:border-sky-900/50",
-    chip: "bg-sky-500/15 text-sky-600 dark:text-sky-300",
-    text: "text-sky-700 dark:text-sky-300",
-    bar: "bg-sky-500",
+    card: "from-blue-50 to-blue-50/30 dark:from-blue-950/30 dark:to-blue-950/10 border-blue-200/70 dark:border-blue-900/50",
+    chip: "bg-blue-500/15 text-blue-700 dark:text-blue-300",
+    text: "text-blue-800 dark:text-blue-300",
+    bar: "bg-blue-600",
   },
   emerald: {
-    card: "from-emerald-50 to-teal-50/30 dark:from-emerald-950/30 dark:to-teal-950/10 border-emerald-200/70 dark:border-emerald-900/50",
+    card: "from-emerald-50 to-emerald-50/30 dark:from-emerald-950/30 dark:to-emerald-950/10 border-emerald-200/70 dark:border-emerald-900/50",
     chip: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
     text: "text-emerald-700 dark:text-emerald-300",
     bar: "bg-emerald-500",
   },
   amber: {
-    card: "from-amber-50 to-orange-50/30 dark:from-amber-950/30 dark:to-orange-950/10 border-amber-200/70 dark:border-amber-900/50",
+    card: "from-amber-50 to-amber-50/30 dark:from-amber-950/30 dark:to-amber-950/10 border-amber-200/70 dark:border-amber-900/50",
     chip: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
     text: "text-amber-700 dark:text-amber-300",
     bar: "bg-amber-500",
   },
-  violet: {
-    card: "from-violet-50 to-fuchsia-50/30 dark:from-violet-950/30 dark:to-fuchsia-950/10 border-violet-200/70 dark:border-violet-900/50",
-    chip: "bg-violet-500/15 text-violet-600 dark:text-violet-300",
-    text: "text-violet-700 dark:text-violet-300",
-    bar: "bg-violet-500",
-  },
-  rose: {
-    card: "from-rose-50 to-pink-50/30 dark:from-rose-950/30 dark:to-pink-950/10 border-rose-200/70 dark:border-rose-900/50",
-    chip: "bg-rose-500/15 text-rose-600 dark:text-rose-300",
-    text: "text-rose-700 dark:text-rose-300",
-    bar: "bg-rose-500",
+  red: {
+    card: "from-red-50 to-red-50/30 dark:from-red-950/30 dark:to-red-950/10 border-red-200/70 dark:border-red-900/50",
+    chip: "bg-red-500/15 text-red-600 dark:text-red-300",
+    text: "text-red-700 dark:text-red-300",
+    bar: "bg-red-500",
   },
 } as const;
 type Tono = keyof typeof TONOS;
@@ -868,15 +864,15 @@ function KpiCard({ icon: Icon, label, valor, sub, tono }: {
 }) {
   const t = TONOS[tono];
   return (
-    <div className={cn("rounded-2xl p-4 border bg-gradient-to-br shadow-sm", t.card)}>
+    <div className={cn("rounded-xl p-4 border bg-gradient-to-br shadow-sm", t.card)}>
       <div className="flex items-center gap-2">
         <span className={cn("inline-flex items-center justify-center h-7 w-7 rounded-lg", t.chip)}>
           <Icon className="h-4 w-4" />
         </span>
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium leading-tight">{label}</span>
+        <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium leading-tight">{label}</span>
       </div>
       <p className={cn("text-2xl font-bold tabular-nums mt-2", t.text)}>{valor}</p>
-      {sub && <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>}
+      {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
     </div>
   );
 }
@@ -955,11 +951,11 @@ function HistoricoView({
               tono="amber" />
             <KpiCard icon={Truck} label="Total demorados" valor={totalesPeriodo.enCamino.toLocaleString("es-AR")}
               sub={totalesPeriodo.total > 0 ? `${round2(totalesPeriodo.enCamino / totalesPeriodo.total * 100).toFixed(2)}% del total — post-21hs sin entregar` : undefined}
-              tono="violet" />
+              tono="red" />
           </div>
 
           {/* Evolución diaria — un solo gráfico combinado en vez de 3 separados */}
-          <div className="border rounded-2xl p-4 bg-card shadow-sm">
+          <div className="border rounded-xl p-4 bg-card shadow-sm">
             <p className="text-xs font-bold mb-2">Evolución diaria — paquetes, post-21hs, demorados y % de éxito</p>
             {chartGeneral.length === 0 ? (
               <EmptyState icon={Package} title="Sin datos en este rango" />
@@ -971,9 +967,9 @@ function HistoricoView({
                   <YAxis yAxisId="cant" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
                   <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} unit="%" />
                   <Tooltip {...ct.tooltip} />
-                  <Bar yAxisId="cant" dataKey="total" name="Paquetes totales" fill="#3b82f6" radius={[3, 3, 0, 0]} />
-                  <Bar yAxisId="cant" dataKey="enCaminoTotal" name="Demorados" fill="#8b5cf6" radius={[3, 3, 0, 0]} />
-                  <Line yAxisId="pct" type="monotone" dataKey="pctExito" name="% éxito" stroke="#10b981" strokeWidth={2} dot={false} />
+                  <Bar yAxisId="cant" dataKey="total" name="Paquetes totales" fill="#1d4ed8" radius={[3, 3, 0, 0]} />
+                  <Bar yAxisId="cant" dataKey="enCaminoTotal" name="Demorados" fill="#ef4444" radius={[3, 3, 0, 0]} />
+                  <Line yAxisId="pct" type="monotone" dataKey="pctExito" name="% éxito" stroke="#16a34a" strokeWidth={2} dot={false} />
                 </ComposedChart>
               </ResponsiveContainer>
             )}
@@ -981,7 +977,7 @@ function HistoricoView({
 
           {/* KPIs estilo informe ML/Flex — calculados con datos propios (zonas y estados), uno al lado del otro */}
           <div className="grid lg:grid-cols-2 gap-4">
-            <div className="border rounded-2xl overflow-hidden bg-card shadow-sm">
+            <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
               <SeccionHeader icon={MapPin} titulo="Efectividad por zona" tono="blue" />
               {zonasTotales.length === 0 ? (
                 <div className="p-4"><EmptyState icon={MapPin} title="Sin datos de zonas en este rango" /></div>
@@ -1014,7 +1010,7 @@ function HistoricoView({
               )}
             </div>
 
-            <div className="border rounded-2xl overflow-hidden bg-card shadow-sm">
+            <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
               <SeccionHeader icon={AlertTriangle} titulo="Estados del período" tono="amber" />
               {estadosTotales.length === 0 ? (
                 <div className="p-4"><EmptyState icon={AlertTriangle} title="Sin datos de estados en este rango" /></div>
@@ -1037,7 +1033,7 @@ function HistoricoView({
           </div>
 
           {/* Total de paquetes por cliente (acumulado del período) */}
-          <div className="border rounded-2xl p-4 bg-card shadow-sm">
+          <div className="border rounded-xl p-4 bg-card shadow-sm">
             <p className="text-xs font-bold mb-2">Paquetes totales por cliente (top 8 del período)</p>
             {chartClientesTotales.length === 0 ? (
               <EmptyState icon={Users} title="Sin datos en este rango" />
@@ -1048,8 +1044,8 @@ function HistoricoView({
                   <XAxis type="number" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
                   <YAxis type="category" dataKey="cliente" width={120} tick={{ fontSize: 10, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
                   <Tooltip {...ct.tooltip} labelFormatter={(_, p) => p?.[0]?.payload?.clienteCompleto ?? ""} />
-                  <Bar dataKey="total" name="Paquetes totales" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-                  <Bar dataKey="enCamino" name="Demorados" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="total" name="Paquetes totales" fill="#1d4ed8" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="enCamino" name="Demorados" fill="#ef4444" radius={[0, 4, 4, 0]} />
                 </ComposedChart>
               </ResponsiveContainer>
             )}
@@ -1058,7 +1054,7 @@ function HistoricoView({
       ) : (
         <div className="space-y-4">
           {historicoCliente.length === 0 ? (
-            <div className="border rounded-2xl p-4 bg-card shadow-sm">
+            <div className="border rounded-xl p-4 bg-card shadow-sm">
               <EmptyState icon={Users} title={`Sin datos de ${clienteSel} en este rango`} />
             </div>
           ) : (() => {
@@ -1075,12 +1071,12 @@ function HistoricoView({
                 <KpiCard icon={CheckCircle} label="% de éxito" valor={`${pctExito.toFixed(2)}%`}
                   sub="entregados a tiempo" tono="emerald" />
                 <KpiCard icon={Truck} label="Paquetes demorados" valor={totalDem.toLocaleString("es-AR")}
-                  sub="post-21hs sin entregar" tono="violet" />
+                  sub="post-21hs sin entregar" tono="red" />
                 <KpiCard icon={Clock} label="% demorados s/ su total" valor={`${pctDem.toFixed(2)}%`}
                   sub="cuánto de lo suyo se demora" tono="amber" />
               </div>
 
-              <div className="border rounded-2xl p-4 bg-card shadow-sm space-y-4">
+              <div className="border rounded-xl p-4 bg-card shadow-sm space-y-4">
                 <p className="text-xs font-bold">Evolución diaria — paquetes y % demorados de {clienteSel}</p>
                 <ResponsiveContainer width="100%" height={260}>
                   <ComposedChart data={chartCliente}>
@@ -1090,7 +1086,7 @@ function HistoricoView({
                     <YAxis yAxisId="cant" orientation="right" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
                     <Tooltip {...ct.tooltip} />
                     <Bar yAxisId="cant" dataKey="cantidad" name="Paquetes del día" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
-                    <Line yAxisId="pct" type="monotone" dataKey="enCaminoPct" name="% demorados" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} />
+                    <Line yAxisId="pct" type="monotone" dataKey="enCaminoPct" name="% demorados" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
                   </ComposedChart>
                 </ResponsiveContainer>
 

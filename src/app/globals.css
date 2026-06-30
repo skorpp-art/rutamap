@@ -11,26 +11,26 @@
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    /* Primary = índigo de firma RutaMap (#4f46e5) */
-    --primary: 243 75% 59%;
+    /* Primary = azul oscuro corporativo Logística Hogareño (#1d4ed8) */
+    --primary: 224 76% 48%;
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222 47% 11%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 226 100% 97%;
-    --accent-foreground: 243 75% 45%;
+    --accent: 221 83% 97%;
+    --accent-foreground: 224 76% 38%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
     /* Bordes más suaves para dejar de "gritar" cajas */
     --border: 214 32% 93%;
     --input: 214 32% 91%;
-    --ring: 243 75% 59%;
+    --ring: 224 76% 48%;
     /* Esquinas un toque más suaves = más premium */
     --radius: 0.625rem;
   }
 
-  /* ── Dark mode: slate profundo con índigo de firma resaltando ──────────── */
+  /* ── Dark mode: slate profundo con azul de firma resaltando ────────────── */
   .dark {
     --background: 222 47% 8%;
     --foreground: 210 40% 96%;
@@ -38,19 +38,19 @@
     --card-foreground: 210 40% 96%;
     --popover: 222 44% 10%;
     --popover-foreground: 210 40% 96%;
-    --primary: 243 80% 68%;
+    --primary: 221 83% 63%;
     --primary-foreground: 0 0% 100%;
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 96%;
     --muted: 217 33% 16%;
     --muted-foreground: 215 20% 65%;
-    --accent: 243 38% 22%;
+    --accent: 221 50% 22%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
     --border: 217 33% 20%;
     --input: 217 33% 24%;
-    --ring: 243 80% 68%;
+    --ring: 221 83% 63%;
   }
 
   * {

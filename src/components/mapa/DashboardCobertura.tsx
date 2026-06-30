@@ -47,7 +47,7 @@ function BarraZona({ zona, recorridos }: { zona: Zona; recorridos: RecorridoGeo[
           {todos.length > activos.length && ` · ${todos.length - activos.length} inactivos`}
         </span>
         {sinArea.length > 0 && (
-          <Badge variant="destructive" className="text-[9px] h-4 px-1.5 ml-auto">
+          <Badge variant="destructive" className="text-[10px] h-4 px-1.5 ml-auto">
             {sinArea.length} sin área
           </Badge>
         )}

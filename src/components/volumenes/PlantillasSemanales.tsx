@@ -178,7 +178,7 @@ export function PlantillasSemanales({ onUsarValor }: Props) {
                         onBlur={(e) => guardarFactor(sem.n, e.target.value)}
                         title="% manual de esta semana (vacío = sin dato suficiente)"
                         className={cn(
-                          "w-12 text-[9px] font-bold px-1 py-px rounded border text-center tabular-nums",
+                          "w-12 text-[10px] font-bold px-1 py-px rounded border text-center tabular-nums",
                           "focus:outline-none focus:ring-1 focus:ring-blue-400",
                           guardandoFactor === sem.n && "ring-1 ring-emerald-400",
                           (factores[sem.n] ?? 0) > 0 ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
@@ -186,7 +186,7 @@ export function PlantillasSemanales({ onUsarValor }: Props) {
                             : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700"
                         )}
                       />
-                      <span className="text-[9px] text-muted-foreground">%</span>
+                      <span className="text-[10px] text-muted-foreground">%</span>
                     </div>
                   </div>
                 </td>
@@ -221,7 +221,7 @@ export function PlantillasSemanales({ onUsarValor }: Props) {
                         onClick={() => { setValores((p) => ({ ...p, [k]: hist })); guardarCelda(sem.n, d, hist); }}
                         title={hist > 0 ? `Copiar promedio histórico (${regs} ${regs === 1 ? "registro" : "registros"})` : "Sin histórico"}
                         className={cn(
-                          "mt-1 block mx-auto text-[9px] tabular-nums transition-colors",
+                          "mt-1 block mx-auto text-[10px] tabular-nums transition-colors",
                           hist > 0 ? "text-slate-400 dark:text-slate-500 hover:text-blue-600 cursor-pointer" : "text-slate-300 dark:text-slate-600 cursor-default"
                         )}
                       >
@@ -233,7 +233,7 @@ export function PlantillasSemanales({ onUsarValor }: Props) {
                           type="button"
                           onClick={() => onUsarValor(val)}
                           title="Usar este valor en Operación del Día"
-                          className="mt-0.5 mx-auto flex items-center gap-0.5 text-[9px] text-emerald-600 dark:text-emerald-300 hover:text-emerald-700 font-medium"
+                          className="mt-0.5 mx-auto flex items-center gap-0.5 text-[10px] text-emerald-600 dark:text-emerald-300 hover:text-emerald-700 font-medium"
                         >
                           usar <ArrowRight className="h-2.5 w-2.5" />
                         </button>
