@@ -77,7 +77,7 @@ function CalidadDatosCard({ calidad }: { calidad: CalidadDatos[] }) {
   const meta = 12;
 
   return (
-    <div className="border rounded-xl p-5 bg-background">
+    <div className="border rounded-xl p-4 bg-background">
       <div className="flex items-center gap-2 mb-3">
         <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-300 shrink-0" />
         <p className="text-sm font-bold">Calidad de datos históricos</p>
@@ -533,8 +533,8 @@ export function VolumenesPanel() {
                         <ComposedChart data={bandas.map(b => ({ dia: b.fecha.slice(5), promedio: Number(b.promedio_ruta), zona: b.zona_riesgo }))} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                           <defs>
                             <linearGradient id="gradPromedio" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#6366f1" stopOpacity={0.28} />
-                              <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                              <stop offset="0%" stopColor="#1d4ed8" stopOpacity={0.28} />
+                              <stop offset="100%" stopColor="#1d4ed8" stopOpacity={0} />
                             </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} vertical={false} />
@@ -547,7 +547,7 @@ export function VolumenesPanel() {
                           <ReferenceLine y={targetPkg + 10} stroke={PALETA.rojo} strokeDasharray="3 4" strokeWidth={1} strokeOpacity={0.55} />
                           <Area type="monotone" dataKey="promedio" stroke="none" fill="url(#gradPromedio)" />
                           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                          <Line type="monotone" dataKey="promedio" stroke="#6366f1" strokeWidth={2.5}
+                          <Line type="monotone" dataKey="promedio" stroke="#1d4ed8" strokeWidth={2.5}
                             dot={(p: any) => {
                               if (!p.cx || !p.cy) return <g key={p.key} />;
                               const color = p?.payload?.zona==="ok"?PALETA.verde:p?.payload?.zona?.includes("peligroso")?PALETA.rojo:PALETA.ambar;

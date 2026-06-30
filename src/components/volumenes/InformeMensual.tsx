@@ -396,7 +396,7 @@ export function InformeMensual() {
                   : "sin comparativa"
               }
               color="text-emerald-700 dark:text-emerald-300" />
-            <Kpi label="Prom. diario" valor={Math.round(resumen.promDiario).toLocaleString("es-AR")} sub="paq/día operado" color="text-violet-700 dark:text-violet-300" />
+            <Kpi label="Prom. diario" valor={Math.round(resumen.promDiario).toLocaleString("es-AR")} sub="paq/día operado" color="text-blue-700 dark:text-blue-300" />
             <Kpi label="Prom/ruta" valor={resumen.promPorRuta > 0 ? resumen.promPorRuta.toFixed(1) : "—"}
               sub={resumen.aciertoProm != null ? `acierto ${Math.round(resumen.aciertoProm)}%` : "sin dato"} color="text-amber-700 dark:text-amber-300" />
           </div>

@@ -958,7 +958,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
                   {/* Simplificar */}
                   <div className="relative">
                     <Button variant="outline" size="sm" onClick={() => setMostrarNiveles((v) => !v)} disabled={guardando}
-                      className={cn("h-7 px-2 text-xs gap-1 border-amber-300 dark:border-amber-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50", mostrarNiveles && "bg-violet-50 dark:bg-violet-950/40")}
+                      className={cn("h-7 px-2 text-xs gap-1 border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-50", mostrarNiveles && "bg-blue-50 dark:bg-blue-950/40")}
                       title="Reducir cantidad de puntos">
                       <Wand2 className="h-3 w-3" />Simplif.
                     </Button>
@@ -968,7 +968,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
                         {NIVELES_SIMPLIF.map((n) => (
                           <button key={n.label} onClick={() => handleSimplificar(n.eps)}
                             className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors flex gap-2">
-                            <span className="font-semibold text-violet-700 dark:text-violet-300 w-12">{n.label}</span>
+                            <span className="font-semibold text-blue-700 dark:text-blue-300 w-12">{n.label}</span>
                             <span className="text-muted-foreground">{n.desc}</span>
                           </button>
                         ))}

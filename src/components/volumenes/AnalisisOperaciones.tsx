@@ -607,8 +607,8 @@ export function AnalisisOperaciones() {
                     <ComposedChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 5 }} barCategoryGap="20%">
                       <defs>
                         <linearGradient id="gradPaquetes" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#6366f1" stopOpacity={0.95} />
-                          <stop offset="100%" stopColor="#6366f1" stopOpacity={0.5} />
+                          <stop offset="0%" stopColor="#1d4ed8" stopOpacity={0.95} />
+                          <stop offset="100%" stopColor="#1d4ed8" stopOpacity={0.5} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} vertical={false} />
@@ -646,7 +646,7 @@ export function AnalisisOperaciones() {
                       {tieneOps && (
                         <>
                           <Bar yAxisId="left" dataKey="choferes" name="Choferes @30" fill="url(#gradChoferes)" radius={[4,4,0,0]} maxBarSize={28} />
-                          <Line yAxisId="right" type="monotone" dataKey="promedio" stroke="#f97316" strokeWidth={2.5} name="Prom pkg/ruta" dot={{ r: 3.5, fill: "#f97316", strokeWidth: 0 }} activeDot={{ r: 5 }} connectNulls />
+                          <Line yAxisId="right" type="monotone" dataKey="promedio" stroke="#1d4ed8" strokeWidth={2.5} name="Prom pkg/ruta" dot={{ r: 3.5, fill: "#1d4ed8", strokeWidth: 0 }} activeDot={{ r: 5 }} connectNulls />
                           <ReferenceLine yAxisId="right" y={30} stroke={PALETA.verde} strokeDasharray="5 4" strokeWidth={1.25} />
                           <ReferenceLine yAxisId="right" y={40} stroke={PALETA.rojo} strokeDasharray="3 4" strokeWidth={1} strokeOpacity={0.5} />
                         </>
