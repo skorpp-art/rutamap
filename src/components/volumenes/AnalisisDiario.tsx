@@ -822,12 +822,6 @@ function DiaView({
               </div>
             </div>
           </div>
-
-          {/* Post-21 por zona y chofer */}
-          <div className="grid sm:grid-cols-2 gap-4">
-            <TardeTabla titulo="Post-21hs por zona" icono={MapPin} filas={tardeZonas} tono="amber" />
-            <TardeTabla titulo="Post-21hs por chofer" icono={Truck} filas={tardeChoferes} tono="rose" />
-          </div>
         </>
       ) : null}
     </div>
@@ -908,35 +902,6 @@ function BarraProp({ pct, tono = "blue" }: { pct: number; tono?: Tono }) {
   return (
     <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
       <div className={cn("h-full rounded-full transition-all", TONOS[tono].bar)} style={{ width: `${Math.min(100, pct)}%` }} />
-    </div>
-  );
-}
-
-function TardeTabla({ titulo, icono: Icon, filas, tono = "amber" }: {
-  titulo: string; icono: React.ComponentType<{ className?: string }>; filas: TardeFila[]; tono?: Tono;
-}) {
-  const ordenadas = [...filas].sort((a, b) => b.cantidad - a.cantidad);
-  const maxCant = Math.max(1, ...ordenadas.map(f => f.cantidad));
-  return (
-    <div className="border rounded-2xl overflow-hidden bg-card shadow-sm">
-      <SeccionHeader icon={Icon} titulo={titulo} tono={tono} />
-      <div className="max-h-72 overflow-y-auto divide-y">
-        {ordenadas.map(f => (
-          <div key={f.nombre} className="px-4 py-2.5">
-            <div className="flex items-center justify-between gap-3 mb-1">
-              <span className="text-xs truncate">{f.nombre}</span>
-              <span className="text-xs tabular-nums shrink-0">
-                <span className="font-semibold">{f.cantidad}</span>
-                <span className="text-muted-foreground"> tarde · {f.entregados} entreg. · {f.pct_efectividad.toFixed(0)}%</span>
-              </span>
-            </div>
-            <BarraProp pct={f.cantidad / maxCant * 100} tono={tono} />
-          </div>
-        ))}
-        {ordenadas.length === 0 && (
-          <div className="px-4 py-6 text-center text-xs text-muted-foreground">Sin datos</div>
-        )}
-      </div>
     </div>
   );
 }
