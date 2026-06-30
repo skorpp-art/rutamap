@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Upload, FileSpreadsheet, CheckCircle, AlertTriangle, Calendar,
   Search, Package, Users, Clock, RefreshCw, Truck, MapPin, Layers,
+  Globe, Star, ShieldAlert,
 } from "lucide-react";
 import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid,
@@ -16,10 +17,12 @@ import {
   guardarAnalisisDiario, getAnalisisDiario, getAnalisisDiarioEstados,
   getAnalisisDiarioClientes, getAnalisisDiarioTarde, getAnalisisDiarioHistorico,
   getHistoricoCliente, getClientesAnalisisDiario, getClientesTotalesPeriodo,
+  guardarInformeMl, getInformeMl, getPeriodosMl,
 } from "@/app/actions/analisis-diario";
 import type {
   AnalisisDiarioPayload, ResumenAnalisisDia, EstadoDia, ClienteDia,
   TardeFila, HistoricoDia, HistoricoCliente, ClienteTotalPeriodo,
+  InformeMlPayload, InformeMlRow,
 } from "@/app/actions/analisis-diario";
 import { useChartTheme } from "@/hooks/useChartTheme";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -36,6 +39,16 @@ function toPct(v: unknown): number {
 }
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+// Números con formato AR: "." miles, "," decimal — sirve tanto para "39.891" como "-1,06"
+function toFloatAr(s: string): number {
+  const cleaned = String(s ?? "").replace(/[^\d,.-]/g, "");
+  const norm = cleaned.replace(/\./g, "").replace(",", ".");
+  const n = parseFloat(norm);
+  return Number.isFinite(n) ? n : 0;
+}
+function toIntAr(s: string): number {
+  return Math.round(toFloatAr(s));
 }
 function parseFechaFromTitle(title: string): string | null {
   const m = title.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
@@ -165,6 +178,102 @@ async function parseArchivoResumen(file: File): Promise<{ data: ResumenRaw | nul
   return { data };
 }
 
+// ── Parser del Informe mensual de Mercado Libre / Flex (.doc = HTML) ────────
+type InformeMlSinPeriodo = Omit<InformeMlPayload, "periodo">;
+
+function tablaSiguienteA(doc: Document, regex: RegExp): string[][] {
+  const h2 = Array.from(doc.querySelectorAll("h2")).find(h => regex.test(h.textContent ?? ""));
+  if (!h2) return [];
+  let el = h2.nextElementSibling;
+  while (el && el.tagName !== "TABLE") el = el.nextElementSibling;
+  if (!el) return [];
+  return Array.from(el.querySelectorAll("tr")).map(tr =>
+    Array.from(tr.children).map(td => (td.textContent ?? "").trim())
+  );
+}
+
+function parsePctConExceso(s: string): { pct: number; exceso_pct: number | null } {
+  const mPct = s.match(/([\d.,]+)\s*%/);
+  const mExc = s.match(/excede del promedio en\s*([\d.,]+)\s*%/i);
+  return { pct: mPct ? toFloatAr(mPct[1]) : 0, exceso_pct: mExc ? toFloatAr(mExc[1]) : null };
+}
+
+function extraerInformeMl(html: string): InformeMlSinPeriodo | null {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  if (!/deep dive mensual/i.test(doc.body.textContent ?? "")) return null;
+
+  // ✨ Resumen ejecutivo
+  let volumenTotal = 0;
+  const vacio = { pct: 0, promedio: null as number | null, delta: null as number | null };
+  let sla = vacio, visitas21 = vacio, sameday = vacio, perfectDelivery = vacio;
+  const lis = Array.from(doc.querySelectorAll("ul.summary li")).map(li => li.textContent ?? "");
+  for (const text of lis) {
+    if (/volumen total/i.test(text)) {
+      const m = text.match(/:\s*([\d.,]+)/);
+      if (m) volumenTotal = toIntAr(m[1]);
+      continue;
+    }
+    const m = text.match(/:\s*([\d.,]+)\s*%\s*promedio\s*([\d.,]+)\s*%.*?([+-]\s?[\d.,]+)\s*pp/i);
+    if (!m) continue;
+    const kpi = { pct: toFloatAr(m[1]), promedio: toFloatAr(m[2]), delta: toFloatAr(m[3]) };
+    if (/SLA/i.test(text)) sla = kpi;
+    else if (/visitas/i.test(text)) visitas21 = kpi;
+    else if (/sameday/i.test(text)) sameday = kpi;
+    else if (/perfect delivery/i.test(text)) perfectDelivery = kpi;
+  }
+
+  const batallas: BatallaFlexLocal[] = tablaSiguienteA(doc, /Batallas FLEX/i).slice(1)
+    .filter(r => r[0]).map(r => ({ motivo: r[0], ...parsePctConExceso(r[1] ?? "") }));
+
+  const motivosFallidos: BatallaFlexLocal[] = tablaSiguienteA(doc, /motivos visitas fallidas/i).slice(1)
+    .filter(r => r[0]).map(r => ({ motivo: r[0], ...parsePctConExceso(r[1] ?? "") }));
+
+  const sellersBajoSameday = tablaSiguienteA(doc, /bajo sameday/i).slice(1)
+    .filter(r => r[0]).map(r => ({
+      seller_id: r[0], nombre: r[1] ?? "", envios_total: toIntAr(r[2] ?? "0"),
+      envios_sd: toIntAr(r[3] ?? "0"), share_sd: toFloatAr(r[4] ?? "0"),
+    }));
+
+  const sellersOportunidadSabado = tablaSiguienteA(doc, /oportunidad el sábado/i).slice(1)
+    .filter(r => r[0]).map(r => ({
+      seller_id: r[0], nombre: r[1] ?? "", envios_total: toIntAr(r[2] ?? "0"),
+      envios_sab: toIntAr(r[3] ?? "0"), share_sab: toFloatAr(r[4] ?? "0"),
+    }));
+
+  const sellersOportunidadCapacidad = tablaSiguienteA(doc, /aumentar capacidades/i).slice(1)
+    .filter(r => r[0]).map(r => ({
+      seller_id: r[0], nombre: r[1] ?? "", envios_total: toIntAr(r[2] ?? "0"),
+      upside_pct: toFloatAr(r[3] ?? "0"),
+    }));
+
+  const oportunidadesGeograficas = tablaSiguienteA(doc, /Oportunidades geográficas/i).slice(1)
+    .filter(r => r[0]).map(r => ({
+      ciudad: r[0], envios: toIntAr(r[1] ?? "0"), sla: toFloatAr(r[2] ?? "0"),
+      sla_carrier: toFloatAr(r[3] ?? "0"), delta: toFloatAr(r[4] ?? "0"), post21_pct: toFloatAr(r[5] ?? "0"),
+    }));
+
+  const sellersOportunidad = tablaSiguienteA(doc, /^Sellers oportunidad$|🧩 Sellers oportunidad/i).slice(1)
+    .filter(r => r[0]).map(r => ({ seller_id: r[0], nombre: r[1] ?? "", envios: toIntAr(r[2] ?? "0"), sla: toFloatAr(r[3] ?? "0") }));
+
+  const sellersOptimos = tablaSiguienteA(doc, /Sellers óptimos/i).slice(1)
+    .filter(r => r[0]).map(r => ({ seller_id: r[0], nombre: r[1] ?? "", envios: toIntAr(r[2] ?? "0"), sla: toFloatAr(r[3] ?? "0") }));
+
+  return {
+    volumenTotal, sla, visitas21, sameday, perfectDelivery,
+    batallas, motivosFallidos, sellersBajoSameday, oportunidadesGeograficas,
+    sellersOportunidad, sellersOptimos, sellersOportunidadSabado, sellersOportunidadCapacidad,
+  };
+}
+
+interface BatallaFlexLocal { motivo: string; pct: number; exceso_pct: number | null }
+
+async function parseArchivoMl(file: File): Promise<{ data: InformeMlSinPeriodo | null; warning?: string }> {
+  const html = await file.text();
+  const data = extraerInformeMl(html);
+  if (!data) return { data: null, warning: "El archivo no parece ser un \"Deep dive mensual\" de Mercado Libre/Flex." };
+  return { data };
+}
+
 // ── Carga en lote (varios Excel del mes a la vez) ────────────────────────────
 export interface DiaLote {
   fecha: string;
@@ -267,14 +376,25 @@ function construirPayload(tardeRaw: TardeRaw | null, resumenRaw: ResumenRaw | nu
 }
 
 // ── Componente ───────────────────────────────────────────────────────────────
-type Vista = "dia" | "historico";
+type Vista = "dia" | "historico" | "ml";
 
 export function AnalisisDiario() {
   const [vista, setVista] = useState<Vista>("dia");
   const fileTardeRef = useRef<HTMLInputElement>(null);
   const fileResumenRef = useRef<HTMLInputElement>(null);
   const fileLoteRef = useRef<HTMLInputElement>(null);
+  const fileMlRef = useRef<HTMLInputElement>(null);
   const ct = useChartTheme();
+
+  // Informe mensual de Mercado Libre / Flex
+  const [mlRaw, setMlRaw] = useState<InformeMlSinPeriodo | null>(null);
+  const [mlPeriodo, setMlPeriodo] = useState(() => new Date().toISOString().slice(0, 7));
+  const [guardandoMl, setGuardandoMl] = useState(false);
+  const [periodosMl, setPeriodosMl] = useState<{ periodo: string; volumen_total: number }[]>([]);
+  const [periodoMlSel, setPeriodoMlSel] = useState<string>("");
+  const [informeMl, setInformeMl] = useState<InformeMlRow | null>(null);
+  const [cruceMl, setCruceMl] = useState<{ total: number; pctExito: number; post21Pct: number } | null>(null);
+  const [cargandoMl, setCargandoMl] = useState(false);
 
   // Carga / preview — cada archivo se sube por separado y se combinan acá
   const [tardeRaw, setTardeRaw] = useState<TardeRaw | null>(null);
@@ -355,6 +475,37 @@ export function AnalisisDiario() {
 
   useEffect(() => { if (vista === "historico") cargarHistorico(); }, [vista, cargarHistorico]);
 
+  const cargarInformeMl = useCallback(async (periodo: string) => {
+    if (!periodo) { setInformeMl(null); setCruceMl(null); return; }
+    setCargandoMl(true);
+    try {
+      const res = await getInformeMl(`${periodo}-01`);
+      setInformeMl(res.ok ? res.data ?? null : null);
+
+      const [y, m] = periodo.split("-").map(Number);
+      const desde = `${periodo}-01`;
+      const hasta = new Date(y, m, 0).toISOString().slice(0, 10);
+      const resHist = await getAnalisisDiarioHistorico(desde, hasta);
+      const dias = resHist.ok ? resHist.data ?? [] : [];
+      const total = dias.reduce((s, d) => s + d.total_paquetes, 0);
+      const entregadosAprox = dias.reduce((s, d) => s + d.total_paquetes * d.pct_exito / 100, 0);
+      const post21 = dias.reduce((s, d) => s + d.post21_total, 0);
+      setCruceMl(total > 0 ? { total, pctExito: round2(entregadosAprox / total * 100), post21Pct: round2(post21 / total * 100) } : null);
+    } finally { setCargandoMl(false); }
+  }, []);
+
+  useEffect(() => {
+    if (vista !== "ml") return;
+    getPeriodosMl().then(res => {
+      if (!res.ok || !res.data) return;
+      setPeriodosMl(res.data);
+      if (!periodoMlSel && res.data.length) setPeriodoMlSel(res.data[0].periodo.slice(0, 7));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vista]);
+
+  useEffect(() => { if (vista === "ml" && periodoMlSel) cargarInformeMl(periodoMlSel); }, [vista, periodoMlSel, cargarInformeMl]);
+
   async function handleFileTarde(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -385,6 +536,45 @@ export function AnalisisDiario() {
     } catch (err) {
       toast.error("Error al leer el archivo", { description: String(err) });
     }
+  }
+
+  async function handleFileMl(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const { data, warning } = await parseArchivoMl(file);
+      if (!data) {
+        toast.error("No se pudo procesar el Informe ML", { description: warning });
+        return;
+      }
+      setMlRaw(data);
+      toast.success(`Informe ML cargado — ${data.volumenTotal.toLocaleString("es-AR")} envíos`);
+    } catch (err) {
+      toast.error("Error al leer el archivo", { description: String(err) });
+    } finally {
+      if (fileMlRef.current) fileMlRef.current.value = "";
+    }
+  }
+
+  function descartarCargaMl() {
+    setMlRaw(null);
+  }
+
+  async function confirmarCargaMl() {
+    if (!mlRaw) return;
+    setGuardandoMl(true);
+    try {
+      const payload: InformeMlPayload = { periodo: `${mlPeriodo}-01`, ...mlRaw };
+      const res = await guardarInformeMl(payload);
+      if (!res.ok) { toast.error("Error al guardar el informe ML", { description: res.error }); return; }
+      toast.success(`Informe ML de ${mlPeriodo} guardado`);
+      setMlRaw(null);
+      setVista("ml");
+      setPeriodoMlSel(mlPeriodo);
+      const resP = await getPeriodosMl();
+      if (resP.ok && resP.data) setPeriodosMl(resP.data);
+      await cargarInformeMl(mlPeriodo);
+    } finally { setGuardandoMl(false); }
   }
 
   function descartarCarga() {
@@ -522,10 +712,16 @@ export function AnalisisDiario() {
                 vista === "historico" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}>
               Histórico
             </button>
+            <button onClick={() => setVista("ml")}
+              className={cn("text-xs px-3 py-1.5 rounded-md font-medium transition-colors",
+                vista === "ml" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+              ML / Flex
+            </button>
           </div>
           <input ref={fileTardeRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileTarde} />
           <input ref={fileResumenRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileResumen} />
           <input ref={fileLoteRef} type="file" accept=".xlsx,.xls" multiple className="hidden" onChange={handleFilesLote} />
+          <input ref={fileMlRef} type="file" accept=".doc,.html,.htm" className="hidden" onChange={handleFileMl} />
           <Button size="sm" variant={tardeRaw ? "secondary" : "outline"} className="gap-1.5 text-xs h-8" onClick={() => fileTardeRef.current?.click()}>
             {tardeRaw ? <CheckCircle className="h-3.5 w-3.5" /> : <Upload className="h-3.5 w-3.5" />}
             Análisis Tarde
@@ -538,6 +734,11 @@ export function AnalisisDiario() {
           <Button size="sm" className="gap-1.5 text-xs h-8" onClick={() => fileLoteRef.current?.click()} disabled={procesandoLote}>
             {procesandoLote ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Layers className="h-3.5 w-3.5" />}
             Cargar lote del mes
+          </Button>
+          <div className="h-6 w-px bg-border" />
+          <Button size="sm" variant={mlRaw ? "secondary" : "outline"} className="gap-1.5 text-xs h-8" onClick={() => fileMlRef.current?.click()}>
+            {mlRaw ? <CheckCircle className="h-3.5 w-3.5" /> : <Globe className="h-3.5 w-3.5" />}
+            Informe ML
           </Button>
         </div>
       </div>
@@ -634,6 +835,40 @@ export function AnalisisDiario() {
         </div>
       )}
 
+      {/* Preview de carga del Informe ML */}
+      {mlRaw && (
+        <div className="border rounded-xl p-4 space-y-3 bg-violet-50/40 dark:bg-violet-950/20 border-violet-200 dark:border-violet-900">
+          <div className="flex items-center gap-2">
+            <Globe className="h-4 w-4 text-violet-600 dark:text-violet-300" />
+            <p className="text-sm font-bold">Vista previa — Informe ML</p>
+            <div className="ml-auto flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">Período</span>
+              <input type="month" value={mlPeriodo} onChange={e => setMlPeriodo(e.target.value)}
+                className="text-xs bg-background border rounded-md px-2 py-1 outline-none" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <MiniKpi label="Volumen total" valor={mlRaw.volumenTotal.toLocaleString("es-AR")} />
+            <MiniKpi label="SLA" valor={`${mlRaw.sla.pct.toFixed(2)}%`} />
+            <MiniKpi label="Visitas ≥21h" valor={`${mlRaw.visitas21.pct.toFixed(2)}%`} />
+            <MiniKpi label="Sameday" valor={`${mlRaw.sameday.pct.toFixed(2)}%`} />
+            <MiniKpi label="Perfect Delivery" valor={`${mlRaw.perfectDelivery.pct.toFixed(2)}%`} />
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            {mlRaw.sellersBajoSameday.length} sellers con bajo sameday · {mlRaw.oportunidadesGeograficas.length} ciudades · {mlRaw.motivosFallidos.length} motivos de fallo
+          </p>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={confirmarCargaMl} disabled={guardandoMl} className="gap-1.5">
+              <CheckCircle className="h-3.5 w-3.5" />
+              {guardandoMl ? "Guardando…" : `Confirmar y guardar (${mlPeriodo})`}
+            </Button>
+            <Button size="sm" variant="outline" onClick={descartarCargaMl}>
+              Descartar
+            </Button>
+          </div>
+        </div>
+      )}
+
       {vista === "dia" ? (
         <DiaView
           fecha={fecha} setFecha={setFecha} cargando={cargando}
@@ -641,7 +876,7 @@ export function AnalisisDiario() {
           tardeZonas={tardeZonas} tardeChoferes={tardeChoferes}
           onRefrescar={() => cargarDia(fecha)}
         />
-      ) : (
+      ) : vista === "historico" ? (
         <HistoricoView
           desde={desde} setDesde={setDesde} hasta={hasta} setHasta={setHasta}
           clienteSel={clienteSel} setClienteSel={setClienteSel}
@@ -652,6 +887,11 @@ export function AnalisisDiario() {
           totalesPeriodo={totalesPeriodo}
           historicoCliente={historicoCliente}
           ct={ct}
+        />
+      ) : (
+        <MlView
+          periodosMl={periodosMl} periodoSel={periodoMlSel} setPeriodoSel={setPeriodoMlSel}
+          informe={informeMl} cruce={cruceMl} cargando={cargandoMl}
         />
       )}
     </div>
@@ -852,7 +1092,7 @@ const TONOS = {
 type Tono = keyof typeof TONOS;
 
 function KpiCard({ icon: Icon, label, valor, sub, tono }: {
-  icon: React.ComponentType<{ className?: string }>; label: string; valor: string; sub?: string; tono: Tono;
+  icon: React.ComponentType<{ className?: string }>; label: string; valor: string; sub?: React.ReactNode; tono: Tono;
 }) {
   const t = TONOS[tono];
   return (
@@ -1116,6 +1356,206 @@ function HistoricoView({
             );
           })()}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ── Vista ML / Flex (informe mensual de Mercado Libre) ──────────────────────
+function DeltaTexto({ delta, invertido = false }: { delta: number | null; invertido?: boolean }) {
+  if (delta == null) return null;
+  const bueno = invertido ? delta < 0 : delta > 0;
+  return (
+    <span className={cn("tabular-nums", bueno ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
+      {delta > 0 ? "+" : ""}{delta.toFixed(2)} pp vs promedio
+    </span>
+  );
+}
+
+function MlView({
+  periodosMl, periodoSel, setPeriodoSel, informe, cruce, cargando,
+}: {
+  periodosMl: { periodo: string; volumen_total: number }[];
+  periodoSel: string; setPeriodoSel: (v: string) => void;
+  informe: InformeMlRow | null;
+  cruce: { total: number; pctExito: number; post21Pct: number } | null;
+  cargando: boolean;
+}) {
+  if (periodosMl.length === 0) {
+    return (
+      <EmptyState icon={Globe} title="Sin informes de Mercado Libre / Flex cargados"
+        description={'Subí el "Deep dive mensual" (.doc) con el botón "Informe ML" para empezar a cruzar tus métricas con las de ML.'} />
+    );
+  }
+
+  const geoOrdenadas = informe ? [...informe.oportunidades_geograficas].sort((a, b) => a.delta - b.delta) : [];
+  const maxGeoEnvios = Math.max(1, ...geoOrdenadas.map(g => g.envios));
+  const sellersBajoOrdenados = informe ? [...informe.sellers_bajo_sameday].sort((a, b) => a.share_sd - b.share_sd) : [];
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 flex-wrap bg-muted/30 rounded-xl px-3 py-2.5 border">
+        <div className="flex items-center gap-2 bg-background border rounded-lg px-2.5 py-1.5">
+          <Globe className="h-4 w-4 text-muted-foreground" />
+          <select value={periodoSel} onChange={e => setPeriodoSel(e.target.value)} className="text-xs bg-transparent outline-none">
+            {periodosMl.map(p => <option key={p.periodo} value={p.periodo.slice(0, 7)}>{p.periodo.slice(0, 7)}</option>)}
+          </select>
+        </div>
+        <span className="text-[11px] text-muted-foreground">Datos del propio reporte de Mercado Libre/Flex — comparados contra tus propios números de RutaMap para el mismo mes.</span>
+        {cargando && <RefreshCw className="h-3.5 w-3.5 animate-spin text-muted-foreground ml-auto" />}
+      </div>
+
+      {!informe ? (
+        <EmptyState icon={Globe} title="Sin informe para este período" />
+      ) : (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <KpiCard icon={Package} label="Volumen total (ML)" valor={informe.volumen_total.toLocaleString("es-AR")}
+              sub={cruce ? `RutaMap: ${cruce.total.toLocaleString("es-AR")}` : undefined} tono="blue" />
+            <KpiCard icon={ShieldAlert} label="SLA" valor={`${(informe.sla_pct ?? 0).toFixed(2)}%`}
+              sub={cruce ? `Tu % éxito: ${cruce.pctExito.toFixed(2)}%` : <DeltaTexto delta={informe.sla_delta} />} tono="emerald" />
+            <KpiCard icon={Clock} label="Visitas ≥21h" valor={`${(informe.visitas21_pct ?? 0).toFixed(2)}%`}
+              sub={cruce ? `Tu post-21h: ${cruce.post21Pct.toFixed(2)}%` : <DeltaTexto delta={informe.visitas21_delta} invertido />} tono="amber" />
+            <KpiCard icon={Truck} label="Sameday" valor={`${(informe.sameday_pct ?? 0).toFixed(2)}%`}
+              sub="no medible hoy en RutaMap" tono="violet" />
+            <KpiCard icon={Star} label="Perfect Delivery" valor={`${(informe.perfect_delivery_pct ?? 0).toFixed(2)}%`}
+              sub="no medible hoy en RutaMap" tono="rose" />
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-4">
+            <div className="border rounded-2xl overflow-hidden bg-card shadow-sm">
+              <SeccionHeader icon={ShieldAlert} titulo="Batallas FLEX" tono="rose" />
+              <div className="divide-y max-h-72 overflow-y-auto">
+                {informe.batallas.map(b => (
+                  <div key={b.motivo} className="px-4 py-2.5">
+                    <div className="flex items-center justify-between gap-3 mb-1">
+                      <span className="text-xs truncate">{b.motivo}</span>
+                      <span className="text-xs tabular-nums shrink-0 font-semibold">
+                        {b.pct.toFixed(2)}%{b.exceso_pct != null && <span className="text-muted-foreground font-normal"> · +{b.exceso_pct.toFixed(0)}% s/prom.</span>}
+                      </span>
+                    </div>
+                    <BarraProp pct={b.pct / Math.max(1, ...informe.batallas.map(x => x.pct)) * 100} tono="rose" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="border rounded-2xl overflow-hidden bg-card shadow-sm">
+              <SeccionHeader icon={AlertTriangle} titulo="Motivos de visitas fallidas" tono="amber" />
+              <div className="divide-y max-h-72 overflow-y-auto">
+                {informe.motivos_fallidos.map(m => (
+                  <div key={m.motivo} className="px-4 py-2.5">
+                    <div className="flex items-center justify-between gap-3 mb-1">
+                      <span className="text-xs truncate">{m.motivo}</span>
+                      <span className="text-xs tabular-nums shrink-0 font-semibold">
+                        {m.pct.toFixed(2)}%{m.exceso_pct != null && <span className="text-muted-foreground font-normal"> · +{m.exceso_pct.toFixed(0)}% s/prom.</span>}
+                      </span>
+                    </div>
+                    <BarraProp pct={m.pct / Math.max(1, ...informe.motivos_fallidos.map(x => x.pct)) * 100} tono="amber" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="border rounded-2xl overflow-hidden bg-card shadow-sm">
+            <SeccionHeader icon={MapPin} titulo="Oportunidades geográficas (peor delta vs carrier primero)" tono="blue" />
+            <div className="max-h-80 overflow-y-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/20 sticky top-0">
+                  <tr>
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Ciudad</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Envíos</th>
+                    <th className="px-3 py-2 font-medium text-muted-foreground w-28">SLA</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Delta vs carrier</th>
+                    <th className="text-right px-4 py-2 font-medium text-muted-foreground">% post-21h</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {geoOrdenadas.map(g => (
+                    <tr key={g.ciudad}>
+                      <td className="px-4 py-1.5 truncate max-w-[10rem]">{g.ciudad}</td>
+                      <td className="px-3 py-1.5 text-right tabular-nums">{g.envios.toLocaleString("es-AR")}</td>
+                      <td className="px-3 py-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <BarraProp pct={g.envios / maxGeoEnvios * 100} tono="blue" />
+                          <span className="tabular-nums text-[10px] text-muted-foreground w-9 text-right shrink-0">{g.sla.toFixed(1)}%</span>
+                        </div>
+                      </td>
+                      <td className={cn("px-3 py-1.5 text-right tabular-nums font-semibold", g.delta < 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400")}>
+                        {g.delta > 0 ? "+" : ""}{g.delta.toFixed(2)} pp
+                      </td>
+                      <td className="px-4 py-1.5 text-right tabular-nums">{g.post21_pct.toFixed(1)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-4">
+            <div className="border rounded-2xl overflow-hidden bg-card shadow-sm">
+              <SeccionHeader icon={Truck} titulo="Sellers con menor sameday" tono="violet" />
+              <div className="max-h-80 overflow-y-auto divide-y">
+                {sellersBajoOrdenados.slice(0, 20).map(s => (
+                  <div key={s.seller_id} className="px-4 py-2 flex items-center justify-between gap-3">
+                    <span className="text-xs truncate">{s.nombre}</span>
+                    <span className="text-xs tabular-nums shrink-0">
+                      <span className="font-semibold">{s.share_sd.toFixed(1)}%</span>
+                      <span className="text-muted-foreground"> · {s.envios_sd}/{s.envios_total}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="border rounded-2xl overflow-hidden bg-card shadow-sm">
+              <SeccionHeader icon={Star} titulo="Sellers óptimos (mejor SLA)" tono="emerald" />
+              <div className="max-h-80 overflow-y-auto divide-y">
+                {informe.sellers_optimos.slice(0, 20).map(s => (
+                  <div key={s.seller_id} className="px-4 py-2 flex items-center justify-between gap-3">
+                    <span className="text-xs truncate">{s.nombre}</span>
+                    <span className="text-xs tabular-nums shrink-0">
+                      <span className="font-semibold">{s.sla.toFixed(2)}%</span>
+                      <span className="text-muted-foreground"> · {s.envios} envíos</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {(informe.sellers_oportunidad_sabado.length > 0 || informe.sellers_oportunidad_capacidad.length > 0) && (
+            <div className="grid lg:grid-cols-2 gap-4">
+              {informe.sellers_oportunidad_sabado.length > 0 && (
+                <div className="border rounded-2xl overflow-hidden bg-card shadow-sm">
+                  <SeccionHeader icon={Calendar} titulo="Sellers sin operar los sábados" tono="amber" />
+                  <div className="max-h-60 overflow-y-auto divide-y">
+                    {informe.sellers_oportunidad_sabado.slice(0, 15).map(s => (
+                      <div key={s.seller_id} className="px-4 py-2 flex items-center justify-between gap-3">
+                        <span className="text-xs truncate">{s.nombre}</span>
+                        <span className="text-xs tabular-nums shrink-0 text-muted-foreground">{s.envios_total} envíos/mes</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {informe.sellers_oportunidad_capacidad.length > 0 && (
+                <div className="border rounded-2xl overflow-hidden bg-card shadow-sm">
+                  <SeccionHeader icon={Package} titulo="Sellers con upside de capacidad" tono="blue" />
+                  <div className="max-h-60 overflow-y-auto divide-y">
+                    {informe.sellers_oportunidad_capacidad.slice(0, 15).map(s => (
+                      <div key={s.seller_id} className="px-4 py-2 flex items-center justify-between gap-3">
+                        <span className="text-xs truncate">{s.nombre}</span>
+                        <span className="text-xs tabular-nums shrink-0 font-semibold">+{s.upside_pct.toFixed(1)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
