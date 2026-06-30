@@ -227,17 +227,19 @@ function construirPayload(tardeRaw: TardeRaw | null, resumenRaw: ResumenRaw | nu
   const totalPaquetes = resumenRaw.totalPaquetes;
   const entregados = resumenRaw.estados.find(e => e.estado === "Entregado")?.cantidad ?? 0;
   const pctExito = totalPaquetes > 0 ? round2(entregados / totalPaquetes * 100) : 0;
-  // Demorado = paquetes con estado literal "En camino al destinatario" (deja afuera "reprogramado").
-  // Usamos el mismo estado real del Resumen de Envíos que ya se muestra en el desglose por cliente,
-  // en vez de inferirlo desde el archivo de Análisis Tarde (esa cifra podía no coincidir).
-  const enCamino = resumenRaw.estados.find(e => e.estado.toLowerCase().includes("en camino al destinatario"))?.cantidad
-    ?? resumenRaw.porCliente.reduce((s, c) => s + c.enCamino, 0);
-  const enCaminoPct = totalPaquetes > 0 ? round2(enCamino / totalPaquetes * 100) : 0;
 
   const post21Total = tardeRaw.post21.total;
   const post21Entregados = tardeRaw.post21.entregados;
   const post21PctExito = post21Total > 0 ? round2(post21Entregados / post21Total * 100) : tardeRaw.post21.pctExito;
   const post21PctDelDia = totalPaquetes > 0 ? round2(post21Total / totalPaquetes * 100) : 0;
+  const post21NoEntregados = Math.max(0, post21Total - post21Entregados);
+
+  // Demorado = estado literal "En camino al destinatario" (Resumen de Envíos) + paquetes
+  // post-21hs que no se entregaron (Análisis Tarde). Deja afuera "reprogramado".
+  const caminoDestinatario = resumenRaw.estados.find(e => e.estado.toLowerCase().includes("en camino al destinatario"))?.cantidad
+    ?? resumenRaw.porCliente.reduce((s, c) => s + c.enCamino, 0);
+  const enCamino = caminoDestinatario + post21NoEntregados;
+  const enCaminoPct = totalPaquetes > 0 ? round2(enCamino / totalPaquetes * 100) : 0;
 
   const clientes: ClienteDia[] = resumenRaw.porCliente.map(c => ({
     cliente: c.cliente,
