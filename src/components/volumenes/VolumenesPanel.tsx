@@ -38,18 +38,17 @@ import { EstadoBadge } from "@/components/ui/estado-badge";
 import { NumeroAnimado } from "@/components/ui/numero-animado";
 import { SkeletonCards, SkeletonChart } from "@/components/ui/skeleton";
 import { MetricCard } from "@/components/ui/metric-card";
+import { hoyAR, addDiasAR } from "@/lib/fechas";
 
-function hoy(): string { return new Date().toISOString().slice(0, 10); }
-function addDias(iso: string, n: number): string {
-  const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
-}
+const hoy = hoyAR;
+const addDias = addDiasAR;
 function mañanaISO(): string { return addDias(hoy(), 1); }
 function dowISO(iso: string): number {
   const d = new Date(iso + "T12:00:00"); return d.getDay() === 0 ? 7 : d.getDay();
 }
 
-let RUTAS_FIJAS = 55;
+// Cantidad de rutas fijas por defecto hasta que cargue el conteo real de la DB.
+const RUTAS_FIJAS_DEFAULT = 55;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function TooltipGrafico({ active, payload, label }: any) {
@@ -141,9 +140,9 @@ export function VolumenesPanel() {
   const [calculando, setCalculando] = useState(false);
   const [recomendaciones, setRecomendaciones] = useState<import("@/app/actions/operaciones-diarias").Recomendacion[]>([]);
   const [calcPaquetes, setCalcPaquetes] = useState<number>(0);
-  const [calcRutas, setCalcRutas] = useState<number>(53);
+  const [calcRutas, setCalcRutas] = useState<number>(RUTAS_FIJAS_DEFAULT);
   const [bandas, setBandas] = useState<BandaControl[]>([]);
-  const [rutasFijasCount, setRutasFijasCount] = useState(53);
+  const [rutasFijasCount, setRutasFijasCount] = useState(RUTAS_FIJAS_DEFAULT);
 
   // Persistir el objetivo pkg/chofer entre sesiones
   useEffect(() => {
@@ -188,7 +187,7 @@ export function VolumenesPanel() {
     return Math.max(0, Math.round(m * n + b));
   })();
 
-  const promDiaActual = resumen?.hoy_total && resumen.hoy_total > 0 ? (resumen.hoy_total / RUTAS_FIJAS) : 0;
+  const promDiaActual = resumen?.hoy_total && resumen.hoy_total > 0 ? (resumen.hoy_total / rutasFijasCount) : 0;
   const choferesHoy = resumen?.hoy_total ? Math.ceil(resumen.hoy_total / targetPkg) : 0;
   const confianza = diasConDatos.length >= 4 ? "alta" : diasConDatos.length >= 2 ? "media" : "baja";
 
@@ -205,18 +204,19 @@ export function VolumenesPanel() {
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
+      let rutasFijas = RUTAS_FIJAS_DEFAULT;
       try {
         const rfRes = await getRecorridosBase();
         if (rfRes.ok && rfRes.data) {
           const rfCount = rfRes.data.filter(r => r.tipo === "fijo" && r.activo).length;
-          if (rfCount > 0) { RUTAS_FIJAS = rfCount; setRutasFijasCount(rfCount); setCalcRutas(rfCount); }
+          if (rfCount > 0) { rutasFijas = rfCount; setRutasFijasCount(rfCount); setCalcRutas(rfCount); }
         }
       } catch { /* usar default */ }
       const [resDash, resSum, resTop, resBandas, resCal] = await Promise.all([
         getDashboardSemanalV2(),
         getResumenSemanalV2(),
         getTopClientes(hoy(), 10),
-        getBandasControl(60, targetPkg, RUTAS_FIJAS),
+        getBandasControl(60, targetPkg, rutasFijas),
         getCalidadDatos(),
       ]);
       if (resDash.ok && resDash.data) setDashboard(resDash.data);
@@ -254,7 +254,7 @@ export function VolumenesPanel() {
   async function calcularProyeccion() {
     setCalculando(true);
     try {
-      const resProy = await getProyeccionDiaV2(fechaProyeccion, targetPkg, RUTAS_FIJAS);
+      const resProy = await getProyeccionDiaV2(fechaProyeccion, targetPkg, rutasFijasCount);
       if (!resProy.ok || !resProy.data) {
         toast.error("Error al calcular proyección", { description: resProy.error });
       } else {

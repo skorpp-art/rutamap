@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Plus, Trash2, CalendarOff } from "lucide-react";
 import { getFeriados, marcarFeriado, eliminarFeriado } from "@/app/actions/volumenes";
 import type { Feriado } from "@/app/actions/volumenes";
+import { hoyAR } from "@/lib/fechas";
 
-function hoy(): string { return new Date().toISOString().slice(0, 10); }
+const hoy = hoyAR;
 
 export function Feriados() {
   const [feriados, setFeriados] = useState<Feriado[]>([]);

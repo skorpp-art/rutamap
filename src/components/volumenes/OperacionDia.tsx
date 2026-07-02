@@ -19,6 +19,7 @@ import { crearRecorrido, actualizarCamposRecorrido, getSiguienteCodigo, eliminar
 import { ZONA_COLOR as ZONA_HEX } from "@/lib/estados";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { OperacionRuta } from "@/app/actions/operacion";
+import { hoyAR, addDiasAR } from "@/lib/fechas";
 
 const ZONAS_OPT = ["Oeste", "Norte", "Sur", "CABA"] as const;
 const TIPOS_OPT = [
@@ -30,11 +31,8 @@ const TIPOS_OPT = [
 ] as const;
 const COLORES_ZONA = ZONA_HEX;
 
-function hoy() { return new Date().toISOString().slice(0, 10); }
-function addDias(iso: string, n: number): string {
-  const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
-}
+const hoy = hoyAR;
+const addDias = addDiasAR;
 function fmtFecha(iso: string) {
   return new Date(iso + "T12:00:00").toLocaleDateString("es-AR", {
     weekday: "long", day: "numeric", month: "long", year: "numeric"
@@ -88,6 +86,12 @@ export function OperacionDia({
   const reportRef = useRef<HTMLDivElement>(null);
   // Debounce para autoguardado al cambiar rutas ON/OFF
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Espejos siempre-actuales para que el autosave lea el estado vigente al
+  // momento de disparar, no una foto vieja del render en que se programó.
+  const rutasRef = useRef(rutas);
+  const editadosRef = useRef(editados);
+  useEffect(() => { rutasRef.current = rutas; }, [rutas]);
+  useEffect(() => { editadosRef.current = editados; }, [editados]);
 
   // ── Modal agregar/editar recorrido ───────────────────────────────────────
   const [modalRuta, setModalRuta] = useState<{
@@ -234,6 +238,12 @@ export function OperacionDia({
 
   useEffect(() => { cargar(fecha); }, [fecha, cargar]);
 
+  // Al cambiar de fecha (o desmontar), cancelar cualquier autosave pendiente:
+  // un timer de la fecha anterior no debe guardar sobre los datos de la nueva.
+  useEffect(() => {
+    return () => { if (autoSaveRef.current) clearTimeout(autoSaveRef.current); };
+  }, [fecha]);
+
   // Análisis histórico para sugerencias de cortes / pre-turnos
   useEffect(() => {
     getAnalisisRecorridos(30).then(res => {
@@ -359,6 +369,47 @@ export function OperacionDia({
   const capacidadMax35 = nActivas * 35;                          // límite aceptable
   const margenHasta35  = pkgTotal > 0 ? Math.max(0, capacidadMax35 - pkgTotal) : 0;
 
+  // Autoguardado: lee siempre el estado VIGENTE (refs), guarda, y al éxito
+  // limpia solo lo efectivamente guardado. Los toggles hechos mientras se
+  // guardaba quedan pendientes y disparan una nueva pasada automáticamente.
+  const programarAutosave = useCallback((delayMs = 2000) => {
+    if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
+    autoSaveRef.current = setTimeout(async () => {
+      const editadosSnap = { ...editadosRef.current };
+      if (Object.keys(editadosSnap).length === 0) return;
+      const rutasActualizadas = rutasRef.current.map(r => ({ ...r, ...editadosSnap[r.recorrido_id] }));
+      const payload = rutasActualizadas.map(r => ({
+        recorrido_id: r.recorrido_id,
+        activo: r.activo,
+        notas_dia: r.notas_dia ?? null,
+        paquetes_asignados: r.paquetes_asignados ?? 0,
+      }));
+      try {
+        const res = await guardarOperacionBulk(fecha, payload);
+        if (!res.ok) {
+          toast.error("No se pudo autoguardar — tus cambios siguen marcados", { description: res.error });
+          return;
+        }
+        // Aplicar lo guardado a las filas localmente (sin refetch que pise la UI)
+        setRutas(prev => prev.map(r => editadosSnap[r.recorrido_id] ? { ...r, ...editadosSnap[r.recorrido_id] } : r));
+        // Limpiar SOLO lo que se guardó y no cambió después
+        let quedanPendientes = false;
+        setEditados(prev => {
+          const next = { ...prev };
+          for (const id of Object.keys(editadosSnap)) {
+            if (JSON.stringify(next[id]) === JSON.stringify(editadosSnap[id])) delete next[id];
+          }
+          quedanPendientes = Object.keys(next).length > 0;
+          return next;
+        });
+        // Si el usuario siguió tildando durante el guardado, guardar eso también
+        if (quedanPendientes) programarAutosave(500);
+      } catch (e) {
+        toast.error("No se pudo autoguardar — tus cambios siguen marcados", { description: String(e) });
+      }
+    }, delayMs);
+  }, [fecha]);
+
   // Toggle activo/inactivo con autoguardado debounceado (2s)
   function toggleRuta(recorrido_id: string) {
     setEditados(prev => {
@@ -381,33 +432,15 @@ export function OperacionDia({
         });
       }
 
-      // Programar autoguardado 2 segundos después de la última acción
-      if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
-      autoSaveRef.current = setTimeout(async () => {
-        const editadosSnap = siguiente;
-        const rutasActualizadas = rutas.map(r => ({ ...r, ...editadosSnap[r.recorrido_id] }));
-        const payload = rutasActualizadas.map(r => ({
-          recorrido_id: r.recorrido_id,
-          activo: r.activo,
-          notas_dia: r.notas_dia ?? null,
-          paquetes_asignados: r.paquetes_asignados ?? 0,
-        }));
-        try {
-          const res = await guardarOperacionBulk(fecha, payload);
-          if (res.ok) {
-            setEditados({});
-            await cargar(fecha);
-          }
-        } catch { /* silencioso */ }
-      }, 2000);
-
+      programarAutosave();
       return siguiente;
     });
   }
 
-  // Editar nota
+  // Editar nota (también autoguarda, con debounce más largo para no guardar por tecla)
   function setNota(recorrido_id: string, nota: string) {
     setEditados(prev => ({ ...prev, [recorrido_id]: { ...prev[recorrido_id], notas_dia: nota } }));
+    programarAutosave(3000);
   }
 
   // Guardar todo

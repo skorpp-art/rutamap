@@ -78,27 +78,20 @@ export async function upsertOperacionRuta(
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
-// Bulk: guardar toda la operación del día de una vez
+// Bulk: guardar toda la operación del día en una sola RPC transaccional
+// (antes eran ~55 llamadas individuales que podían quedar a medias)
 export async function guardarOperacionBulk(
   fecha: string,
   rutas: { recorrido_id: string; activo: boolean; notas_dia: string | null; paquetes_asignados: number }[]
 ): Promise<{ ok: boolean; error?: string }> {
   try {
     const supabase = await createClient();
-    const resultados = await Promise.all(
-      rutas.map((r) =>
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (supabase as any).rpc("upsert_operacion_ruta", {
-          p_fecha: fecha,
-          p_recorrido_id: r.recorrido_id,
-          p_activo: r.activo,
-          p_notas: r.notas_dia,
-          p_paquetes: r.paquetes_asignados,
-        })
-      )
-    );
-    const err = resultados.find((r) => r.error);
-    if (err) return { ok: false, error: err.error.message };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc("upsert_operacion_bulk", {
+      p_fecha: fecha,
+      p_rutas: rutas,
+    });
+    if (error) return { ok: false, error: error.message };
     revalidatePath("/volumenes");
     return { ok: true };
   } catch (e) { return { ok: false, error: String(e) }; }

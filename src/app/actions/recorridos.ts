@@ -4,6 +4,17 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { Zona, TipoRecorrido } from "@/types/database.types";
 
+// El mapa es público: la UI oculta los botones de edición para invitados, pero
+// las server actions son endpoints invocables directamente. Toda acción que
+// modifica recorridos exige sesión acá, además de lo que imponga RLS.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function clienteAutenticado(): Promise<{ supabase: any; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { supabase: null, error: "Necesitás iniciar sesión para editar recorridos." };
+  return { supabase };
+}
+
 // ─── Geometría ────────────────────────────────────────────────────────────────
 
 export async function actualizarAreaRecorrido(
@@ -11,7 +22,8 @@ export async function actualizarAreaRecorrido(
   geojsonStr: string
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    const supabase = await createClient();
+    const { supabase, error: authError } = await clienteAutenticado();
+    if (authError) return { ok: false, error: authError };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any).rpc("actualizar_area_recorrido", {
       p_id: id,
@@ -30,7 +42,8 @@ export async function actualizarTrazaRecorrido(
   geojsonStr: string
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    const supabase = await createClient();
+    const { supabase, error: authError } = await clienteAutenticado();
+    if (authError) return { ok: false, error: authError };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any).rpc("actualizar_traza_recorrido", {
       p_id: id,
@@ -59,7 +72,8 @@ export async function crearRecorrido(
   datos: DatosRecorrido
 ): Promise<{ ok: boolean; id?: string; error?: string }> {
   try {
-    const supabase = await createClient();
+    const { supabase, error: authError } = await clienteAutenticado();
+    if (authError) return { ok: false, error: authError };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any).rpc("crear_recorrido", {
       p_codigo: datos.codigo,
@@ -82,7 +96,8 @@ export async function actualizarCamposRecorrido(
   datos: DatosRecorrido
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    const supabase = await createClient();
+    const { supabase, error: authError } = await clienteAutenticado();
+    if (authError) return { ok: false, error: authError };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any).rpc("actualizar_campos_recorrido", {
       p_id: id,
@@ -106,7 +121,8 @@ export async function toggleActivoRecorrido(
   activo: boolean
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    const supabase = await createClient();
+    const { supabase, error: authError } = await clienteAutenticado();
+    if (authError) return { ok: false, error: authError };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any).rpc("toggle_activo_recorrido", {
       p_id: id,
@@ -124,7 +140,8 @@ export async function eliminarRecorrido(
   id: string
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    const supabase = await createClient();
+    const { supabase, error: authError } = await clienteAutenticado();
+    if (authError) return { ok: false, error: authError };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any).rpc("eliminar_recorrido", { p_id: id });
     if (error) return { ok: false, error: error.message };
@@ -156,7 +173,8 @@ export async function duplicarRecorrido(
   nuevoCodigo: string
 ): Promise<{ ok: boolean; nuevoId?: string; error?: string }> {
   try {
-    const supabase = await createClient();
+    const { supabase, error: authError } = await clienteAutenticado();
+    if (authError) return { ok: false, error: authError };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any).rpc("duplicar_recorrido", {
       p_id: id,

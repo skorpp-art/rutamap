@@ -23,6 +23,7 @@ import { PALETA } from "@/lib/estados";
 import type { ModoEdicion } from "./MapaLeaflet";
 import type { RecorridoGeo, Zona } from "@/types/database.types";
 import { ZONAS } from "@/types/database.types";
+import { hoyAR } from "@/lib/fechas";
 
 // ── Calor de volumen: color por promedio de paquetes del recorrido ──────────
 // Bandas alineadas con la operación (objetivo ~30 pkg/chofer)
@@ -457,9 +458,15 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
     undoEnCurso.current = true;
     // Sincronizar el espejo para que el próximo cambio apile bien
     geometriaTemporalRef.current = prev;
-    // NO desactivamos modoEditarNodos: el efecto de polygonReemplazar refresca
+    // NO desactivamos modoEditarNodos: el efecto de reemplazo refresca
     // los handles de nodos automáticamente, manteniendo el modo de edición activo.
-    setPolygonReemplazar(prev);
+    // El estado de reemplazo correcto depende de qué se está editando: el editor
+    // de trazas solo reacciona a trazaReemplazar (y viceversa).
+    if (modoEdicion === "traza") {
+      setTrazaReemplazar(prev);
+    } else {
+      setPolygonReemplazar(prev);
+    }
     setGeometriaTemporal(prev);
     toast.success(`Deshecho · quedan ${hist.length - 1} paso${hist.length - 1 === 1 ? "" : "s"}`, { duration: 1500 });
   }
@@ -594,7 +601,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
       pdf.setTextColor(160);
       const fecha = new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
       pdf.text(`RutaMap · Generado el ${fecha}`, M, PH - 3);
-      pdf.save(`rutamap-${recorridoActivo.codigo}-${new Date().toISOString().slice(0, 10)}.pdf`);
+      pdf.save(`rutamap-${recorridoActivo.codigo}-${hoyAR()}.pdf`);
       toast.success("PDF del recorrido exportado");
     } catch (e) {
       toast.error("Error al generar PDF", { description: String(e) });

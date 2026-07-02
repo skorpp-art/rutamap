@@ -28,6 +28,7 @@ import { useChartTheme } from "@/hooks/useChartTheme";
 import { SkeletonCards, SkeletonChart } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ImportarClientes } from "./ImportarClientes";
+import { hoyAR } from "@/lib/fechas";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function inferirZona(codigo: string) {
@@ -267,7 +268,7 @@ function PatronDiaInline({ codigo }: { codigo: string }) {
 export function AnalisisOperaciones() {
   const [mostrarImportar, setMostrarImportar] = useState(false);
   const [tabImport, setTabImport] = useState<"operaciones" | "clientes">("operaciones");
-  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
+  const [fecha, setFecha] = useState(hoyAR());
   const [archivos, setArchivos] = useState<{
     nombre: string; turno: "tarde" | "preturno"; filas: FilaOperacion[];
   }[]>([]);

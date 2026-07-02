@@ -25,6 +25,7 @@ import type {
 } from "@/app/actions/analisis-diario";
 import { useChartTheme } from "@/hooks/useChartTheme";
 import { EmptyState } from "@/components/ui/empty-state";
+import { hoyAR } from "@/lib/fechas";
 
 // ── Helpers de parseo de los Excel ──────────────────────────────────────────
 function toInt(v: unknown): number {
@@ -314,7 +315,7 @@ export function AnalisisDiario() {
     : { payload: null, warnings: [] as string[] };
 
   // Día consultado
-  const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
+  const [fecha, setFecha] = useState(() => hoyAR());
   const [resumen, setResumen] = useState<(ResumenAnalisisDia & { fecha: string }) | null>(null);
   const [estados, setEstados] = useState<EstadoDia[]>([]);
   const [clientes, setClientes] = useState<ClienteDia[]>([]);
@@ -324,11 +325,8 @@ export function AnalisisDiario() {
   // Histórico
   const [clientesDisponibles, setClientesDisponibles] = useState<string[]>([]);
   const [clienteSel, setClienteSel] = useState<string>("");
-  const [desde, setDesde] = useState(() => {
-    const d = new Date(); d.setDate(1);
-    return d.toISOString().slice(0, 10);
-  });
-  const [hasta, setHasta] = useState(() => new Date().toISOString().slice(0, 10));
+  const [desde, setDesde] = useState(() => hoyAR().slice(0, 8) + "01"); // 1° del mes actual
+  const [hasta, setHasta] = useState(() => hoyAR());
   const [historicoGeneral, setHistoricoGeneral] = useState<HistoricoDia[]>([]);
   const [historicoCliente, setHistoricoCliente] = useState<HistoricoCliente[]>([]);
   const [clientesTotales, setClientesTotales] = useState<ClienteTotalPeriodo[]>([]);

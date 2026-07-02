@@ -18,8 +18,9 @@ import { useChartTheme } from "@/hooks/useChartTheme";
 import { SkeletonCards, SkeletonChart } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MetricCard } from "@/components/ui/metric-card";
+import { hoyAR } from "@/lib/fechas";
 
-function hoy() { return new Date().toISOString().slice(0, 10); }
+const hoy = hoyAR;
 
 // Objetivos por defecto (ajustables, se guardan en el navegador)
 const TARGETS_DEFAULT = { carga: 45, termino: 91, devol: 5 };

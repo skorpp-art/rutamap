@@ -10,12 +10,10 @@ import {
   upsertClienteManual, getClientesManuales, eliminarClienteManual,
 } from "@/app/actions/volumenes";
 import type { ClienteManual } from "@/app/actions/volumenes";
+import { hoyAR, addDiasAR } from "@/lib/fechas";
 
-function hoy(): string { return new Date().toISOString().slice(0, 10); }
-function addDias(iso: string, n: number): string {
-  const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
-}
+const hoy = hoyAR;
+const addDias = addDiasAR;
 function fechaDesdeNombre(nombre: string): string | null {
   const m = nombre.match(/(\d{8})/);
   if (!m) return null;

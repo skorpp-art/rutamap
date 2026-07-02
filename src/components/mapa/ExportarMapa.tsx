@@ -7,6 +7,7 @@ import { FileImage, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { RecorridoGeo } from "@/types/database.types";
+import { hoyAR } from "@/lib/fechas";
 
 interface ExportarMapaProps {
   recorridos: RecorridoGeo[];
@@ -45,7 +46,7 @@ export function ExportarMapa({ recorridos, oculto }: ExportarMapaProps) {
     try {
       const dataUrl = await capturarMapa();
       const link = document.createElement("a");
-      link.download = `rutamap-${new Date().toISOString().slice(0, 10)}.png`;
+      link.download = `rutamap-${hoyAR()}.png`;
       link.href = dataUrl;
       link.click();
       toast.success("Imagen PNG exportada");
@@ -135,7 +136,7 @@ export function ExportarMapa({ recorridos, oculto }: ExportarMapaProps) {
         PH - 3
       );
 
-      pdf.save(`rutamap-${new Date().toISOString().slice(0, 10)}.pdf`);
+      pdf.save(`rutamap-${hoyAR()}.pdf`);
       toast.success("PDF exportado correctamente");
     } catch (e) {
       toast.error("Error al exportar PDF", { description: String(e) });
