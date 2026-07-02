@@ -39,6 +39,11 @@ function toPct(v: unknown): number {
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
+// Algunos exports de Excel vienen sin tildes (ej. "Despues" en vez de "Después").
+// Normalizamos antes de comparar para que el parser no dependa de eso.
+function sinAcentos(s: string): string {
+  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+}
 function parseFechaFromTitle(title: string): string | null {
   const m = title.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (!m) return null;
@@ -64,7 +69,7 @@ function parseResumenRendimiento(rows: any[][]) {
       const f = parseFechaFromTitle(label);
       if (f) fecha = f;
     }
-    if (label.includes("Después de las 21")) {
+    if (sinAcentos(label).includes("despues de las 21")) {
       post21 = { total: toInt(row[1]), entregados: toInt(row[2]), pctExito: toPct(row[3]) };
     }
   }
@@ -97,8 +102,8 @@ function parseResumenGeneral(rows: any[][]) {
       const f = parseFechaFromTitle(label);
       if (f) fecha = f;
     }
-    if (label.includes("Total General de Paquetes")) totalPaquetes = toInt(row[1]);
-    if (label.includes("RESUMEN DE ENVÍOS POR ESTADO")) { enEstadosSection = true; continue; }
+    if (sinAcentos(label).includes("total general de paquetes")) totalPaquetes = toInt(row[1]);
+    if (sinAcentos(label).includes("resumen de envios por estado")) { enEstadosSection = true; continue; }
     if (enEstadosSection) {
       if (!label) { enEstadosSection = false; continue; }
       estados.push({ estado: label, cantidad: toInt(row[1]), pct: toPct(row[2]) });
