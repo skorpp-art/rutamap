@@ -114,16 +114,25 @@ function parseResumenGeneral(rows: any[][]) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseResumenPorCliente(rows: any[][]) {
-  const out: { cliente: string; cantidad: number; pctDelDia: number; enCamino: number }[] = [];
+  // Algunos exports traen el mismo cliente en más de una fila (ej. WSTANDARD
+  // duplicado) — se combinan en una sola para no violar la clave única (fecha, cliente).
+  const porCliente = new Map<string, { cliente: string; cantidad: number; pctDelDia: number; enCamino: number }>();
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     const cliente = String(row[0] ?? "").trim();
     if (!cliente) continue;
     const cantidad = toInt(row[1]);
     if (cantidad === 0) continue;
-    out.push({ cliente, cantidad, pctDelDia: toPct(row[2]), enCamino: toInt(row[3]) });
+    const prev = porCliente.get(cliente);
+    if (prev) {
+      prev.cantidad += cantidad;
+      prev.pctDelDia += toPct(row[2]);
+      prev.enCamino += toInt(row[3]);
+    } else {
+      porCliente.set(cliente, { cliente, cantidad, pctDelDia: toPct(row[2]), enCamino: toInt(row[3]) });
+    }
   }
-  return out;
+  return [...porCliente.values()];
 }
 
 interface TardeRaw {
