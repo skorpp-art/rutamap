@@ -516,11 +516,15 @@ export function AnalisisDiario() {
     enCamino: c.total_en_camino,
     pctEnCamino: c.pct_en_camino,
   }));
-  const totalesPeriodo = historicoGeneral.reduce((acc, d) => ({
-    total: acc.total + d.total_paquetes,
-    post21: acc.post21 + d.post21_total,
-    enCamino: acc.enCamino + d.en_camino_destinatario,
-  }), { total: 0, post21: 0, enCamino: 0 });
+  const totalesPeriodo = historicoGeneral.reduce((acc, d) => {
+    const post21Sin = Math.max(0, d.post21_total - (d.post21_entregados ?? 0));
+    return {
+      total: acc.total + d.total_paquetes,
+      post21: acc.post21 + d.post21_total,
+      enCamino: acc.enCamino + d.en_camino_destinatario,
+      post21SinEntregar: acc.post21SinEntregar + post21Sin,
+    };
+  }, { total: 0, post21: 0, enCamino: 0, post21SinEntregar: 0 });
 
   return (
     <div className="h-full overflow-y-auto p-6 space-y-5">
@@ -640,7 +644,11 @@ export function AnalisisDiario() {
                 <MiniKpi label="Total paquetes" valor={previa.resumen.total_paquetes.toLocaleString("es-AR")} />
                 <MiniKpi label="% éxito" valor={`${previa.resumen.pct_exito.toFixed(2)}%`} />
                 <MiniKpi label="Post-21" valor={`${previa.resumen.post21_total} (${previa.resumen.post21_pct_del_dia.toFixed(2)}%)`} />
-                <MiniKpi label="Demorados" valor={`${previa.resumen.en_camino_destinatario} (${previa.resumen.en_camino_destinatario_pct.toFixed(2)}%)`} />
+                <MiniKpi label="Demorados totales" valor={(() => {
+                  const post21Sin = Math.max(0, previa.resumen.post21_total - previa.resumen.post21_entregados);
+                  const camino = Math.max(0, previa.resumen.en_camino_destinatario - post21Sin);
+                  return `${camino} + ${post21Sin} post-21 = ${previa.resumen.en_camino_destinatario}`;
+                })()} />
               </div>
               <p className="text-[11px] text-muted-foreground">
                 {previa.clientes.length} clientes · {previa.tardeZona.length} zonas con tardanza · {previa.tardeChofer.length} choferes con tardanza
@@ -739,8 +747,12 @@ function DiaView({
               sub={`${resumen.entregados.toLocaleString("es-AR")} entregados`} tono="emerald" />
             <KpiCard icon={Clock} label="Post-21hs" valor={`${resumen.post21_total} · ${resumen.post21_pct_del_dia.toFixed(1)}%`}
               sub={`% éxito tardío: ${resumen.post21_pct_exito.toFixed(1)}%`} tono="amber" />
-            <KpiCard icon={Truck} label="Demorados" valor={`${resumen.en_camino_destinatario} · ${resumen.en_camino_destinatario_pct.toFixed(1)}%`}
-              sub="en camino al destinatario + post-21hs sin entregar" tono="red" />
+            <KpiCard icon={Truck} label="Demorados totales" valor={`${resumen.en_camino_destinatario} · ${resumen.en_camino_destinatario_pct.toFixed(1)}%`}
+              sub={(() => {
+                const post21Sin = Math.max(0, resumen.post21_total - resumen.post21_entregados);
+                const camino = Math.max(0, resumen.en_camino_destinatario - post21Sin);
+                return `${camino} en camino + ${post21Sin} post-21hs sin entregar`;
+              })()} tono="red" />
           </div>
 
           <div className="grid lg:grid-cols-5 gap-4">
@@ -927,7 +939,7 @@ function HistoricoView({
   cargando: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   chartGeneral: any[]; chartCliente: any[]; chartClientesTotales: any[];
-  totalesPeriodo: { total: number; post21: number; enCamino: number };
+  totalesPeriodo: { total: number; post21: number; enCamino: number; post21SinEntregar: number };
   historicoCliente: HistoricoCliente[];
   zonasTotales: ZonaTotalPeriodo[];
   estadosTotales: EstadoTotalPeriodo[];
@@ -961,8 +973,8 @@ function HistoricoView({
             <KpiCard icon={Clock} label="Total post-21hs" valor={totalesPeriodo.post21.toLocaleString("es-AR")}
               sub={totalesPeriodo.total > 0 ? `${round2(totalesPeriodo.post21 / totalesPeriodo.total * 100).toFixed(2)}% del total` : undefined}
               tono="amber" />
-            <KpiCard icon={Truck} label="Total demorados" valor={totalesPeriodo.enCamino.toLocaleString("es-AR")}
-              sub={totalesPeriodo.total > 0 ? `${round2(totalesPeriodo.enCamino / totalesPeriodo.total * 100).toFixed(2)}% del total — post-21hs sin entregar` : undefined}
+            <KpiCard icon={Truck} label="Demorados totales" valor={totalesPeriodo.enCamino.toLocaleString("es-AR")}
+              sub={`${Math.max(0, totalesPeriodo.enCamino - totalesPeriodo.post21SinEntregar).toLocaleString("es-AR")} en camino + ${totalesPeriodo.post21SinEntregar.toLocaleString("es-AR")} post-21hs sin entregar${totalesPeriodo.total > 0 ? ` · ${round2(totalesPeriodo.enCamino / totalesPeriodo.total * 100).toFixed(2)}% del total` : ""}`}
               tono="red" />
           </div>
 
@@ -980,7 +992,7 @@ function HistoricoView({
                   <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} unit="%" />
                   <Tooltip {...ct.tooltip} />
                   <Bar yAxisId="cant" dataKey="total" name="Paquetes totales" fill="#1d4ed8" radius={[3, 3, 0, 0]} />
-                  <Bar yAxisId="cant" dataKey="enCaminoTotal" name="Demorados" fill="#ef4444" radius={[3, 3, 0, 0]} />
+                  <Bar yAxisId="cant" dataKey="enCaminoTotal" name="Demorados totales" fill="#ef4444" radius={[3, 3, 0, 0]} />
                   <Line yAxisId="pct" type="monotone" dataKey="pctExito" name="% éxito" stroke="#16a34a" strokeWidth={2} dot={false} />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -1057,7 +1069,7 @@ function HistoricoView({
                   <YAxis type="category" dataKey="cliente" width={120} tick={{ fontSize: 10, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
                   <Tooltip {...ct.tooltip} labelFormatter={(_, p) => p?.[0]?.payload?.clienteCompleto ?? ""} />
                   <Bar dataKey="total" name="Paquetes totales" fill="#1d4ed8" radius={[0, 4, 4, 0]} />
-                  <Bar dataKey="enCamino" name="Demorados" fill="#ef4444" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="enCamino" name="En camino al destinatario" fill="#ef4444" radius={[0, 4, 4, 0]} />
                 </ComposedChart>
               </ResponsiveContainer>
             )}
@@ -1080,8 +1092,8 @@ function HistoricoView({
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <KpiCard icon={Package} label={`Paquetes de ${clienteSel}`} valor={totalPaq.toLocaleString("es-AR")}
                   sub={`${historicoCliente.length} día(s) con envíos`} tono="blue" />
-                <KpiCard icon={CheckCircle} label="% de éxito" valor={`${pctExito.toFixed(2)}%`}
-                  sub="entregados a tiempo" tono="emerald" />
+                <KpiCard icon={CheckCircle} label="% sin demoras" valor={`${pctExito.toFixed(2)}%`}
+                  sub="100% menos sus demorados (el Excel no trae entregados por cliente)" tono="emerald" />
                 <KpiCard icon={Truck} label="Paquetes demorados" valor={totalDem.toLocaleString("es-AR")}
                   sub="post-21hs sin entregar" tono="red" />
                 <KpiCard icon={Clock} label="% demorados s/ su total" valor={`${pctDem.toFixed(2)}%`}

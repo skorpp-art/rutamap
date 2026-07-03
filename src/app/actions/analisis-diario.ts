@@ -128,6 +128,7 @@ export interface HistoricoDia {
   total_paquetes: number;
   pct_exito: number;
   post21_total: number;
+  post21_entregados: number;
   post21_pct_del_dia: number;
   post21_pct_exito: number;
   en_camino_destinatario: number;
