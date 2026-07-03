@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Solo estas rutas requieren sesión. Todo lo demás (incluido el mapa "/") es público.
-const RUTAS_PROTEGIDAS = ["/volumenes"];
+const RUTAS_PROTEGIDAS = ["/volumenes", "/usuarios"];
 const RUTAS_AUTH = ["/login", "/registro"];
 
 export async function middleware(request: NextRequest) {

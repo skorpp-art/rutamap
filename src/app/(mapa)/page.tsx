@@ -5,9 +5,15 @@ import type { RecorridoGeo } from "@/types/database.types";
 export default async function MapaPage() {
   const supabase = await createClient();
 
-  // Detectar si es invitado (sin sesión) → modo solo lectura
+  // Invitados y roles de solo lectura (gerencia/asesor) ven sin editar;
+  // solo maestro/supervisor/coordinador pueden modificar recorridos.
   const { data: { user } } = await supabase.auth.getUser();
-  const puedeEditar = !!user;
+  let puedeEditar = false;
+  if (user) {
+    const { data: perfil } = await supabase
+      .from("perfiles").select("rol").eq("id", user.id).single<{ rol: string }>();
+    puedeEditar = ["maestro", "supervisor", "coordinador"].includes(perfil?.rol ?? "");
+  }
 
   const { data, error } = await supabase.rpc("get_recorridos_con_geojson");
 

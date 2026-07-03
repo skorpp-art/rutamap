@@ -4,7 +4,7 @@
 
 export type Zona = "CABA" | "Norte" | "Sur" | "Oeste";
 export type TipoRecorrido = "fijo" | "suplencia" | "corte" | "pre_turno" | "unificado";
-export type Rol = "supervisor" | "coordinador" | "lector";
+export type Rol = "maestro" | "gerencia" | "supervisor" | "coordinador" | "asesor";
 export type AccionHistorial =
   | "edicion"
   | "corte"

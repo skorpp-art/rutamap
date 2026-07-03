@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { MapPin, LogOut, User, ChevronDown, Truck, Map, Package, Lock, LogIn, Search, RefreshCw, TrendingUp, TrendingDown, Minus, BarChart3 } from "lucide-react";
+import { MapPin, LogOut, User, Users, ChevronDown, Truck, Map, Package, Lock, LogIn, Search, RefreshCw, TrendingUp, TrendingDown, Minus, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -200,6 +200,12 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {perfil?.rol === "maestro" && (
+              <DropdownMenuItem className="cursor-pointer" onClick={() => router.push("/usuarios")}>
+                <Users className="h-4 w-4" />
+                Usuarios
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               className="text-destructive focus:text-destructive cursor-pointer"
               onClick={handleLogout}
