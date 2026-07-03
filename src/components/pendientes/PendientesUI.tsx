@@ -1,10 +1,11 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   Upload, Package, Calendar, RefreshCw, CheckCircle2, Circle, Search,
-  AlertTriangle, MapPin, Truck, ChevronDown, ChevronRight, X,
+  AlertTriangle, MapPin, Truck, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -13,6 +14,13 @@ import {
   type Pendiente, type PendienteFila, type FechaPendiente,
 } from "@/app/actions/pendientes";
 import type { PendientesStats } from "./PendientesPanel";
+
+function fmtFechaHog(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
 
 const MACROZONA_COLOR: Record<string, string> = {
   NORTE: "text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40",
@@ -42,7 +50,35 @@ export function PendientesUI({
   confirmImport, setConfirmImport, ejecutarImport, recargar, setPendientes,
 }: Props) {
 
-  const pctRecibido = stats.total > 0 ? Math.round(stats.recibidos / stats.total * 100) : 0;
+  // Filtro por zona (principal): al elegir una zona, contadores y conductores
+  // se acotan a esa macrozona. Las tarjetas de zona siempre muestran el total global.
+  const [filtroZona, setFiltroZona] = useState<string | null>(null);
+
+  const visibles = useMemo(
+    () => filtroZona ? pendientes.filter(p => p.macrozona === filtroZona) : pendientes,
+    [pendientes, filtroZona]
+  );
+
+  // Contadores según la zona elegida
+  const vTotal = visibles.length;
+  const vRecibidos = visibles.filter(p => p.recibido).length;
+  const vFaltan = vTotal - vRecibidos;
+  const vUrgentes = visibles.filter(p => p.urgencia === "urgente").length;
+  const vUrgentesFaltan = visibles.filter(p => p.urgencia === "urgente" && !p.recibido).length;
+  const pctRecibido = vTotal > 0 ? Math.round(vRecibidos / vTotal * 100) : 0;
+
+  // Conductores de la zona elegida
+  const cadetes = useMemo(() => {
+    const m = new Map<string, { total: number; recibidos: number; urgentes: number }>();
+    for (const p of visibles) {
+      const c = p.cadete || "Sin asignar";
+      const cc = m.get(c) ?? { total: 0, recibidos: 0, urgentes: 0 };
+      cc.total++; if (p.recibido) cc.recibidos++; if (p.urgencia === "urgente") cc.urgentes++;
+      m.set(c, cc);
+    }
+    return [...m.entries()].map(([cadete, v]) => ({ cadete, ...v }))
+      .sort((a, b) => (b.total - b.recibidos) - (a.total - a.recibidos) || b.total - a.total);
+  }, [visibles]);
 
   // Marcar un paquete (optimista)
   async function toggle(p: Pendiente) {
@@ -67,14 +103,23 @@ export function PendientesUI({
     toast.success(`${cadete}: ${recibido ? "todo recibido" : "desmarcado"} (${res.actualizados})`);
   }
 
-  const detalleCadete = (cadete: string) =>
-    pendientes.filter(p => (p.cadete ?? "Sin asignar") === cadete)
+  // Paquetes de un conductor (en la zona filtrada). La búsqueda por texto NO se
+  // aplica a los paquetes cuando coincide con el nombre del conductor: así, al
+  // buscar un cadete, se ven todos sus paquetes (era el bug de la lista vacía).
+  const detalleCadete = (cadete: string) => {
+    const q = busqueda.trim().toLowerCase();
+    const buscaCadete = q !== "" && cadete.toLowerCase().includes(q);
+    return visibles.filter(p => (p.cadete ?? "Sin asignar") === cadete)
       .filter(p => !soloNoRecibidos || !p.recibido)
-      .filter(p => !busqueda || [p.cliente, p.direccion, p.tracking, p.zona].some(v => v?.toLowerCase().includes(busqueda.toLowerCase())));
+      .filter(p => !q || buscaCadete || [p.cliente, p.direccion, p.tracking, p.zona].some(v => v?.toLowerCase().includes(q)))
+      .sort((a, b) => (a.recibido === b.recibido ? 0 : a.recibido ? 1 : -1)
+        || (a.urgencia === "urgente" ? -1 : b.urgencia === "urgente" ? 1 : 0));
+  };
 
-  const cadetesFiltrados = stats.cadetes.filter(c =>
-    !busqueda || c.cadete.toLowerCase().includes(busqueda.toLowerCase()) || detalleCadete(c.cadete).length > 0
-  );
+  const cadetesFiltrados = cadetes.filter(c => {
+    const q = busqueda.trim().toLowerCase();
+    return !q || c.cadete.toLowerCase().includes(q) || detalleCadete(c.cadete).length > 0;
+  });
 
   return (
     <div className="h-full overflow-y-auto">
@@ -124,45 +169,27 @@ export function PendientesUI({
             description={puedeEditar ? "Importá el Excel de Pendientes para empezar el control de recepción." : "Todavía no se cargó el reporte de este día."} />
         ) : (
           <>
-            {/* ── Contadores de control de recepción ── */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="border rounded-xl p-4 bg-card">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Total pendientes</p>
-                <p className="text-2xl font-bold tabular-nums mt-1">{stats.total}</p>
-              </div>
-              <div className="border rounded-xl p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/50">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Recibidos</p>
-                <p className="text-2xl font-bold tabular-nums mt-1 text-emerald-700 dark:text-emerald-300">{stats.recibidos}</p>
-                <p className="text-[11px] text-muted-foreground">{pctRecibido}% del total</p>
-              </div>
-              <div className={cn("border rounded-xl p-4",
-                stats.faltan > 0 ? "bg-red-50/50 dark:bg-red-950/20 border-red-200/60 dark:border-red-900/50" : "bg-card")}>
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Faltan por recibir</p>
-                <p className={cn("text-2xl font-bold tabular-nums mt-1", stats.faltan > 0 && "text-red-600 dark:text-red-300")}>{stats.faltan}</p>
-              </div>
-              <div className="border rounded-xl p-4 bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/50">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Urgentes sin recibir</p>
-                <p className={cn("text-2xl font-bold tabular-nums mt-1", stats.urgentesFaltan > 0 && "text-amber-700 dark:text-amber-300")}>
-                  {stats.urgentesFaltan}<span className="text-sm text-muted-foreground font-normal"> / {stats.urgentes}</span>
-                </p>
-              </div>
-            </div>
-
-            {/* Barra de progreso general */}
-            <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-              <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pctRecibido}%` }} />
-            </div>
-
-            {/* ── Por zona ── */}
+            {/* ── Por zona (filtro principal) ── */}
             <div>
               <p className="text-xs font-semibold mb-2 flex items-center gap-1.5">
                 <MapPin className="h-3.5 w-3.5 text-muted-foreground" /> Por zona
+                <span className="text-[11px] text-muted-foreground font-normal">— clic para ver los paquetes de esa zona</span>
               </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                {/* Chip "Todas" */}
+                <button onClick={() => setFiltroZona(null)}
+                  className={cn("border rounded-xl p-3 text-left transition-all",
+                    filtroZona === null ? "border-blue-500 ring-2 ring-blue-400/40 bg-blue-50/40 dark:bg-blue-950/30" : "bg-card hover:border-blue-300")}>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">TODAS</span>
+                  <p className="text-lg font-bold tabular-nums mt-1">{stats.recibidos}<span className="text-xs text-muted-foreground font-normal">/{stats.total}</span></p>
+                </button>
                 {stats.zonas.map(z => {
                   const faltan = z.total - z.recibidos;
+                  const sel = filtroZona === z.zona;
                   return (
-                    <div key={z.zona} className="border rounded-xl p-3 bg-card">
+                    <button key={z.zona} onClick={() => setFiltroZona(sel ? null : z.zona)}
+                      className={cn("border rounded-xl p-3 text-left transition-all",
+                        sel ? "border-blue-500 ring-2 ring-blue-400/40 bg-blue-50/40 dark:bg-blue-950/30" : "bg-card hover:border-blue-300")}>
                       <div className="flex items-center justify-between mb-1">
                         <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded", MACROZONA_COLOR[z.zona] ?? "bg-muted text-muted-foreground")}>{z.zona}</span>
                         {faltan === 0
@@ -173,10 +200,41 @@ export function PendientesUI({
                       <div className="h-1 w-full rounded-full bg-muted overflow-hidden mt-1">
                         <div className="h-full rounded-full bg-emerald-500" style={{ width: `${z.total > 0 ? z.recibidos / z.total * 100 : 0}%` }} />
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
+            </div>
+
+            {/* ── Contadores (de la zona elegida) ── */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="border rounded-xl p-4 bg-card">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
+                  {filtroZona ? `Pendientes ${filtroZona}` : "Total pendientes"}
+                </p>
+                <p className="text-2xl font-bold tabular-nums mt-1">{vTotal}</p>
+              </div>
+              <div className="border rounded-xl p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/50">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Recibidos</p>
+                <p className="text-2xl font-bold tabular-nums mt-1 text-emerald-700 dark:text-emerald-300">{vRecibidos}</p>
+                <p className="text-[11px] text-muted-foreground">{pctRecibido}% del total</p>
+              </div>
+              <div className={cn("border rounded-xl p-4",
+                vFaltan > 0 ? "bg-red-50/50 dark:bg-red-950/20 border-red-200/60 dark:border-red-900/50" : "bg-card")}>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Faltan por recibir</p>
+                <p className={cn("text-2xl font-bold tabular-nums mt-1", vFaltan > 0 && "text-red-600 dark:text-red-300")}>{vFaltan}</p>
+              </div>
+              <div className="border rounded-xl p-4 bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/50">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Urgentes sin recibir</p>
+                <p className={cn("text-2xl font-bold tabular-nums mt-1", vUrgentesFaltan > 0 && "text-amber-700 dark:text-amber-300")}>
+                  {vUrgentesFaltan}<span className="text-sm text-muted-foreground font-normal"> / {vUrgentes}</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Barra de progreso */}
+            <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+              <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pctRecibido}%` }} />
             </div>
 
             {/* ── Filtros ── */}
@@ -245,17 +303,28 @@ export function PendientesUI({
                           {detalle.map(p => (
                             <div key={p.id}
                               onClick={() => toggle(p)}
-                              className={cn("flex items-center gap-2.5 pl-11 pr-4 py-2 text-xs",
-                                puedeEditar && "cursor-pointer hover:bg-muted/40")}>
+                              className={cn("flex items-start gap-2.5 pl-11 pr-4 py-2.5 text-xs",
+                                puedeEditar && "cursor-pointer hover:bg-muted/40",
+                                p.recibido && "opacity-60")}>
                               {p.recibido
-                                ? <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                                : <Circle className="h-4 w-4 text-muted-foreground/40 shrink-0" />}
-                              {p.urgencia === "urgente" && <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" title="Urgente" />}
-                              {p.urgencia === "prioridad" && <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0" title="Prioridad" />}
-                              <span className="font-medium truncate max-w-[9rem]">{p.cliente ?? "—"}</span>
-                              <span className="text-muted-foreground truncate flex-1">{p.direccion ?? ""}</span>
-                              <span className="text-muted-foreground shrink-0 hidden sm:inline">{p.zona ?? ""}</span>
-                              <span className={cn("text-[10px] px-1.5 py-0.5 rounded shrink-0", "bg-muted text-muted-foreground")}>{p.estado ?? ""}</span>
+                                ? <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                                : <Circle className="h-4 w-4 text-muted-foreground/40 shrink-0 mt-0.5" />}
+                              <div className="flex-1 min-w-0">
+                                {/* Línea 1: cliente + urgencia + estado */}
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {p.urgencia === "urgente" && <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" title="Urgente (+2 días)" />}
+                                  {p.urgencia === "prioridad" && <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0" title="Prioridad (1 día)" />}
+                                  <span className="font-semibold">{p.cliente ?? "—"}</span>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{p.estado ?? "—"}</span>
+                                  <span className="text-muted-foreground ml-auto shrink-0 tabular-nums">{fmtFechaHog(p.fecha_hogareno)}</span>
+                                </div>
+                                {/* Línea 2: dirección + localidad */}
+                                <p className="text-muted-foreground mt-0.5">
+                                  {p.direccion ?? "Sin dirección"}
+                                  {p.zona && <span className="text-foreground/70"> · {p.zona}</span>}
+                                  {p.tracking && <span className="text-muted-foreground/60 font-mono"> · {p.tracking}</span>}
+                                </p>
+                              </div>
                             </div>
                           ))}
                           {detalle.length === 0 && (
