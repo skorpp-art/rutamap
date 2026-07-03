@@ -3,8 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Users, RefreshCw, ShieldCheck, Eye, Pencil } from "lucide-react";
-import { getUsuarios, setRolUsuario, ROLES, type UsuarioAdmin, type Rol } from "@/app/actions/usuarios";
+import { Users, RefreshCw, ShieldCheck, Eye, Pencil, UserPlus, Loader2 } from "lucide-react";
+import { getUsuarios, setRolUsuario, crearUsuario, ROLES, type UsuarioAdmin, type Rol } from "@/app/actions/usuarios";
 import { EmptyState } from "@/components/ui/empty-state";
 
 // Qué puede hacer cada rol — mostrado como referencia en el panel
@@ -40,6 +40,27 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
   const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([]);
   const [cargando, setCargando] = useState(true);
   const [guardandoId, setGuardandoId] = useState<string | null>(null);
+  // Formulario "crear usuario"
+  const [nuevoNombre, setNuevoNombre] = useState("");
+  const [nuevoEmail, setNuevoEmail] = useState("");
+  const [nuevaPass, setNuevaPass] = useState("");
+  const [nuevoRol, setNuevoRol] = useState<Rol>("coordinador");
+  const [creando, setCreando] = useState(false);
+
+  async function onCrear(e: React.FormEvent) {
+    e.preventDefault();
+    if (nuevoNombre.trim().length < 2) { toast.error("Ingresá un nombre"); return; }
+    if (!nuevoEmail.includes("@")) { toast.error("Email inválido"); return; }
+    if (nuevaPass.length < 6) { toast.error("La contraseña debe tener al menos 6 caracteres"); return; }
+    setCreando(true);
+    try {
+      const res = await crearUsuario(nuevoNombre, nuevoEmail, nuevaPass, nuevoRol);
+      if (!res.ok) { toast.error("No se pudo crear la cuenta", { description: res.error }); return; }
+      toast.success(`Cuenta creada para ${nuevoNombre} (${ROL_INFO[nuevoRol].label})`);
+      setNuevoNombre(""); setNuevoEmail(""); setNuevaPass(""); setNuevoRol("coordinador");
+      await cargar();
+    } finally { setCreando(false); }
+  }
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -80,6 +101,38 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
           <RefreshCw className={cn("h-4 w-4 text-muted-foreground", cargando && "animate-spin")} />
         </button>
       </div>
+
+      {/* Crear cuenta directamente (recomendado para uso interno) */}
+      <form onSubmit={onCrear} className="border rounded-xl p-4 bg-card space-y-3">
+        <p className="text-sm font-semibold flex items-center gap-1.5">
+          <UserPlus className="h-4 w-4 text-blue-600 dark:text-blue-300" /> Crear cuenta
+        </p>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
+          <input value={nuevoNombre} onChange={e => setNuevoNombre(e.target.value)}
+            placeholder="Nombre completo" autoComplete="off"
+            className="text-sm border rounded-lg px-3 py-2 bg-background" />
+          <input value={nuevoEmail} onChange={e => setNuevoEmail(e.target.value)}
+            placeholder="Email" type="email" autoComplete="off"
+            className="text-sm border rounded-lg px-3 py-2 bg-background" />
+          <input value={nuevaPass} onChange={e => setNuevaPass(e.target.value)}
+            placeholder="Contraseña (mín. 6)" type="text" autoComplete="new-password"
+            className="text-sm border rounded-lg px-3 py-2 bg-background" />
+          <select value={nuevoRol} onChange={e => setNuevoRol(e.target.value as Rol)}
+            className="text-sm border rounded-lg px-3 py-2 bg-background">
+            {ROLES.map(r => <option key={r} value={r}>{ROL_INFO[r].label}</option>)}
+          </select>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[11px] text-muted-foreground">
+            La cuenta queda lista para usar (sin confirmación de mail). Pasale el email y la contraseña a la persona.
+          </p>
+          <button type="submit" disabled={creando}
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-medium bg-brand-blue text-white hover:bg-brand-blue/90 disabled:opacity-60 shrink-0">
+            {creando ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+            Crear
+          </button>
+        </div>
+      </form>
 
       {/* Referencia de roles */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
