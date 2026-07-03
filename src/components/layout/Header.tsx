@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { MapPin, LogOut, User, Users, ChevronDown, Truck, Map, Package, Lock, LogIn, Search, RefreshCw, TrendingUp, TrendingDown, Minus, BarChart3 } from "lucide-react";
+import { MapPin, LogOut, User, Users, ChevronDown, Truck, Map, Package, Lock, LogIn, Search, RefreshCw, TrendingUp, TrendingDown, Minus, BarChart3, PackageCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -254,6 +254,19 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
         Análisis del Día
         {esInvitado && <Lock className="h-3 w-3 opacity-60" />}
       </button>
+      {!esInvitado && (
+        <button
+          onClick={() => router.push("/pendientes")}
+          className={cn(
+            "flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-150",
+            pathname === "/pendientes" ? "bg-brand-blue text-white shadow-sm" : "text-white/70 hover:bg-white/10 hover:text-white"
+          )}
+          title="Control de pendientes del día"
+        >
+          <PackageCheck className="h-4 w-4" />
+          Pendientes
+        </button>
+      )}
     </div>
     </>
   );
