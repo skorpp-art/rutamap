@@ -77,3 +77,31 @@ export async function getTotalPaquetesFecha(
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
+
+export interface SugerenciaRuta {
+  recorrido_id: string;
+  codigo: string;
+  nombre: string;
+  zona: string;
+  tipo: string;
+  veces_activo: number;
+  total_dias_dow: number;
+  freq_pct: number;
+  sugerido: boolean;
+}
+
+// Pre-armado del día: sugiere qué recorridos activar según su frecuencia
+// histórica en el mismo día de la semana (los fijos siempre).
+export async function getSugerenciaOperacion(
+  fecha: string, umbral = 0.5
+): Promise<{ ok: boolean; data?: SugerenciaRuta[]; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("sugerir_operacion_dia", {
+      p_fecha: fecha, p_dias: 90, p_umbral: umbral,
+    });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, data: (data ?? []) as SugerenciaRuta[] };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
