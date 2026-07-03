@@ -201,6 +201,26 @@ export async function getZonasTotalesPeriodo(
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
+export interface ChoferTotalPeriodo {
+  chofer: string;
+  cantidad: number;
+  entregados: number;
+  pct_efectividad: number;
+  dias_con_tardanzas: number;
+}
+
+export async function getChoferesTotalesPeriodo(
+  desde: string, hasta: string
+): Promise<{ ok: boolean; data?: ChoferTotalPeriodo[]; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("get_choferes_totales_periodo", { p_desde: desde, p_hasta: hasta });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, data: (data ?? []) as ChoferTotalPeriodo[] };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
 export interface EstadoTotalPeriodo {
   estado: string;
   cantidad: number;

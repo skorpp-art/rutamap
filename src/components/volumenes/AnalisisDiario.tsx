@@ -16,16 +16,16 @@ import {
   guardarAnalisisDiario, getAnalisisDiario, getAnalisisDiarioEstados,
   getAnalisisDiarioClientes, getAnalisisDiarioHistorico,
   getHistoricoCliente, getClientesAnalisisDiario, getClientesTotalesPeriodo,
-  getZonasTotalesPeriodo, getEstadosTotalesPeriodo,
+  getZonasTotalesPeriodo, getEstadosTotalesPeriodo, getChoferesTotalesPeriodo,
 } from "@/app/actions/analisis-diario";
 import type {
   AnalisisDiarioPayload, ResumenAnalisisDia, EstadoDia, ClienteDia,
   HistoricoDia, HistoricoCliente, ClienteTotalPeriodo,
-  ZonaTotalPeriodo, EstadoTotalPeriodo,
+  ZonaTotalPeriodo, EstadoTotalPeriodo, ChoferTotalPeriodo,
 } from "@/app/actions/analisis-diario";
 import { useChartTheme } from "@/hooks/useChartTheme";
 import { EmptyState } from "@/components/ui/empty-state";
-import { hoyAR } from "@/lib/fechas";
+import { hoyAR, addDiasAR } from "@/lib/fechas";
 
 // ── Helpers de parseo de los Excel ──────────────────────────────────────────
 function toInt(v: unknown): number {
@@ -330,20 +330,24 @@ export function AnalisisDiario() {
   const [historicoCliente, setHistoricoCliente] = useState<HistoricoCliente[]>([]);
   const [clientesTotales, setClientesTotales] = useState<ClienteTotalPeriodo[]>([]);
   const [zonasTotales, setZonasTotales] = useState<ZonaTotalPeriodo[]>([]);
+  const [choferesTotales, setChoferesTotales] = useState<ChoferTotalPeriodo[]>([]);
+  const [resumenSemAnt, setResumenSemAnt] = useState<(ResumenAnalisisDia & { fecha: string }) | null>(null);
   const [estadosTotales, setEstadosTotales] = useState<EstadoTotalPeriodo[]>([]);
   const [cargandoHistorico, setCargandoHistorico] = useState(false);
 
   const cargarDia = useCallback(async (f: string) => {
     setCargando(true);
     try {
-      const [r1, r2, r3] = await Promise.all([
+      const [r1, r2, r3, rAnt] = await Promise.all([
         getAnalisisDiario(f),
         getAnalisisDiarioEstados(f),
         getAnalisisDiarioClientes(f),
+        getAnalisisDiario(addDiasAR(f, -7)), // mismo día de la semana anterior, para los deltas
       ]);
       setResumen(r1.ok ? r1.data ?? null : null);
       setEstados(r2.ok ? r2.data ?? [] : []);
       setClientes(r3.ok ? r3.data ?? [] : []);
+      setResumenSemAnt(rAnt.ok ? rAnt.data ?? null : null);
     } finally { setCargando(false); }
   }, []);
 
@@ -356,16 +360,18 @@ export function AnalisisDiario() {
   const cargarHistorico = useCallback(async () => {
     setCargandoHistorico(true);
     try {
-      const [resGen, resTotales, resZonas, resEstados] = await Promise.all([
+      const [resGen, resTotales, resZonas, resEstados, resChoferes] = await Promise.all([
         getAnalisisDiarioHistorico(desde, hasta),
         getClientesTotalesPeriodo(desde, hasta),
         getZonasTotalesPeriodo(desde, hasta),
         getEstadosTotalesPeriodo(desde, hasta),
+        getChoferesTotalesPeriodo(desde, hasta),
       ]);
       setHistoricoGeneral(resGen.ok ? resGen.data ?? [] : []);
       setClientesTotales(resTotales.ok ? resTotales.data ?? [] : []);
       setZonasTotales(resZonas.ok ? resZonas.data ?? [] : []);
       setEstadosTotales(resEstados.ok ? resEstados.data ?? [] : []);
+      setChoferesTotales(resChoferes.ok ? resChoferes.data ?? [] : []);
       if (clienteSel) {
         const resCli = await getHistoricoCliente(clienteSel, desde, hasta);
         setHistoricoCliente(resCli.ok ? resCli.data ?? [] : []);
@@ -666,6 +672,7 @@ export function AnalisisDiario() {
         <DiaView
           fecha={fecha} setFecha={setFecha} cargando={cargando}
           resumen={resumen} estados={estados} clientes={clientes}
+          resumenSemAnt={resumenSemAnt}
           onRefrescar={() => cargarDia(fecha)}
         />
       ) : (
@@ -679,6 +686,7 @@ export function AnalisisDiario() {
           totalesPeriodo={totalesPeriodo}
           historicoCliente={historicoCliente}
           zonasTotales={zonasTotales}
+          choferesTotales={choferesTotales}
           estadosTotales={estadosTotales}
           ct={ct}
         />
@@ -696,13 +704,17 @@ function MiniKpi({ label, valor }: { label: string; valor: string }) {
   );
 }
 
+// Objetivo mínimo de % éxito del día — debajo de esto el KPI se marca en rojo
+const UMBRAL_EXITO_PCT = 93;
+
 // ── Vista Día ────────────────────────────────────────────────────────────────
 function DiaView({
-  fecha, setFecha, cargando, resumen, estados, clientes, onRefrescar,
+  fecha, setFecha, cargando, resumen, estados, clientes, resumenSemAnt, onRefrescar,
 }: {
   fecha: string; setFecha: (f: string) => void; cargando: boolean;
   resumen: (ResumenAnalisisDia & { fecha: string }) | null;
   estados: EstadoDia[]; clientes: ClienteDia[];
+  resumenSemAnt: (ResumenAnalisisDia & { fecha: string }) | null;
   onRefrescar: () => void;
 }) {
   const [busqueda, setBusqueda] = useState("");
@@ -735,18 +747,41 @@ function DiaView({
       ) : resumen ? (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <KpiCard icon={Package} label="Total paquetes" valor={resumen.total_paquetes.toLocaleString("es-AR")} tono="blue" />
-            <KpiCard icon={CheckCircle} label="% éxito del día" valor={`${resumen.pct_exito.toFixed(2)}%`}
-              sub={`${resumen.entregados.toLocaleString("es-AR")} entregados`} tono="emerald" />
-            <KpiCard icon={Clock} label="Post-21hs" valor={`${resumen.post21_total} · ${resumen.post21_pct_del_dia.toFixed(1)}%`}
-              sub={`% éxito tardío: ${resumen.post21_pct_exito.toFixed(1)}%`} tono="amber" />
-            <KpiCard icon={Truck} label="Demorados totales" valor={`${resumen.en_camino_destinatario} · ${resumen.en_camino_destinatario_pct.toFixed(1)}%`}
-              sub={(() => {
-                const post21Sin = Math.max(0, resumen.post21_total - resumen.post21_entregados);
-                const camino = Math.max(0, resumen.en_camino_destinatario - post21Sin);
-                return `${camino} en camino + ${post21Sin} post-21hs sin entregar`;
-              })()} tono="red" />
+            {(() => {
+              // Deltas vs el mismo día de la semana anterior (si hay datos)
+              const refLabel = resumenSemAnt ? `semana anterior (${resumenSemAnt.fecha})` : "";
+              const d = (actual: number, anterior?: number) =>
+                resumenSemAnt && anterior !== undefined ? { valor: round2(actual - anterior), ref: refLabel } : null;
+              const exitoBajoUmbral = resumen.pct_exito < UMBRAL_EXITO_PCT;
+              return (
+                <>
+                  <KpiCard icon={Package} label="Total paquetes" valor={resumen.total_paquetes.toLocaleString("es-AR")} tono="blue"
+                    delta={d(resumen.total_paquetes, resumenSemAnt?.total_paquetes)} />
+                  <KpiCard icon={exitoBajoUmbral ? AlertTriangle : CheckCircle} label="% éxito del día" valor={`${resumen.pct_exito.toFixed(2)}%`}
+                    sub={exitoBajoUmbral
+                      ? `⚠ Debajo del objetivo (${UMBRAL_EXITO_PCT}%) — ${resumen.entregados.toLocaleString("es-AR")} entregados`
+                      : `${resumen.entregados.toLocaleString("es-AR")} entregados`}
+                    tono={exitoBajoUmbral ? "red" : "emerald"}
+                    delta={resumenSemAnt ? { valor: round2(resumen.pct_exito - resumenSemAnt.pct_exito), unidad: " pts", ref: refLabel } : null} />
+                  <KpiCard icon={Clock} label="Post-21hs" valor={`${resumen.post21_total} · ${resumen.post21_pct_del_dia.toFixed(1)}%`}
+                    sub={`% éxito tardío: ${resumen.post21_pct_exito.toFixed(1)}%`} tono="amber"
+                    delta={resumenSemAnt ? { valor: resumen.post21_total - resumenSemAnt.post21_total, invertido: true, ref: refLabel } : null} />
+                  <KpiCard icon={Truck} label="Demorados totales" valor={`${resumen.en_camino_destinatario} · ${resumen.en_camino_destinatario_pct.toFixed(1)}%`}
+                    sub={(() => {
+                      const post21Sin = Math.max(0, resumen.post21_total - resumen.post21_entregados);
+                      const camino = Math.max(0, resumen.en_camino_destinatario - post21Sin);
+                      return `${camino} en camino + ${post21Sin} post-21hs sin entregar`;
+                    })()} tono="red"
+                    delta={resumenSemAnt ? { valor: resumen.en_camino_destinatario - resumenSemAnt.en_camino_destinatario, invertido: true, ref: refLabel } : null} />
+                </>
+              );
+            })()}
           </div>
+          {resumenSemAnt && (
+            <p className="text-[11px] text-muted-foreground -mt-2">
+              ▲▼ comparado con el mismo día de la semana anterior ({resumenSemAnt.fecha})
+            </p>
+          )}
 
           <div className="grid lg:grid-cols-5 gap-4">
             {/* Estados — con barra de proporción */}
@@ -876,10 +911,13 @@ const TONOS = {
 } as const;
 type Tono = keyof typeof TONOS;
 
-function KpiCard({ icon: Icon, label, valor, sub, tono }: {
+function KpiCard({ icon: Icon, label, valor, sub, tono, delta }: {
   icon: React.ComponentType<{ className?: string }>; label: string; valor: string; sub?: React.ReactNode; tono: Tono;
+  /** Delta vs referencia (ej. mismo día semana anterior). `invertido`: subir es malo (demorados). */
+  delta?: { valor: number; unidad?: string; invertido?: boolean; ref: string } | null;
 }) {
   const t = TONOS[tono];
+  const deltaBueno = delta ? (delta.invertido ? delta.valor < 0 : delta.valor > 0) : false;
   return (
     <div className={cn("rounded-xl p-4 border bg-gradient-to-br shadow-sm", t.card)}>
       <div className="flex items-center gap-2">
@@ -888,7 +926,16 @@ function KpiCard({ icon: Icon, label, valor, sub, tono }: {
         </span>
         <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium leading-tight">{label}</span>
       </div>
-      <p className={cn("text-2xl font-bold tabular-nums mt-2", t.text)}>{valor}</p>
+      <div className="flex items-end gap-2 mt-2">
+        <p className={cn("text-2xl font-bold tabular-nums", t.text)}>{valor}</p>
+        {delta && delta.valor !== 0 && (
+          <span className={cn("text-[11px] font-semibold tabular-nums mb-0.5 shrink-0",
+            deltaBueno ? "text-emerald-600 dark:text-emerald-300" : "text-red-600 dark:text-red-300")}
+            title={`vs ${delta.ref}`}>
+            {delta.valor > 0 ? "▲" : "▼"} {Math.abs(delta.valor).toLocaleString("es-AR", { maximumFractionDigits: 1 })}{delta.unidad ?? ""}
+          </span>
+        )}
+      </div>
       {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
     </div>
   );
@@ -923,7 +970,7 @@ function BarraProp({ pct, tono = "blue" }: { pct: number; tono?: Tono }) {
 function HistoricoView({
   desde, setDesde, hasta, setHasta, clienteSel, setClienteSel, clientesDisponibles,
   cargando, chartGeneral, chartCliente, chartClientesTotales, totalesPeriodo, historicoCliente,
-  zonasTotales, estadosTotales, ct,
+  zonasTotales, estadosTotales, choferesTotales, ct,
 }: {
   desde: string; setDesde: (v: string) => void;
   hasta: string; setHasta: (v: string) => void;
@@ -936,6 +983,7 @@ function HistoricoView({
   historicoCliente: HistoricoCliente[];
   zonasTotales: ZonaTotalPeriodo[];
   estadosTotales: EstadoTotalPeriodo[];
+  choferesTotales: ChoferTotalPeriodo[];
   ct: ReturnType<typeof useChartTheme>;
 }) {
   return (
@@ -1047,6 +1095,42 @@ function HistoricoView({
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Ranking de choferes con tardanzas post-21hs del período */}
+          <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
+            <SeccionHeader icon={Truck} titulo="Choferes con más tardanzas del período" tono="red" />
+            {choferesTotales.length === 0 ? (
+              <div className="p-4"><EmptyState icon={Truck} title="Sin datos de choferes en este rango" /></div>
+            ) : (
+              <div className="max-h-64 overflow-y-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/20 sticky top-0">
+                    <tr>
+                      <th className="text-left px-4 py-1.5 font-medium text-muted-foreground">Chofer</th>
+                      <th className="text-right px-3 py-1.5 font-medium text-muted-foreground">Paq. tarde</th>
+                      <th className="text-right px-3 py-1.5 font-medium text-muted-foreground">Días c/tardanza</th>
+                      <th className="px-3 py-1.5 font-medium text-muted-foreground w-28">Efectividad tardía</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {choferesTotales.slice(0, 15).map(c => (
+                      <tr key={c.chofer}>
+                        <td className="px-4 py-1 truncate max-w-[12rem]">{c.chofer}</td>
+                        <td className="px-3 py-1 text-right tabular-nums font-semibold">{c.cantidad.toLocaleString("es-AR")}</td>
+                        <td className="px-3 py-1 text-right tabular-nums">{c.dias_con_tardanzas}</td>
+                        <td className="px-3 py-1">
+                          <div className="flex items-center gap-1.5">
+                            <BarraProp pct={c.pct_efectividad} tono={c.pct_efectividad >= 90 ? "emerald" : c.pct_efectividad >= 75 ? "amber" : "red"} />
+                            <span className="tabular-nums text-[10px] text-muted-foreground w-8 text-right shrink-0">{c.pct_efectividad.toFixed(0)}%</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* Total de paquetes por cliente (acumulado del período) */}

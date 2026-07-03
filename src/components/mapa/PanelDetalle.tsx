@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { DialogRecorrido } from "./DialogRecorrido";
 import { HistorialRecorrido } from "./HistorialRecorrido";
+import { RendimientoRecorrido } from "./RendimientoRecorrido";
 import { toggleActivoRecorrido, actualizarCamposRecorrido, duplicarRecorrido, eliminarRecorrido } from "@/app/actions/recorridos";
 import type { ModoEdicion } from "./MapaLeaflet";
 import type { RecorridoGeo } from "@/types/database.types";
@@ -355,6 +356,13 @@ export function PanelDetalle({
                 </span>
               </div>
             </div>
+          </Campo>
+
+          <Separator />
+
+          {/* Rendimiento operativo — vinculado por código a la hoja de recorridos */}
+          <Campo label="Rendimiento · últimos 30 días">
+            <RendimientoRecorrido codigo={recorrido.codigo} />
           </Campo>
 
           <Separator />
