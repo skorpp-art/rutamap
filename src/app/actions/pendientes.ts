@@ -113,3 +113,18 @@ export async function marcarPendientesCadete(
     return { ok: true, actualizados: (data ?? 0) as number };
   } catch (e) { return { ok: false, error: String(e) }; }
 }
+
+// Marcar un conjunto por id (para "recibí todo" de cualquier agrupación)
+export async function marcarPendientesLote(
+  ids: string[], recibido: boolean
+): Promise<{ ok: boolean; actualizados?: number; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("marcar_pendientes_lote", {
+      p_ids: ids, p_recibido: recibido,
+    });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, actualizados: (data ?? 0) as number };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}

@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
-  marcarPendiente, marcarPendientesCadete,
+  marcarPendiente, marcarPendientesLote,
   type Pendiente, type PendienteFila, type FechaPendiente,
 } from "@/app/actions/pendientes";
 import type { PendientesStats } from "./PendientesPanel";
@@ -76,18 +76,25 @@ export function PendientesUI({
   const vUrgentesFaltan = visibles.filter(p => p.urgencia === "urgente" && !p.recibido).length;
   const pctRecibido = vTotal > 0 ? Math.round(vRecibidos / vTotal * 100) : 0;
 
-  // Conductores de la zona elegida
-  const cadetes = useMemo(() => {
+  // Agrupación: por conductor o por cliente
+  const [agrupar, setAgrupar] = useState<"conductor" | "cliente">("conductor");
+  const keyOf = (p: Pendiente) => agrupar === "conductor"
+    ? (p.cadete || "Sin asignar")
+    : (p.cliente || "Sin cliente");
+
+  // Grupos (según agrupación) de la zona/cliente elegido
+  const grupos = useMemo(() => {
     const m = new Map<string, { total: number; recibidos: number; urgentes: number }>();
     for (const p of visibles) {
-      const c = p.cadete || "Sin asignar";
-      const cc = m.get(c) ?? { total: 0, recibidos: 0, urgentes: 0 };
-      cc.total++; if (p.recibido) cc.recibidos++; if (p.urgencia === "urgente") cc.urgentes++;
-      m.set(c, cc);
+      const k = keyOf(p);
+      const g = m.get(k) ?? { total: 0, recibidos: 0, urgentes: 0 };
+      g.total++; if (p.recibido) g.recibidos++; if (p.urgencia === "urgente") g.urgentes++;
+      m.set(k, g);
     }
-    return [...m.entries()].map(([cadete, v]) => ({ cadete, ...v }))
+    return [...m.entries()].map(([nombre, v]) => ({ nombre, ...v }))
       .sort((a, b) => (b.total - b.recibidos) - (a.total - a.recibidos) || b.total - a.total);
-  }, [visibles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibles, agrupar]);
 
   // Marcar un paquete (optimista)
   async function toggle(p: Pendiente) {
@@ -101,33 +108,32 @@ export function PendientesUI({
     }
   }
 
-  // Marcar todos los de un conductor
-  async function toggleCadete(cadete: string, recibido: boolean) {
+  // Marcar todos los de un grupo (todos los del conductor o cliente, del día)
+  async function toggleGrupo(nombre: string, recibido: boolean) {
     if (!puedeEditar) return;
-    const real = cadete === "Sin asignar" ? null : cadete;
-    setPendientes(prev => prev.map(x =>
-      (x.cadete ?? "Sin asignar") === cadete ? { ...x, recibido } : x));
-    const res = await marcarPendientesCadete(fecha, real, recibido);
-    if (!res.ok) { toast.error("No se pudo marcar el conductor", { description: res.error }); recargar(); return; }
-    toast.success(`${cadete}: ${recibido ? "todo recibido" : "desmarcado"} (${res.actualizados})`);
+    const ids = pendientes.filter(p => keyOf(p) === nombre).map(p => p.id);
+    setPendientes(prev => prev.map(x => keyOf(x) === nombre ? { ...x, recibido } : x));
+    const res = await marcarPendientesLote(ids, recibido);
+    if (!res.ok) { toast.error("No se pudo marcar el grupo", { description: res.error }); recargar(); return; }
+    toast.success(`${nombre}: ${recibido ? "todo recibido" : "desmarcado"} (${res.actualizados})`);
   }
 
-  // Paquetes de un conductor (en la zona filtrada). La búsqueda por texto NO se
-  // aplica a los paquetes cuando coincide con el nombre del conductor: así, al
-  // buscar un cadete, se ven todos sus paquetes (era el bug de la lista vacía).
-  const detalleCadete = (cadete: string) => {
+  // Paquetes de un grupo (en la zona/cliente filtrado). La búsqueda por texto NO
+  // se aplica cuando coincide con el nombre del grupo: así, al buscar un conductor
+  // o cliente, se ven todos sus paquetes (era el bug de la lista vacía).
+  const detalleGrupo = (nombre: string) => {
     const q = busqueda.trim().toLowerCase();
-    const buscaCadete = q !== "" && cadete.toLowerCase().includes(q);
-    return visibles.filter(p => (p.cadete ?? "Sin asignar") === cadete)
+    const buscaGrupo = q !== "" && nombre.toLowerCase().includes(q);
+    return visibles.filter(p => keyOf(p) === nombre)
       .filter(p => !soloNoRecibidos || !p.recibido)
-      .filter(p => !q || buscaCadete || [p.cliente, p.direccion, p.tracking, p.zona].some(v => v?.toLowerCase().includes(q)))
+      .filter(p => !q || buscaGrupo || [p.cliente, p.cadete, p.direccion, p.tracking, p.zona].some(v => v?.toLowerCase().includes(q)))
       .sort((a, b) => (a.recibido === b.recibido ? 0 : a.recibido ? 1 : -1)
         || (a.urgencia === "urgente" ? -1 : b.urgencia === "urgente" ? 1 : 0));
   };
 
-  const cadetesFiltrados = cadetes.filter(c => {
+  const gruposFiltrados = grupos.filter(g => {
     const q = busqueda.trim().toLowerCase();
-    return !q || c.cadete.toLowerCase().includes(q) || detalleCadete(c.cadete).length > 0;
+    return !q || g.nombre.toLowerCase().includes(q) || detalleGrupo(g.nombre).length > 0;
   });
 
   return (
@@ -268,31 +274,41 @@ export function PendientesUI({
               </button>
             </div>
 
-            {/* ── Por conductor (expandible) ── */}
+            {/* ── Agrupado por conductor o cliente (expandible) ── */}
             <div className="border rounded-xl overflow-hidden bg-card">
               <div className="flex items-center gap-2 px-4 py-2.5 border-b bg-muted/20">
                 <Truck className="h-4 w-4 text-muted-foreground" />
-                <p className="text-sm font-semibold">Por conductor</p>
+                <p className="text-sm font-semibold">Detalle</p>
+                {/* Toggle de agrupación */}
+                <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5 ml-1">
+                  {(["conductor", "cliente"] as const).map(g => (
+                    <button key={g} onClick={() => { setAgrupar(g); setCadeteExpandido(null); }}
+                      className={cn("text-[11px] px-2.5 py-1 rounded-md font-medium transition-colors capitalize",
+                        agrupar === g ? "bg-background shadow-sm text-foreground" : "text-muted-foreground")}>
+                      Por {g}
+                    </button>
+                  ))}
+                </div>
                 <span className="text-[11px] text-muted-foreground ml-auto">
-                  {cadetesFiltrados.length} conductores · clic para ver los paquetes
+                  {gruposFiltrados.length} {agrupar === "conductor" ? "conductores" : "clientes"} · clic para ver los paquetes
                 </span>
               </div>
               <div className="divide-y">
-                {cadetesFiltrados.map(c => {
+                {gruposFiltrados.map(c => {
                   const faltan = c.total - c.recibidos;
                   // Con búsqueda o filtro de cliente activo, abrir automáticamente
-                  // los conductores que tengan coincidencias (sin tener que clickear).
+                  // los grupos que tengan coincidencias (sin tener que clickear).
                   const autoExpand = (busqueda.trim() !== "" || filtroCliente !== "");
-                  const exp = cadeteExpandido === c.cadete || autoExpand;
-                  const detalle = exp ? detalleCadete(c.cadete) : [];
+                  const exp = cadeteExpandido === c.nombre || autoExpand;
+                  const detalle = exp ? detalleGrupo(c.nombre) : [];
                   return (
-                    <div key={c.cadete}>
+                    <div key={c.nombre}>
                       <div
-                        onClick={() => setCadeteExpandido(exp ? null : c.cadete)}
+                        onClick={() => setCadeteExpandido(exp ? null : c.nombre)}
                         className={cn("flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-muted/30 transition-colors",
                           exp && "bg-blue-50/40 dark:bg-blue-950/20")}>
                         {exp ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
-                        <span className="font-medium text-sm flex-1 truncate">{c.cadete}</span>
+                        <span className="font-medium text-sm flex-1 truncate">{c.nombre}</span>
                         {c.urgentes > 0 && (
                           <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 shrink-0">
                             {c.urgentes} urg.
@@ -310,7 +326,7 @@ export function PendientesUI({
                           : <span className="text-[11px] font-semibold text-red-600 dark:text-red-300 shrink-0 w-16 text-right">faltan {faltan}</span>}
                         {puedeEditar && (
                           <button
-                            onClick={e => { e.stopPropagation(); toggleCadete(c.cadete, faltan > 0); }}
+                            onClick={e => { e.stopPropagation(); toggleGrupo(c.nombre, faltan > 0); }}
                             className="text-[10px] px-2 py-1 rounded border border-border hover:bg-muted transition-colors shrink-0"
                             title={faltan > 0 ? "Marcar todos como recibidos" : "Desmarcar todos"}>
                             {faltan > 0 ? "Recibí todo" : "Desmarcar"}
@@ -329,18 +345,23 @@ export function PendientesUI({
                                 ? <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
                                 : <Circle className="h-4 w-4 text-muted-foreground/40 shrink-0 mt-0.5" />}
                               <div className="flex-1 min-w-0">
-                                {/* Línea 1: cliente + urgencia + estado */}
+                                {/* Línea 1: dimensión principal (según agrupación) + estado + fecha */}
                                 <div className="flex items-center gap-2 flex-wrap">
                                   {p.urgencia === "urgente" && <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" title="Urgente (+2 días)" />}
                                   {p.urgencia === "prioridad" && <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0" title="Prioridad (1 día)" />}
-                                  <span className="font-semibold">{p.cliente ?? "—"}</span>
+                                  <span className="font-semibold">
+                                    {agrupar === "conductor" ? (p.cliente ?? "—") : (p.cadete ?? "Sin asignar")}
+                                  </span>
                                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{p.estado ?? "—"}</span>
                                   <span className="text-muted-foreground ml-auto shrink-0 tabular-nums">{fmtFechaHog(p.fecha_hogareno)}</span>
                                 </div>
-                                {/* Línea 2: dirección + localidad */}
+                                {/* Línea 2: dirección + localidad + (la otra dimensión) */}
                                 <p className="text-muted-foreground mt-0.5">
                                   {p.direccion ?? "Sin dirección"}
                                   {p.zona && <span className="text-foreground/70"> · {p.zona}</span>}
+                                  {agrupar === "conductor"
+                                    ? (p.cadete && <span className="text-muted-foreground/70"> · {p.cadete}</span>)
+                                    : (p.cliente && <span className="text-muted-foreground/70"> · {p.cliente}</span>)}
                                   {p.tracking && <span className="text-muted-foreground/60 font-mono"> · {p.tracking}</span>}
                                 </p>
                               </div>
