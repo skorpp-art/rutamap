@@ -53,10 +53,19 @@ export function PendientesUI({
   // Filtro por zona (principal): al elegir una zona, contadores y conductores
   // se acotan a esa macrozona. Las tarjetas de zona siempre muestran el total global.
   const [filtroZona, setFiltroZona] = useState<string | null>(null);
+  const [filtroCliente, setFiltroCliente] = useState<string>("");
+
+  // Lista de clientes de la zona elegida (para el desplegable)
+  const clientes = useMemo(() => {
+    const base = filtroZona ? pendientes.filter(p => p.macrozona === filtroZona) : pendientes;
+    return [...new Set(base.map(p => p.cliente).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b));
+  }, [pendientes, filtroZona]);
 
   const visibles = useMemo(
-    () => filtroZona ? pendientes.filter(p => p.macrozona === filtroZona) : pendientes,
-    [pendientes, filtroZona]
+    () => pendientes
+      .filter(p => !filtroZona || p.macrozona === filtroZona)
+      .filter(p => !filtroCliente || p.cliente === filtroCliente),
+    [pendientes, filtroZona, filtroCliente]
   );
 
   // Contadores según la zona elegida
@@ -242,9 +251,16 @@ export function PendientesUI({
               <div className="relative flex-1 min-w-48">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <input type="text" value={busqueda} onChange={e => setBusqueda(e.target.value)}
-                  placeholder="Buscar conductor, cliente, dirección, tracking…"
+                  placeholder="Buscar por dirección, conductor o tracking…"
                   className="w-full text-xs pl-8 pr-2 py-2 rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-blue-400" />
               </div>
+              {/* Filtro por cliente */}
+              <select value={filtroCliente} onChange={e => setFiltroCliente(e.target.value)}
+                className={cn("text-xs border rounded-lg px-2 py-2 bg-background max-w-52",
+                  filtroCliente && "border-blue-500 ring-1 ring-blue-400/40")}>
+                <option value="">Todos los clientes ({clientes.length})</option>
+                {clientes.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
               <button onClick={() => setSoloNoRecibidos(!soloNoRecibidos)}
                 className={cn("text-xs px-3 py-2 rounded-lg border transition-colors flex items-center gap-1.5",
                   soloNoRecibidos ? "bg-red-600 text-white border-red-600" : "border-border text-muted-foreground")}>
@@ -264,7 +280,10 @@ export function PendientesUI({
               <div className="divide-y">
                 {cadetesFiltrados.map(c => {
                   const faltan = c.total - c.recibidos;
-                  const exp = cadeteExpandido === c.cadete;
+                  // Con búsqueda o filtro de cliente activo, abrir automáticamente
+                  // los conductores que tengan coincidencias (sin tener que clickear).
+                  const autoExpand = (busqueda.trim() !== "" || filtroCliente !== "");
+                  const exp = cadeteExpandido === c.cadete || autoExpand;
                   const detalle = exp ? detalleCadete(c.cadete) : [];
                   return (
                     <div key={c.cadete}>
