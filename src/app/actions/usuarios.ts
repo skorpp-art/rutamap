@@ -3,9 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdmin } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
-
-export const ROLES = ["maestro", "gerencia", "supervisor", "coordinador", "asesor"] as const;
-export type Rol = (typeof ROLES)[number];
+import type { Rol } from "@/lib/roles";
 
 export interface UsuarioAdmin {
   id: string;

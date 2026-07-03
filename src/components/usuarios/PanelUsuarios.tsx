@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Users, RefreshCw, ShieldCheck, Eye, Pencil, UserPlus, Loader2 } from "lucide-react";
-import { getUsuarios, setRolUsuario, crearUsuario, ROLES, type UsuarioAdmin, type Rol } from "@/app/actions/usuarios";
+import { getUsuarios, setRolUsuario, crearUsuario, type UsuarioAdmin } from "@/app/actions/usuarios";
+import { ROLES, type Rol } from "@/lib/roles";
 import { EmptyState } from "@/components/ui/empty-state";
 
 // Qué puede hacer cada rol — mostrado como referencia en el panel
