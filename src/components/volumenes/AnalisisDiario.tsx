@@ -14,13 +14,13 @@ import {
 } from "recharts";
 import {
   guardarAnalisisDiario, getAnalisisDiario, getAnalisisDiarioEstados,
-  getAnalisisDiarioClientes, getAnalisisDiarioTarde, getAnalisisDiarioHistorico,
+  getAnalisisDiarioClientes, getAnalisisDiarioHistorico,
   getHistoricoCliente, getClientesAnalisisDiario, getClientesTotalesPeriodo,
   getZonasTotalesPeriodo, getEstadosTotalesPeriodo,
 } from "@/app/actions/analisis-diario";
 import type {
   AnalisisDiarioPayload, ResumenAnalisisDia, EstadoDia, ClienteDia,
-  TardeFila, HistoricoDia, HistoricoCliente, ClienteTotalPeriodo,
+  HistoricoDia, HistoricoCliente, ClienteTotalPeriodo,
   ZonaTotalPeriodo, EstadoTotalPeriodo,
 } from "@/app/actions/analisis-diario";
 import { useChartTheme } from "@/hooks/useChartTheme";
@@ -319,7 +319,6 @@ export function AnalisisDiario() {
   const [resumen, setResumen] = useState<(ResumenAnalisisDia & { fecha: string }) | null>(null);
   const [estados, setEstados] = useState<EstadoDia[]>([]);
   const [clientes, setClientes] = useState<ClienteDia[]>([]);
-  const [tarde, setTarde] = useState<TardeFila[]>([]);
   const [cargando, setCargando] = useState(false);
 
   // Histórico
@@ -337,16 +336,14 @@ export function AnalisisDiario() {
   const cargarDia = useCallback(async (f: string) => {
     setCargando(true);
     try {
-      const [r1, r2, r3, r4] = await Promise.all([
+      const [r1, r2, r3] = await Promise.all([
         getAnalisisDiario(f),
         getAnalisisDiarioEstados(f),
         getAnalisisDiarioClientes(f),
-        getAnalisisDiarioTarde(f),
       ]);
       setResumen(r1.ok ? r1.data ?? null : null);
       setEstados(r2.ok ? r2.data ?? [] : []);
       setClientes(r3.ok ? r3.data ?? [] : []);
-      setTarde(r4.ok ? r4.data ?? [] : []);
     } finally { setCargando(false); }
   }, []);
 
@@ -492,8 +489,6 @@ export function AnalisisDiario() {
     }
   }
 
-  const tardeZonas = tarde.filter(t => t.tipo === "zona");
-  const tardeChoferes = tarde.filter(t => t.tipo === "chofer");
 
   const chartGeneral = historicoGeneral.map(d => ({
     dia: d.fecha.slice(5),
@@ -671,7 +666,6 @@ export function AnalisisDiario() {
         <DiaView
           fecha={fecha} setFecha={setFecha} cargando={cargando}
           resumen={resumen} estados={estados} clientes={clientes}
-          tardeZonas={tardeZonas} tardeChoferes={tardeChoferes}
           onRefrescar={() => cargarDia(fecha)}
         />
       ) : (
@@ -704,12 +698,11 @@ function MiniKpi({ label, valor }: { label: string; valor: string }) {
 
 // ── Vista Día ────────────────────────────────────────────────────────────────
 function DiaView({
-  fecha, setFecha, cargando, resumen, estados, clientes, tardeZonas, tardeChoferes, onRefrescar,
+  fecha, setFecha, cargando, resumen, estados, clientes, onRefrescar,
 }: {
   fecha: string; setFecha: (f: string) => void; cargando: boolean;
   resumen: (ResumenAnalisisDia & { fecha: string }) | null;
   estados: EstadoDia[]; clientes: ClienteDia[];
-  tardeZonas: TardeFila[]; tardeChoferes: TardeFila[];
   onRefrescar: () => void;
 }) {
   const [busqueda, setBusqueda] = useState("");

@@ -9,7 +9,6 @@ import { PanelDetalle } from "./PanelDetalle";
 import { MapaWrapper } from "./MapaWrapper";
 import { ExportarMapa } from "./ExportarMapa";
 import { BuscadorLocalidad } from "./BuscadorLocalidad";
-import { ImportarArea } from "./ImportarArea";
 import { DashboardCobertura } from "./DashboardCobertura";
 import { Button } from "@/components/ui/button";
 import {

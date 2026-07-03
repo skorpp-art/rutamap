@@ -15,19 +15,6 @@ export interface OperacionRuta {
   paquetes_asignados: number;
 }
 
-export interface ResumenOperacion {
-  total_rutas_activas: number;
-  rutas_fijas: number;
-  rutas_preturno: number;
-  rutas_corte: number;
-  paquetes_total: number;
-  promedio_pkg_ruta: number;
-  choferes_25: number;
-  choferes_30: number;
-  choferes_35: number;
-  estado: string;
-}
-
 // Inicializar operación del día (agrega todas las rutas activas si no existen)
 export async function inicializarOperacionDia(
   fecha: string
@@ -51,30 +38,6 @@ export async function getOperacionDia(
     const { data, error } = await (supabase as any).rpc("get_operacion_dia", { p_fecha: fecha });
     if (error) return { ok: false, error: error.message };
     return { ok: true, data: (data ?? []) as OperacionRuta[] };
-  } catch (e) { return { ok: false, error: String(e) }; }
-}
-
-// Activar/desactivar una ruta + notas + paquetes
-export async function upsertOperacionRuta(
-  fecha: string,
-  recorridoId: string,
-  activo: boolean,
-  notas?: string,
-  paquetes?: number
-): Promise<{ ok: boolean; error?: string }> {
-  try {
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).rpc("upsert_operacion_ruta", {
-      p_fecha: fecha,
-      p_recorrido_id: recorridoId,
-      p_activo: activo,
-      p_notas: notas ?? null,
-      p_paquetes: paquetes ?? 0,
-    });
-    if (error) return { ok: false, error: error.message };
-    revalidatePath("/volumenes");
-    return { ok: true };
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
@@ -114,19 +77,3 @@ export async function getTotalPaquetesFecha(
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
-// Resumen para el cálculo en tiempo real
-export async function getResumenOperacion(
-  fecha: string,
-  totalPaquetes: number
-): Promise<{ ok: boolean; data?: ResumenOperacion; error?: string }> {
-  try {
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any).rpc("get_resumen_operacion", {
-      p_fecha: fecha,
-      p_total_paquetes: totalPaquetes,
-    });
-    if (error) return { ok: false, error: error.message };
-    return { ok: true, data: (data as ResumenOperacion[])?.[0] };
-  } catch (e) { return { ok: false, error: String(e) }; }
-}

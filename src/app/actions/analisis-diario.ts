@@ -103,25 +103,7 @@ export async function getAnalisisDiarioClientes(
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
-export interface TardeFila {
-  tipo: "zona" | "chofer";
-  nombre: string;
-  cantidad: number;
-  entregados: number;
-  pct_efectividad: number;
-}
 
-export async function getAnalisisDiarioTarde(
-  fecha: string
-): Promise<{ ok: boolean; data?: TardeFila[]; error?: string }> {
-  try {
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any).rpc("get_analisis_diario_tarde", { p_fecha: fecha });
-    if (error) return { ok: false, error: error.message };
-    return { ok: true, data: (data ?? []) as TardeFila[] };
-  } catch (e) { return { ok: false, error: String(e) }; }
-}
 
 export interface HistoricoDia {
   fecha: string;
