@@ -142,11 +142,15 @@ function DiaDetalle({ fecha }: DiaDetalleProps) {
   );
 }
 
+const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
 export function HistorialDias() {
   const [dias, setDias] = useState(30);
   const [historial, setHistorial] = useState<HistorialDiaV2[]>([]);
   const [cargando, setCargando] = useState(true);
   const [expandido, setExpandido] = useState<string | null>(null);
+  // Filtro por día de la semana (null = todos)
+  const [filtroDia, setFiltroDia] = useState<string | null>(null);
 
   useEffect(() => { cargar(dias); }, []);
 
@@ -158,9 +162,31 @@ export function HistorialDias() {
     } finally { setCargando(false); }
   }
 
+  // Filtrar por día + promedios de la selección
+  const historialFiltrado = filtroDia
+    ? historial.filter(d => d.dia_semana === filtroDia)
+    : historial;
+
+  const prom = (arr: number[]) => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+  const resumen = filtroDia ? (() => {
+    const conPaq = historialFiltrado.filter(d => d.total_paquetes > 0);
+    const conRutas = historialFiltrado.filter(d => d.rutas_activas > 0);
+    const promRutaVals = historialFiltrado.filter(d => Number(d.prom_por_ruta) > 0).map(d => Number(d.prom_por_ruta));
+    return {
+      diasMostrados: historialFiltrado.length,
+      diasConPaq: conPaq.length,
+      promPaquetes: prom(conPaq.map(d => d.total_paquetes)),
+      promRutas: prom(conRutas.map(d => d.rutas_activas)),
+      promPorRuta: promRutaVals.length ? (promRutaVals.reduce((a, b) => a + b, 0) / promRutaVals.length).toFixed(1) : "—",
+    };
+  })() : null;
+
+  // Días de semana presentes en el rango cargado (para no mostrar botones vacíos)
+  const diasPresentes = new Set(historial.map(d => d.dia_semana));
+
   return (
     <div className="flex flex-col h-full">
-      <div className="px-5 py-3 border-b flex items-center gap-3 bg-background">
+      <div className="px-5 py-3 border-b flex items-center gap-3 bg-background flex-wrap">
         <p className="text-sm font-semibold">Historial de días</p>
         <div className="flex gap-1">
           {[14, 30, 60, 90].map(d => (
@@ -168,6 +194,22 @@ export function HistorialDias() {
               className={cn("text-[10px] px-1.5 py-0.5 rounded border transition-colors",
                 dias === d ? "bg-blue-600 text-white border-blue-600" : "border-border text-muted-foreground")}>
               {d}d
+            </button>
+          ))}
+        </div>
+        <div className="h-4 w-px bg-border" />
+        {/* Filtro por día de la semana */}
+        <div className="flex gap-1 items-center">
+          <button onClick={() => setFiltroDia(null)}
+            className={cn("text-[10px] px-1.5 py-0.5 rounded border transition-colors",
+              filtroDia === null ? "bg-blue-600 text-white border-blue-600" : "border-border text-muted-foreground")}>
+            Todos
+          </button>
+          {DIAS_SEMANA.filter(d => diasPresentes.has(d)).map(d => (
+            <button key={d} onClick={() => setFiltroDia(filtroDia === d ? null : d)}
+              className={cn("text-[10px] px-1.5 py-0.5 rounded border transition-colors",
+                filtroDia === d ? "bg-blue-600 text-white border-blue-600" : "border-border text-muted-foreground")}>
+              {d.slice(0, 3)}
             </button>
           ))}
         </div>
@@ -179,13 +221,37 @@ export function HistorialDias() {
         </p>
       </div>
 
+      {/* Resumen de la selección por día de semana */}
+      {resumen && (
+        <div className="px-5 py-3 border-b bg-blue-50/50 dark:bg-blue-950/20 flex items-center gap-5 flex-wrap">
+          <span className="text-xs font-semibold flex items-center gap-1.5">
+            <CalendarDays className="h-3.5 w-3.5 text-blue-600 dark:text-blue-300" />
+            {filtroDia}s en los últimos {dias} días
+          </span>
+          <span className="text-xs text-muted-foreground">
+            <span className="font-bold text-foreground tabular-nums text-base">{resumen.diasConPaq}</span> {resumen.diasConPaq === 1 ? "día" : "días"} con datos
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Promedio paquetes: <span className="font-bold text-blue-700 dark:text-blue-300 tabular-nums text-base">{resumen.promPaquetes.toLocaleString("es-AR")}</span>
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Promedio recorridos: <span className="font-bold text-blue-700 dark:text-blue-300 tabular-nums text-base">{resumen.promRutas}</span>
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Promedio pkg/ruta: <span className="font-bold tabular-nums">{resumen.promPorRuta}</span>
+          </span>
+        </div>
+      )}
+
       {cargando ? (
         <div className="p-4"><SkeletonTable rows={8} /></div>
-      ) : historial.length === 0 ? (
+      ) : historialFiltrado.length === 0 ? (
         <EmptyState
           icon={CalendarDays}
-          title="Sin historial todavía"
-          description="Importá el Excel de clientes y/o el de operaciones para empezar a ver el historial día por día."
+          title={filtroDia ? `Sin ${filtroDia.toLowerCase()}s en este rango` : "Sin historial todavía"}
+          description={filtroDia
+            ? "Ampliá el rango de días o quitá el filtro para ver más."
+            : "Importá el Excel de clientes y/o el de operaciones para empezar a ver el historial día por día."}
         />
       ) : (
         <div className="flex-1 overflow-y-auto">
@@ -208,7 +274,7 @@ export function HistorialDias() {
               </tr>
             </thead>
             <tbody>
-              {historial.map(d => {
+              {historialFiltrado.map(d => {
                 const isExp = expandido === d.fecha;
                 return (
                   <Fragment key={d.fecha}>
