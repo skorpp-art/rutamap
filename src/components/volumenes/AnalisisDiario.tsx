@@ -1352,10 +1352,19 @@ function HistoricoView({
                   </ComposedChart>
                 </ResponsiveContainer>
 
-                <p className="text-[11px] text-muted-foreground">
-                  Clic en un día para ver la dirección de los paquetes post-21hs sin entregar de ese día (los "en camino
-                  al destinatario" no tienen dirección disponible — el Excel no la trae por cliente).
-                </p>
+                {totalPost21NoEntregado === 0 ? (
+                  <p className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-2">
+                    ⚠ No hay direcciones de post-21hs guardadas para {clienteSel} en este rango. Esto es esperable si
+                    los días cargados son anteriores al {"04/07/2026"} (fecha desde la que se empezó a guardar el
+                    detalle) o si genuinamente no tuvo paquetes post-21hs sin entregar en este período. Volvé a cargar
+                    un Excel de un día reciente para ver el detalle con dirección.
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">
+                    Clic en un día con post-21hs sin entregar (resaltado) para ver la dirección, localidad y tracking de
+                    cada paquete. Los "en camino al destinatario" no tienen dirección disponible — el Excel no la trae por cliente.
+                  </p>
+                )}
                 <table className="w-full text-xs">
                 <thead className="bg-muted/20">
                   <tr>
@@ -1397,8 +1406,10 @@ function HistoricoView({
                                     <span className="h-1.5 w-1.5 rounded-full bg-red-500 shrink-0 mt-1" />
                                     <div className="flex-1 min-w-0">
                                       <span className="text-muted-foreground">{p.direccion ?? "Sin dirección"}</span>
+                                      {p.zona && <span className="text-foreground/70"> · {p.zona}</span>}
                                       {p.localidad && <span className="text-foreground/60"> · {p.localidad}</span>}
                                       {p.chofer && <span className="text-muted-foreground/70"> · {p.chofer}</span>}
+                                      {p.tracking && <span className="text-muted-foreground/60 font-mono"> · {p.tracking}</span>}
                                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground ml-2">{p.estado ?? "—"}</span>
                                     </div>
                                   </div>
