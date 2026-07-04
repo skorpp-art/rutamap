@@ -108,11 +108,15 @@ export function PendientesUI({
     }
   }
 
-  // Marcar todos los de un grupo (todos los del conductor o cliente, del día)
+  // Marcar todos los de un grupo — SOLO dentro de la zona/cliente filtrado
+  // actualmente (antes usaba "pendientes" sin filtrar, así que con una zona
+  // seleccionada marcaba también paquetes de ese conductor/cliente en OTRAS
+  // zonas sin avisar).
   async function toggleGrupo(nombre: string, recibido: boolean) {
     if (!puedeEditar) return;
-    const ids = pendientes.filter(p => keyOf(p) === nombre).map(p => p.id);
-    setPendientes(prev => prev.map(x => keyOf(x) === nombre ? { ...x, recibido } : x));
+    const ids = visibles.filter(p => keyOf(p) === nombre).map(p => p.id);
+    const idsSet = new Set(ids);
+    setPendientes(prev => prev.map(x => idsSet.has(x.id) ? { ...x, recibido } : x));
     const res = await marcarPendientesLote(ids, recibido);
     if (!res.ok) { toast.error("No se pudo marcar el grupo", { description: res.error }); recargar(); return; }
     toast.success(`${nombre}: ${recibido ? "todo recibido" : "desmarcado"} (${res.actualizados})`);
