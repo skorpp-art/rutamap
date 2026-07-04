@@ -37,6 +37,21 @@ export interface TardeZonaOChofer {
   pct_efectividad: number;
 }
 
+/** Un paquete de la hoja "Detalle de Envíos Tarde" (todos son post-21hs). */
+export interface TardeDetalleFila {
+  id?: string;
+  fecha?: string;
+  tracking: string | null;
+  hora: string | null;
+  estado: string | null;
+  zona: string | null;
+  localidad: string | null;
+  chofer: string | null;
+  cliente: string | null;
+  destinatario: string | null;
+  direccion: string | null;
+}
+
 export interface AnalisisDiarioPayload {
   fecha: string;
   resumen: ResumenAnalisisDia;
@@ -44,6 +59,7 @@ export interface AnalisisDiarioPayload {
   clientes: ClienteDia[];
   tardeZona: TardeZonaOChofer[];
   tardeChofer: TardeZonaOChofer[];
+  tardeDetalle: TardeDetalleFila[];
 }
 
 export async function guardarAnalisisDiario(
@@ -59,10 +75,37 @@ export async function guardarAnalisisDiario(
       p_clientes: payload.clientes,
       p_tarde_zona: payload.tardeZona,
       p_tarde_chofer: payload.tardeChofer,
+      p_tarde_detalle: payload.tardeDetalle,
     });
     if (error) return { ok: false, error: error.message };
     revalidatePath("/analisis-diario");
     return { ok: true };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
+export async function getTardeDetalleDia(
+  fecha: string
+): Promise<{ ok: boolean; data?: TardeDetalleFila[]; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("get_tarde_detalle_dia", { p_fecha: fecha });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, data: (data ?? []) as TardeDetalleFila[] };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
+export async function getTardeDetallePeriodo(
+  desde: string, hasta: string, cliente?: string | null
+): Promise<{ ok: boolean; data?: TardeDetalleFila[]; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("get_tarde_detalle_periodo", {
+      p_desde: desde, p_hasta: hasta, p_cliente: cliente ?? null,
+    });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, data: (data ?? []) as TardeDetalleFila[] };
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, Fragment } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Upload, FileSpreadsheet, CheckCircle, AlertTriangle, Calendar,
   Search, Package, Users, Clock, RefreshCw, Truck, MapPin, Layers,
+  ChevronDown, ChevronRight,
 } from "lucide-react";
 import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid,
@@ -17,11 +18,12 @@ import {
   getAnalisisDiarioClientes, getAnalisisDiarioHistorico,
   getHistoricoCliente, getClientesAnalisisDiario, getClientesTotalesPeriodo,
   getZonasTotalesPeriodo, getEstadosTotalesPeriodo, getChoferesTotalesPeriodo,
+  getTardeDetalleDia, getTardeDetallePeriodo,
 } from "@/app/actions/analisis-diario";
 import type {
   AnalisisDiarioPayload, ResumenAnalisisDia, EstadoDia, ClienteDia,
   HistoricoDia, HistoricoCliente, ClienteTotalPeriodo,
-  ZonaTotalPeriodo, EstadoTotalPeriodo, ChoferTotalPeriodo,
+  ZonaTotalPeriodo, EstadoTotalPeriodo, ChoferTotalPeriodo, TardeDetalleFila,
 } from "@/app/actions/analisis-diario";
 import { useChartTheme } from "@/hooks/useChartTheme";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -136,11 +138,44 @@ function parseResumenPorCliente(rows: any[][]) {
   return [...porCliente.values()];
 }
 
+/** Fila cruda de "Detalle de Envíos Tarde" — un paquete post-21hs. */
+interface TardeDetalleRaw {
+  tracking: string | null; hora: string | null; estado: string | null;
+  zona: string | null; localidad: string | null; chofer: string | null;
+  cliente: string | null; destinatario: string | null; direccion: string | null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseDetalleEnviosTarde(rows: any[][]): TardeDetalleRaw[] {
+  // header: ID Interno, Nro Tracking, Hora Modificación, Estado, Zona,
+  // Localidad, Chofer (Cadete), Cliente, Destinatario, Dirección
+  const out: TardeDetalleRaw[] = [];
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    const tracking = String(r[1] ?? "").trim();
+    const estado = String(r[3] ?? "").trim();
+    if (!tracking && !estado) continue;
+    out.push({
+      tracking: tracking || null,
+      hora: String(r[2] ?? "").trim() || null,
+      estado: estado || null,
+      zona: String(r[4] ?? "").trim() || null,
+      localidad: String(r[5] ?? "").trim() || null,
+      chofer: String(r[6] ?? "").trim() || null,
+      cliente: String(r[7] ?? "").trim() || null,
+      destinatario: String(r[8] ?? "").trim() || null,
+      direccion: String(r[9] ?? "").trim() || null,
+    });
+  }
+  return out;
+}
+
 interface TardeRaw {
   fecha: string | null;
   post21: { total: number; entregados: number; pctExito: number };
   tardeZona: { nombre: string; cantidad: number; entregados: number; pctEfectividad: number }[];
   tardeChofer: { nombre: string; cantidad: number; entregados: number; pctEfectividad: number }[];
+  tardeDetalle: TardeDetalleRaw[];
 }
 interface ResumenRaw {
   fecha: string | null;
@@ -155,7 +190,8 @@ function extraerTarde(XLSX: typeof import("xlsx"), wb: any): TardeRaw | null {
   const resumenTarde = parseResumenRendimiento(sheetRows(XLSX, wb, "Resumen de Rendimiento"));
   const tardeZona = wb.SheetNames.includes("Tardanzas por Zona") ? parseTardanzasTabla(sheetRows(XLSX, wb, "Tardanzas por Zona")) : [];
   const tardeChofer = wb.SheetNames.includes("Tardanzas por Chofer") ? parseTardanzasTabla(sheetRows(XLSX, wb, "Tardanzas por Chofer")) : [];
-  return { fecha: resumenTarde.fecha, post21: resumenTarde.post21, tardeZona, tardeChofer };
+  const tardeDetalle = wb.SheetNames.includes("Detalle de Envios Tarde") ? parseDetalleEnviosTarde(sheetRows(XLSX, wb, "Detalle de Envios Tarde")) : [];
+  return { fecha: resumenTarde.fecha, post21: resumenTarde.post21, tardeZona, tardeChofer, tardeDetalle };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -283,6 +319,11 @@ function construirPayload(tardeRaw: TardeRaw | null, resumenRaw: ResumenRaw | nu
       clientes,
       tardeZona: tardeRaw.tardeZona.map(z => ({ zona: z.nombre, cantidad: z.cantidad, entregados: z.entregados, pct_efectividad: z.pctEfectividad })),
       tardeChofer: tardeRaw.tardeChofer.map(c => ({ chofer: c.nombre, cantidad: c.cantidad, entregados: c.entregados, pct_efectividad: c.pctEfectividad })),
+      tardeDetalle: tardeRaw.tardeDetalle.map(d => ({
+        tracking: d.tracking, hora: d.hora, estado: d.estado, zona: d.zona,
+        localidad: d.localidad, chofer: d.chofer, cliente: d.cliente,
+        destinatario: d.destinatario, direccion: d.direccion,
+      })),
     },
     warnings,
   };
@@ -328,6 +369,7 @@ export function AnalisisDiario() {
   const [hasta, setHasta] = useState(() => hoyAR());
   const [historicoGeneral, setHistoricoGeneral] = useState<HistoricoDia[]>([]);
   const [historicoCliente, setHistoricoCliente] = useState<HistoricoCliente[]>([]);
+  const [tardeDetalleCliente, setTardeDetalleCliente] = useState<TardeDetalleFila[]>([]);
   const [clientesTotales, setClientesTotales] = useState<ClienteTotalPeriodo[]>([]);
   const [zonasTotales, setZonasTotales] = useState<ZonaTotalPeriodo[]>([]);
   const [choferesTotales, setChoferesTotales] = useState<ChoferTotalPeriodo[]>([]);
@@ -373,10 +415,15 @@ export function AnalisisDiario() {
       setEstadosTotales(resEstados.ok ? resEstados.data ?? [] : []);
       setChoferesTotales(resChoferes.ok ? resChoferes.data ?? [] : []);
       if (clienteSel) {
-        const resCli = await getHistoricoCliente(clienteSel, desde, hasta);
+        const [resCli, resDetalle] = await Promise.all([
+          getHistoricoCliente(clienteSel, desde, hasta),
+          getTardeDetallePeriodo(desde, hasta, clienteSel),
+        ]);
         setHistoricoCliente(resCli.ok ? resCli.data ?? [] : []);
+        setTardeDetalleCliente(resDetalle.ok ? resDetalle.data ?? [] : []);
       } else {
         setHistoricoCliente([]);
+        setTardeDetalleCliente([]);
       }
     } finally { setCargandoHistorico(false); }
   }, [desde, hasta, clienteSel]);
@@ -685,6 +732,7 @@ export function AnalisisDiario() {
           chartClientesTotales={chartClientesTotales}
           totalesPeriodo={totalesPeriodo}
           historicoCliente={historicoCliente}
+          tardeDetalleCliente={tardeDetalleCliente}
           zonasTotales={zonasTotales}
           choferesTotales={choferesTotales}
           estadosTotales={estadosTotales}
@@ -719,6 +767,11 @@ function DiaView({
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [clienteSel, setClienteSel] = useState<string | null>(null);
+  // Demorados: "total" = en camino + post-21hs sin entregar · "encamino" = solo en camino al destinatario
+  const [demoradosModo, setDemoradosModo] = useState<"total" | "encamino">("total");
+  const [verDetallePost21, setVerDetallePost21] = useState(false);
+  const [detallePost21, setDetallePost21] = useState<TardeDetalleFila[]>([]);
+  const [cargandoDetalle, setCargandoDetalle] = useState(false);
 
   const clientesOrdenados = [...clientes].sort((a, b) => b.en_camino_destinatario - a.en_camino_destinatario || b.cantidad - a.cantidad);
   const maxPctDia = Math.max(1, ...clientes.map(c => c.pct_del_dia));
@@ -726,6 +779,24 @@ function DiaView({
   const sel = clienteSel ? clientes.find(c => c.cliente === clienteSel) ?? null : null;
   const maxEstado = Math.max(1, ...estados.map(e => e.cantidad));
   const fechaLinda = new Date(fecha + "T12:00:00").toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+
+  async function toggleDetallePost21() {
+    if (verDetallePost21) { setVerDetallePost21(false); return; }
+    setVerDetallePost21(true);
+    if (detallePost21.length === 0) {
+      setCargandoDetalle(true);
+      try {
+        const res = await getTardeDetalleDia(fecha);
+        if (res.ok) setDetallePost21((res.data ?? []).filter(d => !sinAcentos(d.estado ?? "").startsWith("entregado")));
+      } finally { setCargandoDetalle(false); }
+    }
+  }
+
+  // Recargar el detalle si cambia el día mientras está abierto
+  useEffect(() => {
+    setDetallePost21([]);
+    setVerDetallePost21(false);
+  }, [fecha]);
 
   return (
     <div className="space-y-5">
@@ -766,13 +837,22 @@ function DiaView({
                   <KpiCard icon={Clock} label="Post-21hs" valor={`${resumen.post21_total} · ${resumen.post21_pct_del_dia.toFixed(1)}%`}
                     sub={`% éxito tardío: ${resumen.post21_pct_exito.toFixed(1)}%`} tono="amber"
                     delta={resumenSemAnt ? { valor: resumen.post21_total - resumenSemAnt.post21_total, invertido: true, ref: refLabel } : null} />
-                  <KpiCard icon={Truck} label="Demorados totales" valor={`${resumen.en_camino_destinatario} · ${resumen.en_camino_destinatario_pct.toFixed(1)}%`}
-                    sub={(() => {
-                      const post21Sin = Math.max(0, resumen.post21_total - resumen.post21_entregados);
-                      const camino = Math.max(0, resumen.en_camino_destinatario - post21Sin);
-                      return `${camino} en camino + ${post21Sin} post-21hs sin entregar`;
-                    })()} tono="red"
-                    delta={resumenSemAnt ? { valor: resumen.en_camino_destinatario - resumenSemAnt.en_camino_destinatario, invertido: true, ref: refLabel } : null} />
+                  {(() => {
+                    const post21Sin = Math.max(0, resumen.post21_total - resumen.post21_entregados);
+                    const camino = Math.max(0, resumen.en_camino_destinatario - post21Sin);
+                    const valorMostrado = demoradosModo === "total" ? resumen.en_camino_destinatario : camino;
+                    const pctMostrado = resumen.total_paquetes > 0 ? round2(valorMostrado / resumen.total_paquetes * 100) : 0;
+                    return (
+                      <KpiCard icon={Truck}
+                        label={demoradosModo === "total" ? "Demorados totales" : "Solo en camino al destinatario"}
+                        valor={`${valorMostrado} · ${pctMostrado.toFixed(1)}%`}
+                        sub={demoradosModo === "total"
+                          ? `${camino} en camino + ${post21Sin} post-21hs sin entregar — clic para ver solo un componente`
+                          : "post-21hs sin entregar excluido — clic para ver el total"}
+                        tono="red" onClick={() => setDemoradosModo(m => m === "total" ? "encamino" : "total")}
+                        hint="Clic para alternar entre el total (en camino + post-21hs sin entregar) y solo en camino al destinatario" />
+                    );
+                  })()}
                 </>
               );
             })()}
@@ -782,6 +862,45 @@ function DiaView({
               ▲▼ comparado con el mismo día de la semana anterior ({resumenSemAnt.fecha})
             </p>
           )}
+
+          {/* Detalle de paquetes post-21hs sin entregar (dirección, cliente, chofer) */}
+          <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
+            <button onClick={toggleDetallePost21}
+              className="w-full flex items-center gap-2 px-4 py-3 border-b bg-muted/20 text-left hover:bg-muted/30 transition-colors">
+              {verDetallePost21 ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              <MapPin className="h-4 w-4 text-red-600 dark:text-red-300" />
+              <p className="text-sm font-semibold">Ver detalle: paquetes post-21hs sin entregar</p>
+              <span className="text-[11px] text-muted-foreground ml-auto">dirección, cliente y chofer de cada uno</span>
+            </button>
+            {verDetallePost21 && (
+              cargandoDetalle ? (
+                <p className="p-4 text-xs text-muted-foreground animate-pulse">Cargando detalle…</p>
+              ) : detallePost21.length === 0 ? (
+                <div className="p-4"><EmptyState icon={CheckCircle} title="Sin paquetes post-21hs pendientes"
+                  description="O no se cargó el detalle de este día (archivos importados antes de esta función no lo tienen)." /></div>
+              ) : (
+                <div className="max-h-80 overflow-y-auto divide-y">
+                  {detallePost21.map((d, i) => (
+                    <div key={d.id ?? i} className="flex items-start gap-2.5 px-4 py-2.5 text-xs">
+                      <span className="h-2 w-2 rounded-full bg-red-500 shrink-0 mt-1.5" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold">{d.cliente ?? "—"}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{d.estado ?? "—"}</span>
+                          <span className="text-muted-foreground ml-auto shrink-0 tabular-nums">{d.hora ?? ""}</span>
+                        </div>
+                        <p className="text-muted-foreground mt-0.5">
+                          {d.direccion ?? "Sin dirección"}
+                          {d.localidad && <span className="text-foreground/70"> · {d.localidad}</span>}
+                          {d.chofer && <span className="text-muted-foreground/70"> · {d.chofer}</span>}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+          </div>
 
           <div className="grid lg:grid-cols-5 gap-4">
             {/* Estados — con barra de proporción */}
@@ -911,15 +1030,20 @@ const TONOS = {
 } as const;
 type Tono = keyof typeof TONOS;
 
-function KpiCard({ icon: Icon, label, valor, sub, tono, delta }: {
+function KpiCard({ icon: Icon, label, valor, sub, tono, delta, onClick, hint }: {
   icon: React.ComponentType<{ className?: string }>; label: string; valor: string; sub?: React.ReactNode; tono: Tono;
   /** Delta vs referencia (ej. mismo día semana anterior). `invertido`: subir es malo (demorados). */
   delta?: { valor: number; unidad?: string; invertido?: boolean; ref: string } | null;
+  /** Si se pasa, la card es clickeable (ej. togglear cómo se cuenta la métrica). */
+  onClick?: () => void;
+  hint?: string;
 }) {
   const t = TONOS[tono];
   const deltaBueno = delta ? (delta.invertido ? delta.valor < 0 : delta.valor > 0) : false;
   return (
-    <div className={cn("rounded-xl p-4 border bg-gradient-to-br shadow-sm", t.card)}>
+    <div onClick={onClick} title={hint}
+      className={cn("rounded-xl p-4 border bg-gradient-to-br shadow-sm", t.card,
+        onClick && "cursor-pointer hover:brightness-95 dark:hover:brightness-110 transition-[filter]")}>
       <div className="flex items-center gap-2">
         <span className={cn("inline-flex items-center justify-center h-7 w-7 rounded-lg", t.chip)}>
           <Icon className="h-4 w-4" />
@@ -970,7 +1094,7 @@ function BarraProp({ pct, tono = "blue" }: { pct: number; tono?: Tono }) {
 function HistoricoView({
   desde, setDesde, hasta, setHasta, clienteSel, setClienteSel, clientesDisponibles,
   cargando, chartGeneral, chartCliente, chartClientesTotales, totalesPeriodo, historicoCliente,
-  zonasTotales, estadosTotales, choferesTotales, ct,
+  tardeDetalleCliente, zonasTotales, estadosTotales, choferesTotales, ct,
 }: {
   desde: string; setDesde: (v: string) => void;
   hasta: string; setHasta: (v: string) => void;
@@ -981,11 +1105,16 @@ function HistoricoView({
   chartGeneral: any[]; chartCliente: any[]; chartClientesTotales: any[];
   totalesPeriodo: { total: number; post21: number; enCamino: number; post21SinEntregar: number };
   historicoCliente: HistoricoCliente[];
+  tardeDetalleCliente: TardeDetalleFila[];
   zonasTotales: ZonaTotalPeriodo[];
   estadosTotales: EstadoTotalPeriodo[];
   choferesTotales: ChoferTotalPeriodo[];
   ct: ReturnType<typeof useChartTheme>;
 }) {
+  // Demorados totales: "total" = en camino + post-21hs sin entregar · "encamino" = solo en camino
+  const [demoradosModo, setDemoradosModo] = useState<"total" | "encamino">("total");
+  const [diaExpandido, setDiaExpandido] = useState<string | null>(null);
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 flex-wrap bg-muted/30 rounded-xl px-3 py-2.5 border">
@@ -1014,9 +1143,21 @@ function HistoricoView({
             <KpiCard icon={Clock} label="Total post-21hs" valor={totalesPeriodo.post21.toLocaleString("es-AR")}
               sub={totalesPeriodo.total > 0 ? `${round2(totalesPeriodo.post21 / totalesPeriodo.total * 100).toFixed(2)}% del total` : undefined}
               tono="amber" />
-            <KpiCard icon={Truck} label="Demorados totales" valor={totalesPeriodo.enCamino.toLocaleString("es-AR")}
-              sub={`${Math.max(0, totalesPeriodo.enCamino - totalesPeriodo.post21SinEntregar).toLocaleString("es-AR")} en camino + ${totalesPeriodo.post21SinEntregar.toLocaleString("es-AR")} post-21hs sin entregar${totalesPeriodo.total > 0 ? ` · ${round2(totalesPeriodo.enCamino / totalesPeriodo.total * 100).toFixed(2)}% del total` : ""}`}
-              tono="red" />
+            {(() => {
+              const camino = Math.max(0, totalesPeriodo.enCamino - totalesPeriodo.post21SinEntregar);
+              const valorMostrado = demoradosModo === "total" ? totalesPeriodo.enCamino : camino;
+              const pctMostrado = totalesPeriodo.total > 0 ? round2(valorMostrado / totalesPeriodo.total * 100) : 0;
+              return (
+                <KpiCard icon={Truck}
+                  label={demoradosModo === "total" ? "Demorados totales" : "Solo en camino al destinatario"}
+                  valor={valorMostrado.toLocaleString("es-AR")}
+                  sub={demoradosModo === "total"
+                    ? `${camino.toLocaleString("es-AR")} en camino + ${totalesPeriodo.post21SinEntregar.toLocaleString("es-AR")} post-21hs sin entregar · ${pctMostrado.toFixed(2)}% del total — clic para ver un solo componente`
+                    : `post-21hs sin entregar excluido · ${pctMostrado.toFixed(2)}% del total — clic para ver el total`}
+                  tono="red" onClick={() => setDemoradosModo(m => m === "total" ? "encamino" : "total")}
+                  hint="Clic para alternar entre el total (en camino + post-21hs sin entregar) y solo en camino al destinatario" />
+              );
+            })()}
           </div>
 
           {/* Evolución diaria — un solo gráfico combinado en vez de 3 separados */}
@@ -1159,9 +1300,23 @@ function HistoricoView({
               <EmptyState icon={Users} title={`Sin datos de ${clienteSel} en este rango`} />
             </div>
           ) : (() => {
+            // Post-21hs no entregado de ESTE cliente, agrupado por día (viene del
+            // detalle real "Detalle de Envíos Tarde", filtrado por columna Cliente).
+            const post21PorDia = new Map<string, TardeDetalleFila[]>();
+            for (const p of tardeDetalleCliente) {
+              if (sinAcentos(p.estado ?? "").startsWith("entregado")) continue;
+              if (!p.fecha) continue;
+              const arr = post21PorDia.get(p.fecha) ?? [];
+              arr.push(p);
+              post21PorDia.set(p.fecha, arr);
+            }
+            const totalPost21NoEntregado = [...post21PorDia.values()].reduce((s, a) => s + a.length, 0);
+
             const totalPaq = historicoCliente.reduce((s, d) => s + d.cantidad, 0);
-            const totalDem = historicoCliente.reduce((s, d) => s + d.en_camino_destinatario, 0);
-            const pctDem = totalPaq > 0 ? round2(totalDem / totalPaq * 100) : 0;
+            const totalEnCamino = historicoCliente.reduce((s, d) => s + d.en_camino_destinatario, 0);
+            const totalDemCompleto = totalEnCamino + totalPost21NoEntregado;
+            const totalDemMostrado = demoradosModo === "total" ? totalDemCompleto : totalEnCamino;
+            const pctDem = totalPaq > 0 ? round2(totalDemMostrado / totalPaq * 100) : 0;
             const pctExito = round2(100 - pctDem);
             return (
             <>
@@ -1170,9 +1325,15 @@ function HistoricoView({
                 <KpiCard icon={Package} label={`Paquetes de ${clienteSel}`} valor={totalPaq.toLocaleString("es-AR")}
                   sub={`${historicoCliente.length} día(s) con envíos`} tono="blue" />
                 <KpiCard icon={CheckCircle} label="% sin demoras" valor={`${pctExito.toFixed(2)}%`}
-                  sub="100% menos sus demorados (el Excel no trae entregados por cliente)" tono="emerald" />
-                <KpiCard icon={Truck} label="Paquetes demorados" valor={totalDem.toLocaleString("es-AR")}
-                  sub="post-21hs sin entregar" tono="red" />
+                  sub="100% menos sus demorados" tono="emerald" />
+                <KpiCard icon={Truck}
+                  label={demoradosModo === "total" ? "Paquetes demorados" : "Solo en camino al destinatario"}
+                  valor={totalDemMostrado.toLocaleString("es-AR")}
+                  sub={demoradosModo === "total"
+                    ? `${totalEnCamino} en camino + ${totalPost21NoEntregado} post-21hs sin entregar — clic para ver un solo componente`
+                    : "post-21hs sin entregar excluido — clic para ver el total"}
+                  tono="red" onClick={() => setDemoradosModo(m => m === "total" ? "encamino" : "total")}
+                  hint="Clic para alternar entre el total (en camino + post-21hs sin entregar de este cliente) y solo en camino al destinatario" />
                 <KpiCard icon={Clock} label="% demorados s/ su total" valor={`${pctDem.toFixed(2)}%`}
                   sub="cuánto de lo suyo se demora" tono="amber" />
               </div>
@@ -1191,24 +1352,64 @@ function HistoricoView({
                   </ComposedChart>
                 </ResponsiveContainer>
 
+                <p className="text-[11px] text-muted-foreground">
+                  Clic en un día para ver la dirección de los paquetes post-21hs sin entregar de ese día (los "en camino
+                  al destinatario" no tienen dirección disponible — el Excel no la trae por cliente).
+                </p>
                 <table className="w-full text-xs">
                 <thead className="bg-muted/20">
                   <tr>
+                    <th className="w-6 px-2 py-2" />
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Fecha</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Paquetes</th>
-                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Demorados</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">En camino</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Post-21hs s/entregar</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">%</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {historicoCliente.map(d => (
-                    <tr key={d.fecha}>
-                      <td className="px-3 py-1.5">{d.fecha}</td>
-                      <td className="px-3 py-1.5 text-right tabular-nums">{d.cantidad}</td>
-                      <td className="px-3 py-1.5 text-right tabular-nums">{d.en_camino_destinatario}</td>
-                      <td className="px-3 py-1.5 text-right tabular-nums font-semibold">{d.en_camino_destinatario_pct.toFixed(2)}%</td>
-                    </tr>
-                  ))}
+                  {historicoCliente.map(d => {
+                    const detalleDia = post21PorDia.get(d.fecha) ?? [];
+                    const exp = diaExpandido === d.fecha;
+                    const demDia = d.en_camino_destinatario + detalleDia.length;
+                    const pctDiaMostrado = d.cantidad > 0 ? round2((demoradosModo === "total" ? demDia : d.en_camino_destinatario) / d.cantidad * 100) : 0;
+                    return (
+                      <Fragment key={d.fecha}>
+                        <tr onClick={() => detalleDia.length > 0 && setDiaExpandido(exp ? null : d.fecha)}
+                          className={cn(detalleDia.length > 0 && "cursor-pointer hover:bg-muted/30", exp && "bg-red-50/40 dark:bg-red-950/20")}>
+                          <td className="px-2 py-1.5 text-center text-muted-foreground">
+                            {detalleDia.length > 0 && (exp ? <ChevronDown className="h-3.5 w-3.5 inline" /> : <ChevronRight className="h-3.5 w-3.5 inline" />)}
+                          </td>
+                          <td className="px-3 py-1.5">{d.fecha}</td>
+                          <td className="px-3 py-1.5 text-right tabular-nums">{d.cantidad}</td>
+                          <td className="px-3 py-1.5 text-right tabular-nums">{d.en_camino_destinatario}</td>
+                          <td className="px-3 py-1.5 text-right tabular-nums">
+                            {detalleDia.length > 0 ? <span className="font-semibold text-red-600 dark:text-red-300">{detalleDia.length}</span> : "—"}
+                          </td>
+                          <td className="px-3 py-1.5 text-right tabular-nums font-semibold">{pctDiaMostrado.toFixed(2)}%</td>
+                        </tr>
+                        {exp && (
+                          <tr>
+                            <td colSpan={6} className="bg-muted/10 px-4 py-2">
+                              <div className="space-y-1.5 py-1">
+                                {detalleDia.map((p, i) => (
+                                  <div key={p.id ?? i} className="flex items-start gap-2 text-[11px]">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-red-500 shrink-0 mt-1" />
+                                    <div className="flex-1 min-w-0">
+                                      <span className="text-muted-foreground">{p.direccion ?? "Sin dirección"}</span>
+                                      {p.localidad && <span className="text-foreground/60"> · {p.localidad}</span>}
+                                      {p.chofer && <span className="text-muted-foreground/70"> · {p.chofer}</span>}
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground ml-2">{p.estado ?? "—"}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
               </div>
