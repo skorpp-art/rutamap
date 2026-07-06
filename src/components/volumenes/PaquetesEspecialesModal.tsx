@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Package, X, Plus, Trash2, User, Barcode, Camera, Loader2 } from "lucide-react";
+import { Package, X, Plus, Trash2, User, Barcode, Camera, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -41,6 +41,7 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
   const [observacion, setObservacion] = useState("");
   const [imagenes, setImagenes] = useState<string[]>([]); // paths en el bucket
   const [subiendo, setSubiendo] = useState(false);
+  const [confirmacion, setConfirmacion] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const cargar = useCallback(async () => {
@@ -94,11 +95,19 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
         observacion: observacion.trim() || null,
         imagenes,
       });
-      if (!res.ok) { toast.error("No se pudo agregar", { description: res.error }); return; }
-      toast.success("Paquete especial agregado");
+      if (!res.ok) {
+        console.error("crearPaqueteEspecial falló:", res.error);
+        toast.error("No se pudo guardar el paquete especial", { description: res.error ?? "Error desconocido", duration: 8000 });
+        return;
+      }
       setCliente(""); setTracking(""); setAlto(""); setAncho(""); setLargo(""); setPeso("");
       setObservacion(""); setImagenes([]);
+      setConfirmacion(true);
+      setTimeout(() => setConfirmacion(false), 1800);
       await cargar();
+    } catch (e) {
+      console.error("Excepción al guardar paquete especial:", e);
+      toast.error("Error inesperado al guardar", { description: String(e), duration: 8000 });
     } finally { setGuardando(false); }
   }
 
@@ -124,15 +133,31 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
       onClick={() => onClose(paquetes.length)}>
-      <div className="bg-background border rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4"
+      <div className="relative bg-background border rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4"
         onClick={e => e.stopPropagation()}>
+        {/* Popup de confirmación al cargar un paquete */}
+        {confirmacion && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/90 backdrop-blur-sm rounded-2xl">
+            <div className="flex flex-col items-center gap-2 animate-in fade-in zoom-in duration-200">
+              <CheckCircle2 className="h-12 w-12 text-emerald-500" />
+              <p className="font-semibold text-emerald-700 dark:text-emerald-300">Paquete cargado</p>
+            </div>
+          </div>
+        )}
         {/* Encabezado */}
         <div className="flex items-start gap-3">
           <span className="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-300 shrink-0">
             <Package className="h-5 w-5" />
           </span>
           <div className="flex-1 min-w-0">
-            <p className="font-bold">Paquetes especiales</p>
+            <p className="font-bold flex items-center gap-1.5">
+              Paquetes especiales
+              {!cargando && (
+                <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-300">
+                  {paquetes.length} asignado{paquetes.length !== 1 ? "s" : ""}
+                </span>
+              )}
+            </p>
             <p className="text-xs text-muted-foreground truncate">
               {recorrido.nombre} · {recorrido.codigo} · {recorrido.zona} · {fecha}
             </p>
