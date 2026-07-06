@@ -19,7 +19,7 @@ import {
 import { getOperacionDia } from "@/app/actions/operacion";
 import type { OperacionRuta } from "@/app/actions/operacion";
 import {
-  getPaquetesEspeciales, getPaquetesEspecialesRango, getClientesSugeridos,
+  getPaquetesEspeciales, getPaquetesEspecialesRango, getClientesSugeridos, getChoferesRango,
 } from "@/app/actions/paquetes-especiales";
 import { PaquetesEspecialesModal, urlImagen } from "@/components/volumenes/PaquetesEspecialesModal";
 
@@ -239,34 +239,108 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
     } finally { setPublicando(false); }
   }
 
+  // Rango del mes de la fecha elegida (para ambos exports de especiales)
+  function rangoMes() {
+    const desde = fecha.slice(0, 8) + "01";
+    const [y, m] = fecha.split("-").map(Number);
+    const fin = new Date(y, m, 0);
+    const hasta = `${fin.getFullYear()}-${String(fin.getMonth() + 1).padStart(2, "0")}-${String(fin.getDate()).padStart(2, "0")}`;
+    return { desde, hasta };
+  }
+
+  // Trae especiales + chofer por recorrido/fecha (para completar la columna Chofer)
+  async function traerEspecialesDelMes() {
+    const { desde, hasta } = rangoMes();
+    const [rEsp, rChof] = await Promise.all([getPaquetesEspecialesRango(desde, hasta), getChoferesRango(desde, hasta)]);
+    if (!rEsp.ok) { toast.error("No se pudo exportar", { description: rEsp.error }); return null; }
+    const lista = rEsp.data ?? [];
+    if (lista.length === 0) { toast.info("No hay paquetes especiales en el mes de la fecha elegida"); return null; }
+    const choferPorRuta = new Map<string, string>();
+    if (rChof.ok) for (const c of rChof.data ?? []) choferPorRuta.set(`${c.fecha}|${c.codigo}`, c.chofer);
+    return { lista, choferPorRuta, desde };
+  }
+
   // Exporta a Excel los paquetes especiales del mes (para administración)
   async function exportarEspeciales() {
     setExportandoEsp(true);
     try {
-      const desde = fecha.slice(0, 8) + "01";
-      const [y, m] = fecha.split("-").map(Number);
-      const fin = new Date(y, m, 0);
-      const hasta = `${fin.getFullYear()}-${String(fin.getMonth() + 1).padStart(2, "0")}-${String(fin.getDate()).padStart(2, "0")}`;
-      const res = await getPaquetesEspecialesRango(desde, hasta);
-      if (!res.ok) { toast.error("No se pudo exportar", { description: res.error }); return; }
-      const lista = res.data ?? [];
-      if (lista.length === 0) { toast.info("No hay paquetes especiales en el mes de la fecha elegida"); return; }
+      const datos = await traerEspecialesDelMes();
+      if (!datos) return;
+      const { lista, choferPorRuta, desde } = datos;
       const XLSX = await import("xlsx");
       const hoja = lista.map(p => ({
         Fecha: p.fecha, Zona: p.zona, "Código": p.codigo, Recorrido: p.recorrido_nombre,
-        Cliente: p.cliente ?? "", Tracking: p.tracking ?? "",
+        Chofer: choferPorRuta.get(`${p.fecha}|${p.codigo}`) ?? "",
+        Cliente: p.cliente ?? "", Tracking: p.tracking ?? "", "Dirección": p.direccion ?? "",
         "Alto (cm)": p.alto_cm ?? "", "Ancho (cm)": p.ancho_cm ?? "",
         "Largo (cm)": p.largo_cm ?? "", "Peso (kg)": p.peso_kg ?? "",
         "Observación": p.observacion ?? "",
         Fotos: p.imagenes.map(urlImagen).join("  "),
       }));
       const ws = XLSX.utils.json_to_sheet(hoja);
-      ws["!cols"] = [{ wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 28 }, { wch: 20 }, { wch: 14 },
+      ws["!cols"] = [{ wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 28 }, { wch: 18 }, { wch: 20 }, { wch: 14 }, { wch: 28 },
         { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 40 }, { wch: 60 }];
+      // Hipervínculo real en la celda de Fotos (a la primera foto) para poder
+      // abrirla con un clic desde Excel, no solo copiar la URL como texto.
+      lista.forEach((p, i) => {
+        if (p.imagenes.length === 0) return;
+        const addr = XLSX.utils.encode_cell({ r: i + 1, c: 13 });
+        if (ws[addr]) ws[addr].l = { Target: urlImagen(p.imagenes[0]), Tooltip: "Ver foto" };
+      });
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Paquetes especiales");
       XLSX.writeFile(wb, `paquetes-especiales-${desde.slice(0, 7)}.xlsx`);
       toast.success(`${lista.length} paquetes especiales exportados (${desde.slice(0, 7)})`);
+    } finally { setExportandoEsp(false); }
+  }
+
+  // Exporta un reporte HTML con las fotos visibles en miniatura — para que
+  // administración/cobranzas vea el paquete de un vistazo, sin depender de
+  // que Excel abra los links (algunos visores de Excel no muestran hipervínculos).
+  async function exportarEspecialesConFotos() {
+    setExportandoEsp(true);
+    try {
+      const datos = await traerEspecialesDelMes();
+      if (!datos) return;
+      const { lista, choferPorRuta, desde } = datos;
+      const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const filas = lista.map(p => {
+        const chofer = choferPorRuta.get(`${p.fecha}|${p.codigo}`) ?? "—";
+        const medidas = [p.alto_cm, p.ancho_cm, p.largo_cm].filter(v => v != null).length === 3
+          ? `${p.alto_cm}×${p.ancho_cm}×${p.largo_cm} cm` : "";
+        const fotos = p.imagenes.map(img => {
+          const url = urlImagen(img);
+          return `<a href="${esc(url)}" target="_blank"><img src="${esc(url)}" style="width:110px;height:110px;object-fit:cover;border-radius:8px;border:1px solid #ddd;margin:2px"></a>`;
+        }).join("");
+        return `<tr>
+          <td>${esc(p.fecha)}</td><td>${esc(p.zona)}</td><td><b>${esc(p.codigo)}</b><br>${esc(p.recorrido_nombre)}</td>
+          <td>${esc(chofer)}</td><td>${esc(p.cliente ?? "—")}</td><td>${esc(p.tracking ?? "—")}</td>
+          <td>${esc(p.direccion ?? "—")}</td><td>${esc(medidas)}${p.peso_kg != null ? ` · ${p.peso_kg} kg` : ""}</td>
+          <td>${esc(p.observacion ?? "")}</td>
+          <td>${fotos || "<span style=\"color:#999\">sin fotos</span>"}</td>
+        </tr>`;
+      }).join("\n");
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>Paquetes especiales ${desde.slice(0, 7)}</title>
+        <style>
+          body{font-family:system-ui,sans-serif;padding:20px;color:#111}
+          table{border-collapse:collapse;width:100%;font-size:13px}
+          th,td{border:1px solid #ddd;padding:8px;vertical-align:top;text-align:left}
+          th{background:#fef3c7;position:sticky;top:0}
+          h1{font-size:18px}
+        </style></head><body>
+        <h1>Paquetes especiales — ${desde.slice(0, 7)}</h1>
+        <table><thead><tr>
+          <th>Fecha</th><th>Zona</th><th>Recorrido</th><th>Chofer</th><th>Cliente</th><th>Tracking</th>
+          <th>Dirección</th><th>Medidas</th><th>Observación</th><th>Fotos</th>
+        </tr></thead><tbody>${filas}</tbody></table>
+        </body></html>`;
+      const blob = new Blob([html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `paquetes-especiales-${desde.slice(0, 7)}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`${lista.length} paquetes especiales exportados con fotos (${desde.slice(0, 7)})`);
     } finally { setExportandoEsp(false); }
   }
 
@@ -550,7 +624,12 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
           <Button size="sm" onClick={exportarEspeciales} disabled={exportandoEsp}
             variant="outline" className="h-9 gap-1.5 text-xs">
             <Download className="h-3.5 w-3.5" />
-            {exportandoEsp ? "Exportando…" : "Exportar especiales (mes)"}
+            {exportandoEsp ? "Exportando…" : "Exportar especiales (Excel)"}
+          </Button>
+          <Button size="sm" onClick={exportarEspecialesConFotos} disabled={exportandoEsp}
+            variant="outline" className="h-9 gap-1.5 text-xs border-amber-300 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/20">
+            <Package className="h-3.5 w-3.5" />
+            {exportandoEsp ? "Exportando…" : "Exportar con fotos (para cobranzas)"}
           </Button>
           {puedeEditar && (
             <Button size="sm" onClick={publicar} disabled={publicando || filas.length === 0}

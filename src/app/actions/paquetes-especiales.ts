@@ -11,6 +11,7 @@ export interface PaqueteEspecial {
   zona: string;
   cliente: string | null;
   tracking: string | null;
+  direccion: string | null;
   alto_cm: number | null;
   ancho_cm: number | null;
   largo_cm: number | null;
@@ -23,6 +24,7 @@ export interface PaqueteEspecial {
 export interface PaqueteEspecialInput {
   cliente: string | null;
   tracking: string | null;
+  direccion: string | null;
   alto_cm: number | null;
   ancho_cm: number | null;
   largo_cm: number | null;
@@ -61,7 +63,7 @@ export async function crearPaqueteEspecial(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any).rpc("crear_paquete_especial", {
       p_fecha: fecha, p_recorrido_id: recorridoId,
-      p_cliente: p.cliente, p_tracking: p.tracking,
+      p_cliente: p.cliente, p_tracking: p.tracking, p_direccion: p.direccion,
       p_alto: p.alto_cm, p_ancho: p.ancho_cm, p_largo: p.largo_cm, p_peso: p.peso_kg,
       p_observacion: p.observacion, p_imagenes: p.imagenes,
     });
@@ -89,5 +91,19 @@ export async function getClientesSugeridos(): Promise<{ ok: boolean; data?: stri
     const unicos = [...new Set((data ?? []).map((r: { cliente: string | null }) => r.cliente).filter(Boolean) as string[])]
       .sort((a, b) => a.localeCompare(b));
     return { ok: true, data: unicos };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
+// Chofer asignado a cada recorrido en el rango (para el export de especiales)
+export interface ChoferPorFecha { fecha: string; codigo: string; chofer: string }
+export async function getChoferesRango(
+  desde: string, hasta: string
+): Promise<{ ok: boolean; data?: ChoferPorFecha[]; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("get_choferes_rango", { p_desde: desde, p_hasta: hasta });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, data: (data ?? []) as ChoferPorFecha[] };
   } catch (e) { return { ok: false, error: String(e) }; }
 }

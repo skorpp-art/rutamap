@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Package, X, Plus, Trash2, User, Barcode, Camera, Loader2, CheckCircle2 } from "lucide-react";
+import { Package, X, Plus, Trash2, User, Barcode, Camera, Loader2, CheckCircle2, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -34,6 +34,7 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
   // Form
   const [cliente, setCliente] = useState("");
   const [tracking, setTracking] = useState("");
+  const [direccion, setDireccion] = useState("");
   const [alto, setAlto] = useState("");
   const [ancho, setAncho] = useState("");
   const [largo, setLargo] = useState("");
@@ -91,6 +92,7 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
       const res = await crearPaqueteEspecial(fecha, recorrido.recorrido_id, {
         cliente: cliente.trim() || null,
         tracking: tracking.trim() || null,
+        direccion: direccion.trim() || null,
         alto_cm: num(alto), ancho_cm: num(ancho), largo_cm: num(largo), peso_kg: num(peso),
         observacion: observacion.trim() || null,
         imagenes,
@@ -100,7 +102,7 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
         toast.error("No se pudo guardar el paquete especial", { description: res.error ?? "Error desconocido", duration: 8000 });
         return;
       }
-      setCliente(""); setTracking(""); setAlto(""); setAncho(""); setLargo(""); setPeso("");
+      setCliente(""); setTracking(""); setDireccion(""); setAlto(""); setAncho(""); setLargo(""); setPeso("");
       setObservacion(""); setImagenes([]);
       setConfirmacion(true);
       setTimeout(() => setConfirmacion(false), 1800);
@@ -121,6 +123,7 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
       const res = await crearPaqueteEspecial(fecha, recorrido.recorrido_id, {
         cliente: cliente.trim() || null,
         tracking: tracking.trim() || null,
+        direccion: direccion.trim() || null,
         alto_cm: num(alto), ancho_cm: num(ancho), largo_cm: num(largo), peso_kg: num(peso),
         observacion: observacion.trim() || null,
         imagenes,
@@ -210,6 +213,11 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
                     </button>
                   )}
                 </div>
+                {p.direccion && (
+                  <p className="text-muted-foreground flex items-center gap-1">
+                    <MapPin className="h-3 w-3 shrink-0" /> {p.direccion}
+                  </p>
+                )}
                 {fmtMedidas(p) && <p className="text-muted-foreground tabular-nums">{fmtMedidas(p)}</p>}
                 {p.observacion && <p className="text-muted-foreground italic">"{p.observacion}"</p>}
                 {p.imagenes.length > 0 && (
@@ -245,6 +253,11 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
               <Barcode className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <input value={tracking} onChange={e => setTracking(e.target.value)} placeholder="Tracking (LD…)"
                 className="w-full text-sm pl-8 pr-2 py-2 rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-amber-400 font-mono" />
+            </div>
+            <div className="relative">
+              <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <input value={direccion} onChange={e => setDireccion(e.target.value)} placeholder="Dirección del paquete…"
+                className="w-full text-sm pl-8 pr-2 py-2 rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-amber-400" />
             </div>
             <div className="grid grid-cols-4 gap-2">
               {([["Alto", alto, setAlto], ["Ancho", ancho, setAncho], ["Largo", largo, setLargo], ["Peso", peso, setPeso]] as const).map(([ph, val, set]) => (
