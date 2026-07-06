@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   ClipboardList, Calendar, RefreshCw, Package, Trash2, Download,
-  Send, Sunrise, Plus,
+  Send, Sunrise, Plus, Users, Upload, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -13,6 +13,7 @@ import { hoyAR } from "@/lib/fechas";
 import {
   getCargaDia, upsertCargaFila, eliminarCargaFila, iniciarCargaDesdeOperacion,
   publicarCargaDia, getChoferesConocidos, setEstadoControlFila,
+  getConductores, agregarConductor, importarConductores, eliminarConductor,
   type CargaFila, type TurnoCarga,
 } from "@/app/actions/carga-dia";
 import { getOperacionDia } from "@/app/actions/operacion";
@@ -52,6 +53,12 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
   const [publicando, setPublicando] = useState(false);
   const [exportandoEsp, setExportandoEsp] = useState(false);
   const [choferes, setChoferes] = useState<string[]>([]);
+  // Banco de conductores (nómina estable, importable desde el Excel)
+  const [conductores, setConductores] = useState<string[]>([]);
+  const [modalConductores, setModalConductores] = useState(false);
+  const [nuevoConductor, setNuevoConductor] = useState("");
+  const [importandoCond, setImportandoCond] = useState(false);
+  const fileCondRef = useRef<HTMLInputElement>(null);
   const [clientesSug, setClientesSug] = useState<string[]>([]);
   const [rutasDia, setRutasDia] = useState<OperacionRuta[]>([]);
   const [agregandoCodigo, setAgregandoCodigo] = useState("");
@@ -81,7 +88,65 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
   useEffect(() => {
     getChoferesConocidos().then(r => { if (r.ok) setChoferes(r.data ?? []); });
     getClientesSugeridos().then(r => { if (r.ok) setClientesSug(r.data ?? []); });
+    getConductores().then(r => { if (r.ok) setConductores(r.data ?? []); });
   }, []);
+
+  // Sugerencias del campo chofer: nómina de conductores + nombres ya usados en cargas
+  const sugerenciasChofer = useMemo(() => {
+    const set = new Map<string, string>(); // clave normalizada → nombre original
+    for (const n of [...conductores, ...choferes]) {
+      const k = n.trim().toLowerCase();
+      if (k && !set.has(k)) set.set(k, n.trim());
+    }
+    return [...set.values()].sort((a, b) => a.localeCompare(b));
+  }, [conductores, choferes]);
+
+  // ── Gestión de conductores ──
+  async function altaConductor() {
+    const nombre = nuevoConductor.trim();
+    if (!nombre) return;
+    const res = await agregarConductor(nombre);
+    if (!res.ok) { toast.error("No se pudo agregar el conductor", { description: res.error }); return; }
+    setNuevoConductor("");
+    setConductores(prev => [...new Set([...prev, nombre])].sort((a, b) => a.localeCompare(b)));
+    toast.success(`Conductor "${nombre}" agregado`);
+  }
+
+  async function bajaConductor(nombre: string) {
+    const res = await eliminarConductor(nombre);
+    if (!res.ok) { toast.error("No se pudo eliminar", { description: res.error }); return; }
+    setConductores(prev => prev.filter(c => c !== nombre));
+  }
+
+  // Importa nombres desde un Excel: usa la hoja "Conductores" si existe
+  // (como la del archivo TABLAS), si no toma la primera columna con texto.
+  async function onArchivoConductores(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImportandoCond(true);
+    try {
+      const XLSX = await import("xlsx");
+      const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
+      const hoja = wb.SheetNames.find(n => n.trim().toLowerCase().startsWith("conductor")) ?? wb.SheetNames[0];
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[hoja], { header: 1, defval: "" }) as unknown[][];
+      const nombres = new Set<string>();
+      for (const r of rows) {
+        for (const celda of r) {
+          const v = String(celda ?? "").trim();
+          if (!v || v.toLowerCase() === "conductores") continue;
+          if (v.length < 3 || /\d{3,}/.test(v)) continue; // descarta códigos/números
+          nombres.add(v.replace(/\s+/g, " "));
+        }
+      }
+      if (nombres.size === 0) { toast.error("No se encontraron nombres en el archivo"); return; }
+      const res = await importarConductores([...nombres]);
+      if (!res.ok) { toast.error("No se pudo importar", { description: res.error }); return; }
+      toast.success(`${res.agregados} conductores nuevos importados (${nombres.size} leídos, el resto ya existía)`);
+      const r2 = await getConductores();
+      if (r2.ok) setConductores(r2.data ?? []);
+    } finally { setImportandoCond(false); }
+  }
 
   const filasTurno = useMemo(() => filas.filter(f => f.turno === turno), [filas, turno]);
   // Lo que se muestra en las tablas: el turno elegido, acotado a la zona si hay una seleccionada
@@ -344,6 +409,10 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
               <Plus className="h-3.5 w-3.5" />
               Traer recorridos de Operación del Día
             </Button>
+            <Button size="sm" variant="outline" onClick={() => setModalConductores(true)} className="h-8 gap-1.5 text-xs">
+              <Users className="h-3.5 w-3.5" />
+              Conductores ({conductores.length})
+            </Button>
             {rutasDisponibles.length > 0 && (
               <select value={agregandoCodigo}
                 onChange={e => { if (e.target.value) agregarRecorrido(e.target.value); }}
@@ -473,7 +542,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
         )}
 
         <datalist id="choferes-carga">
-          {choferes.map(c => <option key={c} value={c} />)}
+          {sugerenciasChofer.map(c => <option key={c} value={c} />)}
         </datalist>
 
         {/* ── Cierre del día ── */}
@@ -492,6 +561,67 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
           )}
         </div>
       </div>
+
+      {/* ── Modal gestión de conductores ── */}
+      {modalConductores && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={() => setModalConductores(false)}>
+          <div className="bg-background border rounded-2xl shadow-2xl max-w-md w-full max-h-[85vh] flex flex-col p-6 gap-4"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-start gap-3">
+              <span className="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-blue-500/15 text-blue-700 dark:text-blue-300 shrink-0">
+                <Users className="h-5 w-5" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold">Conductores</p>
+                <p className="text-xs text-muted-foreground">
+                  {conductores.length} en la nómina — se sugieren al cargar el chofer de cada recorrido.
+                </p>
+              </div>
+              <button onClick={() => setModalConductores(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Alta manual + import */}
+            <div className="flex items-center gap-2">
+              <input value={nuevoConductor} onChange={e => setNuevoConductor(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") altaConductor(); }}
+                placeholder="Nombre del conductor nuevo…"
+                className="flex-1 text-sm px-3 py-2 rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-blue-400" />
+              <Button size="sm" onClick={altaConductor} disabled={!nuevoConductor.trim()}
+                className="h-9 gap-1 text-xs bg-blue-600 hover:bg-blue-700 text-white">
+                <Plus className="h-3.5 w-3.5" /> Agregar
+              </Button>
+            </div>
+            <div>
+              <input ref={fileCondRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={onArchivoConductores} />
+              <button onClick={() => fileCondRef.current?.click()} disabled={importandoCond}
+                className="w-full inline-flex items-center justify-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-dashed border-border hover:bg-muted transition-colors disabled:opacity-50">
+                <Upload className="h-3.5 w-3.5" />
+                {importandoCond ? "Importando…" : 'Importar desde Excel (hoja "Conductores" de la planilla TABLAS)'}
+              </button>
+            </div>
+
+            {/* Lista */}
+            <div className="flex-1 overflow-y-auto border rounded-xl divide-y min-h-24">
+              {conductores.length === 0 ? (
+                <p className="text-center text-xs text-muted-foreground py-6">
+                  Todavía no hay conductores cargados. Importá el Excel o agregalos de a uno.
+                </p>
+              ) : conductores.map(c => (
+                <div key={c} className="flex items-center gap-2 px-3 py-1.5 text-xs">
+                  <span className="flex-1 truncate">{c}</span>
+                  <button onClick={() => bajaConductor(c)} title="Quitar de la nómina"
+                    className="text-muted-foreground/40 hover:text-red-600 transition-colors">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal paquetes especiales ── */}
       {modalEspeciales && (

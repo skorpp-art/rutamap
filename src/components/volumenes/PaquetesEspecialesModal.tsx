@@ -111,6 +111,30 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
     } finally { setGuardando(false); }
   }
 
+  // "Listo" / cerrar: si quedó algo escrito en el formulario, lo guarda antes
+  // de cerrar (era la causa de "no se me guardan": llenaban el form y cerraban
+  // sin tocar "Agregar paquete").
+  async function cerrarGuardando() {
+    const hayDatos = cliente.trim() || observacion.trim() || tracking.trim();
+    let cantidad = paquetes.length;
+    if (puedeEditar && hayDatos) {
+      const res = await crearPaqueteEspecial(fecha, recorrido.recorrido_id, {
+        cliente: cliente.trim() || null,
+        tracking: tracking.trim() || null,
+        alto_cm: num(alto), ancho_cm: num(ancho), largo_cm: num(largo), peso_kg: num(peso),
+        observacion: observacion.trim() || null,
+        imagenes,
+      });
+      if (!res.ok) {
+        toast.error("No se pudo guardar el paquete pendiente", { description: res.error, duration: 8000 });
+        return; // no cierra: que no se pierda lo escrito
+      }
+      cantidad += 1;
+      toast.success("Paquete cargado");
+    }
+    onClose(cantidad);
+  }
+
   async function eliminar(p: PaqueteEspecial) {
     const res = await eliminarPaqueteEspecial(p.id);
     if (!res.ok) { toast.error("No se pudo eliminar", { description: res.error }); return; }
@@ -132,7 +156,7 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-      onClick={() => onClose(paquetes.length)}>
+      onClick={cerrarGuardando}>
       <div className="relative bg-background border rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4"
         onClick={e => e.stopPropagation()}>
         {/* Popup de confirmación al cargar un paquete */}
@@ -162,7 +186,7 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
               {recorrido.nombre} · {recorrido.codigo} · {recorrido.zona} · {fecha}
             </p>
           </div>
-          <button onClick={() => onClose(paquetes.length)} className="text-muted-foreground hover:text-foreground">
+          <button onClick={cerrarGuardando} className="text-muted-foreground hover:text-foreground">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -263,7 +287,7 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
         )}
 
         <div className="flex justify-end">
-          <Button className="bg-amber-500 hover:bg-amber-600 text-white" onClick={() => onClose(paquetes.length)}>
+          <Button className="bg-amber-500 hover:bg-amber-600 text-white" onClick={cerrarGuardando}>
             ✓ Listo
           </Button>
         </div>

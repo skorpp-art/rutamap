@@ -106,3 +106,47 @@ export async function getChoferesConocidos(): Promise<{ ok: boolean; data?: stri
     return { ok: true, data: ((data ?? []) as { chofer: string }[]).map(r => r.chofer) };
   } catch (e) { return { ok: false, error: String(e) }; }
 }
+
+// ── Banco de conductores ──────────────────────────────────────────────────────
+// Nómina estable de conductores (equivale a la hoja "Conductores" del Excel).
+// Se puede importar desde el Excel o agregar de a uno.
+
+export async function getConductores(): Promise<{ ok: boolean; data?: string[]; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("get_conductores");
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, data: ((data ?? []) as { nombre: string }[]).map(r => r.nombre) };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
+export async function agregarConductor(nombre: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc("agregar_conductor", { p_nombre: nombre });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
+export async function importarConductores(nombres: string[]): Promise<{ ok: boolean; agregados?: number; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("importar_conductores", { p_nombres: nombres });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, agregados: (data ?? 0) as number };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
+export async function eliminarConductor(nombre: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc("eliminar_conductor", { p_nombre: nombre });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
