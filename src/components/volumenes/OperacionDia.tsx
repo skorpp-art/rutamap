@@ -17,9 +17,6 @@ import type { SugerenciaRuta } from "@/app/actions/operacion";
 import { getAnalisisRecorridos, getCoactivacionesHistoricas } from "@/app/actions/operaciones-diarias";
 import type { AnalisisRecorrido } from "@/app/actions/operaciones-diarias";
 import { crearRecorrido, actualizarCamposRecorrido, getSiguienteCodigo, eliminarRecorrido } from "@/app/actions/recorridos";
-import { getPaquetesEspeciales, getPaquetesEspecialesRango, getClientesSugeridos } from "@/app/actions/paquetes-especiales";
-import { PaquetesEspecialesModal, urlImagen } from "./PaquetesEspecialesModal";
-import { Package } from "lucide-react";
 import { ZONA_COLOR as ZONA_HEX } from "@/lib/estados";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { OperacionRuta } from "@/app/actions/operacion";
@@ -100,60 +97,6 @@ export function OperacionDia({
   const editadosRef = useRef(editados);
   useEffect(() => { rutasRef.current = rutas; }, [rutas]);
   useEffect(() => { editadosRef.current = editados; }, [editados]);
-
-  // ── Paquetes especiales ───────────────────────────────────────────────────
-  const [especialesCount, setEspecialesCount] = useState<Record<string, number>>({});
-  const [modalEspeciales, setModalEspeciales] = useState<{ recorrido_id: string; codigo: string; nombre: string; zona: string } | null>(null);
-  const [clientesSug, setClientesSug] = useState<string[]>([]);
-  const [exportandoEsp, setExportandoEsp] = useState(false);
-
-  const cargarEspeciales = useCallback(async (f: string) => {
-    const res = await getPaquetesEspeciales(f);
-    if (!res.ok) return;
-    const counts: Record<string, number> = {};
-    for (const p of res.data ?? []) counts[p.recorrido_id] = (counts[p.recorrido_id] ?? 0) + 1;
-    setEspecialesCount(counts);
-  }, []);
-
-  useEffect(() => { cargarEspeciales(fecha); }, [fecha, cargarEspeciales]);
-  useEffect(() => { getClientesSugeridos().then(r => { if (r.ok) setClientesSug(r.data ?? []); }); }, []);
-
-  // Exporta a Excel los paquetes especiales del mes de la fecha elegida (para administración)
-  async function exportarEspeciales() {
-    setExportandoEsp(true);
-    try {
-      const desde = fecha.slice(0, 8) + "01";
-      const [y, m] = fecha.split("-").map(Number);
-      const fin = new Date(y, m, 0);
-      const hasta = `${fin.getFullYear()}-${String(fin.getMonth() + 1).padStart(2, "0")}-${String(fin.getDate()).padStart(2, "0")}`;
-      const res = await getPaquetesEspecialesRango(desde, hasta);
-      if (!res.ok) { toast.error("No se pudo exportar", { description: res.error }); return; }
-      const filas = res.data ?? [];
-      if (filas.length === 0) { toast.info("No hay paquetes especiales en el mes de la fecha elegida"); return; }
-      const XLSX = await import("xlsx");
-      const hoja = filas.map(p => ({
-        Fecha: p.fecha,
-        Zona: p.zona,
-        "Código": p.codigo,
-        Recorrido: p.recorrido_nombre,
-        Cliente: p.cliente ?? "",
-        Tracking: p.tracking ?? "",
-        "Alto (cm)": p.alto_cm ?? "",
-        "Ancho (cm)": p.ancho_cm ?? "",
-        "Largo (cm)": p.largo_cm ?? "",
-        "Peso (kg)": p.peso_kg ?? "",
-        "Observación": p.observacion ?? "",
-        Fotos: p.imagenes.map(urlImagen).join("  "),
-      }));
-      const ws = XLSX.utils.json_to_sheet(hoja);
-      ws["!cols"] = [{ wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 28 }, { wch: 20 }, { wch: 14 },
-        { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 40 }, { wch: 60 }];
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Paquetes especiales");
-      XLSX.writeFile(wb, `paquetes-especiales-${desde.slice(0, 7)}.xlsx`);
-      toast.success(`${filas.length} paquetes especiales exportados (${desde.slice(0, 7)})`);
-    } finally { setExportandoEsp(false); }
-  }
 
   // ── Modal agregar/editar recorrido ───────────────────────────────────────
   const [modalRuta, setModalRuta] = useState<{
@@ -1134,20 +1077,6 @@ export function OperacionDia({
                           title="Editar recorrido">
                           <Pencil className="h-3 w-3" />
                         </button>
-                        <button
-                          onClick={() => setModalEspeciales({ recorrido_id: r.recorrido_id, codigo: r.codigo, nombre: r.nombre, zona: r.zona })}
-                          className={cn("relative shrink-0 transition-colors",
-                            (especialesCount[r.recorrido_id] ?? 0) > 0
-                              ? "text-amber-500 hover:text-amber-600"
-                              : "text-muted-foreground/40 hover:text-amber-500")}
-                          title="Paquetes especiales">
-                          <Package className="h-3.5 w-3.5" />
-                          {(especialesCount[r.recorrido_id] ?? 0) > 0 && (
-                            <span className="absolute -top-1.5 -right-2 h-3.5 min-w-3.5 px-0.5 rounded-full bg-amber-500 text-white text-[8px] font-bold flex items-center justify-center">
-                              {especialesCount[r.recorrido_id]}
-                            </span>
-                          )}
-                        </button>
                       </div>
                     </td>
                     <td className="px-3 py-2 font-mono font-bold">
@@ -1195,30 +1124,12 @@ export function OperacionDia({
             {guardando ? "…" : "Guardar"}
           </Button>
         )}
-        <Button size="sm" onClick={exportarEspeciales} disabled={exportandoEsp}
-          className="ml-auto h-8 gap-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white font-semibold">
-          <Package className="h-3.5 w-3.5" />
-          {exportandoEsp ? "Exportando…" : "Exportar especiales (mes)"}
-        </Button>
         <Button size="sm" onClick={handleExportar}
-          className="h-8 gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white font-semibold">
+          className="ml-auto h-8 gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white font-semibold">
           <FileDown className="h-3.5 w-3.5" />
           Exportar PDF
         </Button>
       </div>
-
-      {/* ── Modal paquetes especiales ── */}
-      {modalEspeciales && (
-        <PaquetesEspecialesModal
-          fecha={fecha}
-          recorrido={modalEspeciales}
-          clientes={clientesSug}
-          onClose={cantidad => {
-            setEspecialesCount(prev => ({ ...prev, [modalEspeciales.recorrido_id]: cantidad }));
-            setModalEspeciales(null);
-          }}
-        />
-      )}
 
       {/* ── Modal agregar / editar recorrido ── */}
       {modalRuta && (

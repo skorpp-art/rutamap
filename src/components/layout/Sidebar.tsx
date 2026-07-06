@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { Map, Package, BarChart3, PackageCheck, Users, Lock, Truck } from "lucide-react";
+import { Map, Package, BarChart3, PackageCheck, Users, Lock, Truck, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Perfil } from "@/types/database.types";
 
@@ -26,6 +26,7 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
     { href: "/", label: "Mapa", icon: Map, visible: true },
     { href: "/volumenes", label: "Volúmenes", icon: Package, visible: true, bloqueado: esInvitado },
     { href: "/analisis-diario", label: "Análisis del Día", icon: BarChart3, visible: true, bloqueado: esInvitado },
+    { href: "/carga", label: "Carga del Día", icon: ClipboardList, visible: !esInvitado },
     { href: "/pendientes", label: "Pendientes", icon: PackageCheck, visible: !esInvitado },
     { href: "/usuarios", label: "Usuarios", icon: Users, visible: perfil?.rol === "maestro" },
   ];
