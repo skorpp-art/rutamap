@@ -17,6 +17,7 @@ export interface CargaFila {
   chofer: string | null;
   sistema: number;
   x_fuera: number;
+  estado_control: "verde" | "rojo" | null;
 }
 
 export async function getCargaDia(fecha: string): Promise<{ ok: boolean; data?: CargaFila[]; error?: string }> {
@@ -78,6 +79,21 @@ export async function publicarCargaDia(fecha: string): Promise<{ ok: boolean; pu
     if (error) return { ok: false, error: error.message };
     revalidatePath("/volumenes");
     return { ok: true, publicados: (data ?? 0) as number };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
+// Control de los coordinadores de noche: cada hora chequean cuántos paquetes
+// tiene el chofer y marcan el recorrido en verde u rojo. Independiente de
+// sistema/x_fuera (ese es el que cargó el coordinador de zona antes del reparto).
+export async function setEstadoControlFila(
+  id: string, estado: "verde" | "rojo" | null
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc("set_estado_control_fila", { p_id: id, p_estado: estado });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 

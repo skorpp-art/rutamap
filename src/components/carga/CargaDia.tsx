@@ -12,7 +12,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { hoyAR } from "@/lib/fechas";
 import {
   getCargaDia, upsertCargaFila, eliminarCargaFila, iniciarCargaDesdeOperacion,
-  publicarCargaDia, getChoferesConocidos,
+  publicarCargaDia, getChoferesConocidos, setEstadoControlFila,
   type CargaFila, type TurnoCarga,
 } from "@/app/actions/carga-dia";
 import { getOperacionDia } from "@/app/actions/operacion";
@@ -141,6 +141,20 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
     if (!res.ok) { toast.error("No se pudo agregar", { description: res.error }); return; }
     setAgregandoCodigo("");
     await cargar(fecha);
+  }
+
+  // Control de los coordinadores de noche: cada hora chequean cuántos paquetes
+  // lleva el chofer y marcan el recorrido. Ciclo: sin marcar → verde → rojo → sin marcar.
+  async function ciclarControl(fila: CargaFila) {
+    if (!puedeEditar) return;
+    const siguiente: "verde" | "rojo" | null =
+      fila.estado_control === null ? "verde" : fila.estado_control === "verde" ? "rojo" : null;
+    setFilas(prev => prev.map(f => f.id === fila.id ? { ...f, estado_control: siguiente } : f));
+    const res = await setEstadoControlFila(fila.id, siguiente);
+    if (!res.ok) {
+      setFilas(prev => prev.map(f => f.id === fila.id ? { ...f, estado_control: fila.estado_control } : f));
+      toast.error("No se pudo actualizar el control", { description: res.error });
+    }
   }
 
   async function quitarFila(fila: CargaFila) {
@@ -370,6 +384,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
                 <table className="w-full text-xs">
                   <thead className="bg-muted/10 border-b">
                     <tr className="text-muted-foreground">
+                      <th className="w-12 px-2 py-2 font-medium text-center" title="Control horario (coordinador de noche)">Control</th>
                       <th className="text-left px-3 py-2 font-medium">Código</th>
                       <th className="text-left px-3 py-2 font-medium">Recorrido</th>
                       <th className="text-left px-3 py-2 font-medium min-w-40">Chofer</th>
@@ -384,7 +399,20 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
                     {z.items.map(f => {
                       const total = f.sistema + f.x_fuera;
                       return (
-                        <tr key={f.id} className="hover:bg-muted/20 transition-colors">
+                        <tr key={f.id} className={cn("hover:bg-muted/20 transition-colors",
+                          f.estado_control === "rojo" && "bg-red-50/50 dark:bg-red-950/20",
+                          f.estado_control === "verde" && "bg-emerald-50/30 dark:bg-emerald-950/10")}>
+                          <td className="px-2 py-2 text-center">
+                            <button onClick={() => ciclarControl(f)} disabled={!puedeEditar}
+                              title={f.estado_control === "verde" ? "En control — clic para marcar en rojo"
+                                : f.estado_control === "rojo" ? "Por encima de lo esperado — clic para desmarcar"
+                                : "Sin controlar — clic para marcar en verde"}
+                              className={cn("h-5 w-5 rounded-full border-2 transition-colors",
+                                f.estado_control === "verde" && "bg-emerald-500 border-emerald-600",
+                                f.estado_control === "rojo" && "bg-red-500 border-red-600",
+                                !f.estado_control && "bg-transparent border-slate-300 dark:border-slate-600 hover:border-slate-400",
+                                puedeEditar && "cursor-pointer")} />
+                          </td>
                           <td className="px-3 py-2 font-mono font-bold whitespace-nowrap">{f.codigo}</td>
                           <td className="px-3 py-2 text-muted-foreground max-w-[260px] truncate">{f.nombre}</td>
                           <td className="px-3 py-2">
