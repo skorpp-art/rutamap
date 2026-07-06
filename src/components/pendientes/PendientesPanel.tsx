@@ -81,6 +81,7 @@ async function parsearExcelPendientes(file: File): Promise<ParseResult> {
 
 // ── Componente principal ─────────────────────────────────────────────────────
 export function PendientesPanel({ puedeEditar }: { puedeEditar: boolean }) {
+  const [vista, setVista] = useState<"dia" | "historico">("dia");
   const [fecha, setFecha] = useState(() => hoyAR());
   const [fechas, setFechas] = useState<FechaPendiente[]>([]);
   const [pendientes, setPendientes] = useState<Pendiente[]>([]);
@@ -106,7 +107,7 @@ export function PendientesPanel({ puedeEditar }: { puedeEditar: boolean }) {
   }, []);
 
   useEffect(() => { cargarFechas(); }, [cargarFechas]);
-  useEffect(() => { cargar(fecha); }, [fecha, cargar]);
+  useEffect(() => { if (vista === "dia") cargar(fecha); }, [fecha, vista, cargar]);
 
   async function onArchivo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -133,31 +134,39 @@ export function PendientesPanel({ puedeEditar }: { puedeEditar: boolean }) {
     if (!res.ok) { toast.error("Error al importar", { description: res.error }); return; }
     toast.success(`${res.importados} pendientes importados para ${f}`);
     setFecha(f);
+    setVista("dia");
     await Promise.all([cargar(f), cargarFechas()]);
   }
 
   // ── Cálculos de control ──
   const stats = useMemo(() => {
     const total = pendientes.length;
-    const recibidos = pendientes.filter(p => p.recibido).length;
+    const recibidos = pendientes.filter(p => p.estado_recepcion === "recibido").length;
+    const noRecibidos = pendientes.filter(p => p.estado_recepcion === "no_recibido").length;
+    const sinMarcar = total - recibidos - noRecibidos;
     const urgentes = pendientes.filter(p => p.urgencia === "urgente").length;
-    const urgentesFaltan = pendientes.filter(p => p.urgencia === "urgente" && !p.recibido).length;
+    const urgentesFaltan = pendientes.filter(p => p.urgencia === "urgente" && p.estado_recepcion !== "recibido").length;
 
-    const porZona = new Map<string, { total: number; recibidos: number }>();
-    const porCadete = new Map<string, { total: number; recibidos: number; urgentes: number }>();
+    const porZona = new Map<string, { total: number; recibidos: number; noRecibidos: number }>();
+    const porCadete = new Map<string, { total: number; recibidos: number; noRecibidos: number; urgentes: number }>();
     for (const p of pendientes) {
       const z = p.macrozona || "SIN ZONA";
-      const zc = porZona.get(z) ?? { total: 0, recibidos: 0 };
-      zc.total++; if (p.recibido) zc.recibidos++;
+      const zc = porZona.get(z) ?? { total: 0, recibidos: 0, noRecibidos: 0 };
+      zc.total++;
+      if (p.estado_recepcion === "recibido") zc.recibidos++;
+      if (p.estado_recepcion === "no_recibido") zc.noRecibidos++;
       porZona.set(z, zc);
 
       const c = p.cadete || "Sin asignar";
-      const cc = porCadete.get(c) ?? { total: 0, recibidos: 0, urgentes: 0 };
-      cc.total++; if (p.recibido) cc.recibidos++; if (p.urgencia === "urgente") cc.urgentes++;
+      const cc = porCadete.get(c) ?? { total: 0, recibidos: 0, noRecibidos: 0, urgentes: 0 };
+      cc.total++;
+      if (p.estado_recepcion === "recibido") cc.recibidos++;
+      if (p.estado_recepcion === "no_recibido") cc.noRecibidos++;
+      if (p.urgencia === "urgente") cc.urgentes++;
       porCadete.set(c, cc);
     }
     return {
-      total, recibidos, faltan: total - recibidos, urgentes, urgentesFaltan,
+      total, recibidos, noRecibidos, sinMarcar, faltan: total - recibidos, urgentes, urgentesFaltan,
       zonas: [...porZona.entries()].map(([zona, v]) => ({ zona, ...v })).sort((a, b) => b.total - a.total),
       cadetes: [...porCadete.entries()].map(([cadete, v]) => ({ cadete, ...v }))
         .sort((a, b) => (b.total - b.recibidos) - (a.total - a.recibidos) || b.total - a.total),
@@ -166,6 +175,7 @@ export function PendientesPanel({ puedeEditar }: { puedeEditar: boolean }) {
 
   return (
     <PendientesUI
+      vista={vista} setVista={setVista}
       fecha={fecha} setFecha={setFecha} fechas={fechas}
       pendientes={pendientes} stats={stats} cargando={cargando} importando={importando}
       puedeEditar={puedeEditar} busqueda={busqueda} setBusqueda={setBusqueda}
@@ -180,7 +190,7 @@ export function PendientesPanel({ puedeEditar }: { puedeEditar: boolean }) {
 }
 
 export type PendientesStats = {
-  total: number; recibidos: number; faltan: number; urgentes: number; urgentesFaltan: number;
-  zonas: { zona: string; total: number; recibidos: number }[];
-  cadetes: { cadete: string; total: number; recibidos: number; urgentes: number }[];
+  total: number; recibidos: number; noRecibidos: number; sinMarcar: number; faltan: number; urgentes: number; urgentesFaltan: number;
+  zonas: { zona: string; total: number; recibidos: number; noRecibidos: number }[];
+  cadetes: { cadete: string; total: number; recibidos: number; noRecibidos: number; urgentes: number }[];
 };
