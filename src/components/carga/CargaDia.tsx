@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   ClipboardList, Calendar, RefreshCw, Package, Trash2, Download,
-  Send, Sunrise, Truck, Plus,
+  Send, Sunrise, Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -43,7 +43,10 @@ function semaforo(total: number): string {
 
 export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
   const [fecha, setFecha] = useState(() => hoyAR());
-  const [turno, setTurno] = useState<TurnoCarga>("tarde");
+  // Filtro principal: null = todas las zonas del turno tarde; una zona puntual;
+  // o "preturno", que funciona como 5ta zona.
+  const [filtro, setFiltro] = useState<string | null>(null);
+  const turno: TurnoCarga = filtro === "preturno" ? "preturno" : "tarde";
   const [filas, setFilas] = useState<CargaFila[]>([]);
   const [cargando, setCargando] = useState(false);
   const [publicando, setPublicando] = useState(false);
@@ -81,6 +84,23 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
   }, []);
 
   const filasTurno = useMemo(() => filas.filter(f => f.turno === turno), [filas, turno]);
+  // Lo que se muestra en las tablas: el turno elegido, acotado a la zona si hay una seleccionada
+  const filasVisibles = useMemo(
+    () => filasTurno.filter(f => !filtro || filtro === "preturno" || f.zona === filtro),
+    [filasTurno, filtro]
+  );
+  // Subtotales para las tarjetas-filtro (siempre globales del día)
+  const filasTarde = useMemo(() => filas.filter(f => f.turno === "tarde"), [filas]);
+  const filasPre = useMemo(() => filas.filter(f => f.turno === "preturno"), [filas]);
+  const subtotalZona = useCallback((zona: string) => {
+    const items = filasTarde.filter(f => f.zona === zona);
+    return {
+      n: items.length,
+      sistema: items.reduce((s, f) => s + f.sistema, 0),
+      xFuera: items.reduce((s, f) => s + f.x_fuera, 0),
+      total: items.reduce((s, f) => s + f.sistema + f.x_fuera, 0),
+    };
+  }, [filasTarde]);
 
   // Guardado con debounce por recorrido
   function editarFila(fila: CargaFila, patch: Partial<Pick<CargaFila, "chofer" | "sistema" | "x_fuera">>) {
@@ -174,7 +194,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
   // Agrupar por zona + resumen
   const porZona = useMemo(() => {
     const m = new Map<string, CargaFila[]>();
-    for (const f of filasTurno) {
+    for (const f of filasVisibles) {
       const z = f.zona || "Sin zona";
       m.set(z, [...(m.get(z) ?? []), f]);
     }
@@ -191,14 +211,14 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
         total: items.reduce((s, f) => s + f.sistema + f.x_fuera, 0),
       };
     });
-  }, [filasTurno]);
+  }, [filasVisibles]);
 
   const granTotal = useMemo(() => ({
-    sistema: filasTurno.reduce((s, f) => s + f.sistema, 0),
-    xFuera: filasTurno.reduce((s, f) => s + f.x_fuera, 0),
-    total: filasTurno.reduce((s, f) => s + f.sistema + f.x_fuera, 0),
-    especiales: filasTurno.reduce((s, f) => s + (especialesCount[f.recorrido_id] ?? 0), 0),
-  }), [filasTurno, especialesCount]);
+    sistema: filasVisibles.reduce((s, f) => s + f.sistema, 0),
+    xFuera: filasVisibles.reduce((s, f) => s + f.x_fuera, 0),
+    total: filasVisibles.reduce((s, f) => s + f.sistema + f.x_fuera, 0),
+    especiales: filasVisibles.reduce((s, f) => s + (especialesCount[f.recorrido_id] ?? 0), 0),
+  }), [filasVisibles, especialesCount]);
 
   // Recorridos del día que todavía no están en la carga del turno actual (para el selector)
   const rutasDisponibles = useMemo(() => {
@@ -220,18 +240,6 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
             <p className="text-xs text-muted-foreground">
               Los coordinadores cargan chofer y paquetes (sistema / por fuera) por recorrido. Al cierre, enviá el día al análisis.
             </p>
-          </div>
-          <div className="flex gap-1 bg-muted/40 rounded-lg p-1">
-            <button onClick={() => setTurno("tarde")}
-              className={cn("text-xs px-3 py-1.5 rounded-md font-medium transition-colors inline-flex items-center gap-1",
-                turno === "tarde" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}>
-              <Truck className="h-3 w-3" /> Turno tarde
-            </button>
-            <button onClick={() => setTurno("preturno")}
-              className={cn("text-xs px-3 py-1.5 rounded-md font-medium transition-colors inline-flex items-center gap-1",
-                turno === "preturno" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}>
-              <Sunrise className="h-3 w-3" /> Pre-turno
-            </button>
           </div>
           <div className="flex items-center gap-2 bg-muted/40 border rounded-lg px-2.5 py-1.5">
             <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -257,7 +265,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
           <div className="border rounded-xl p-4 bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/60 dark:border-blue-900/50">
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Gran total</p>
             <p className="text-2xl font-bold tabular-nums mt-1 text-blue-700 dark:text-blue-300">{granTotal.total}</p>
-            <p className="text-[11px] text-muted-foreground">{filasTurno.length} recorridos</p>
+            <p className="text-[11px] text-muted-foreground">{filasVisibles.length} recorridos</p>
           </div>
           <div className="border rounded-xl p-4 bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/50">
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Especiales</p>
@@ -265,25 +273,55 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
           </div>
         </div>
 
-        {/* Subtotales por zona */}
-        {porZona.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {porZona.map(z => (
-              <div key={z.zona} className="border rounded-xl p-3 bg-card">
+        {/* Filtro por zona (+ pre-turno como 5ta zona) — clic para ver solo esos recorridos */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          <button onClick={() => setFiltro(null)}
+            className={cn("border rounded-xl p-3 text-left transition-all",
+              filtro === null ? "border-blue-500 ring-2 ring-blue-400/40 bg-blue-50/40 dark:bg-blue-950/30" : "bg-card hover:border-blue-300")}>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">TODAS</span>
+            <p className="text-lg font-bold tabular-nums mt-1">
+              {filasTarde.reduce((s, f) => s + f.sistema + f.x_fuera, 0)}
+              <span className="text-xs text-muted-foreground font-normal ml-1.5">{filasTarde.length} rec.</span>
+            </p>
+          </button>
+          {ORDEN_ZONAS.map(zona => {
+            const st = subtotalZona(zona);
+            const sel = filtro === zona;
+            return (
+              <button key={zona} onClick={() => setFiltro(sel ? null : zona)}
+                className={cn("border rounded-xl p-3 text-left transition-all",
+                  sel ? "border-blue-500 ring-2 ring-blue-400/40 bg-blue-50/40 dark:bg-blue-950/30" : "bg-card hover:border-blue-300")}>
                 <div className="flex items-center justify-between">
-                  <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded", ZONA_BADGE[z.zona] ?? "bg-muted text-muted-foreground")}>
-                    {z.zona.toUpperCase()}
+                  <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded", ZONA_BADGE[zona] ?? "bg-muted text-muted-foreground")}>
+                    {zona.toUpperCase()}
                   </span>
-                  <span className="text-[10px] text-muted-foreground">{z.items.length} rec.</span>
+                  <span className="text-[10px] text-muted-foreground">{st.n} rec.</span>
                 </div>
                 <p className="text-lg font-bold tabular-nums mt-1">
-                  {z.total}
-                  <span className="text-xs text-muted-foreground font-normal ml-1.5">({z.sistema} sis + {z.xFuera} xf)</span>
+                  {st.total}
+                  <span className="text-xs text-muted-foreground font-normal ml-1.5">({st.sistema}+{st.xFuera})</span>
                 </p>
-              </div>
-            ))}
-          </div>
-        )}
+              </button>
+            );
+          })}
+          {/* Pre-turno como 5ta zona */}
+          <button onClick={() => setFiltro(filtro === "preturno" ? null : "preturno")}
+            className={cn("border rounded-xl p-3 text-left transition-all",
+              filtro === "preturno" ? "border-violet-500 ring-2 ring-violet-400/40 bg-violet-50/40 dark:bg-violet-950/30" : "bg-card hover:border-violet-300")}>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 inline-flex items-center gap-1">
+                <Sunrise className="h-2.5 w-2.5" /> PRE-TURNO
+              </span>
+              <span className="text-[10px] text-muted-foreground">{filasPre.length} rec.</span>
+            </div>
+            <p className="text-lg font-bold tabular-nums mt-1">
+              {filasPre.reduce((s, f) => s + f.sistema + f.x_fuera, 0)}
+              <span className="text-xs text-muted-foreground font-normal ml-1.5">
+                ({filasPre.reduce((s, f) => s + f.sistema, 0)}+{filasPre.reduce((s, f) => s + f.x_fuera, 0)})
+              </span>
+            </p>
+          </button>
+        </div>
 
         {/* ── Acciones de armado ── */}
         {puedeEditar && (
@@ -313,8 +351,8 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
         )}
 
         {/* ── Tablas por zona ── */}
-        {filasTurno.length === 0 && !cargando ? (
-          <EmptyState icon={ClipboardList} title={`Sin carga para el ${turno === "tarde" ? "turno tarde" : "pre-turno"} de este día`}
+        {filasVisibles.length === 0 && !cargando ? (
+          <EmptyState icon={ClipboardList} title={`Sin carga para ${filtro === "preturno" ? "el pre-turno" : filtro ? `la zona ${filtro}` : "este día"}`}
             description={puedeEditar
               ? 'Empezá con "Traer recorridos de Operación del Día" o agregá recorridos sueltos.'
               : "Todavía no se cargó este día."} />
