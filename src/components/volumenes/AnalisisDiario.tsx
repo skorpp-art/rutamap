@@ -11,19 +11,19 @@ import {
 } from "lucide-react";
 import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer,
+  Tooltip, ResponsiveContainer, Legend, ReferenceLine,
 } from "recharts";
 import {
   guardarAnalisisDiario, getAnalisisDiario, getAnalisisDiarioEstados,
   getAnalisisDiarioClientes, getAnalisisDiarioHistorico,
   getHistoricoCliente, getClientesAnalisisDiario, getClientesTotalesPeriodo,
-  getZonasTotalesPeriodo, getEstadosTotalesPeriodo, getChoferesTotalesPeriodo,
+  getEstadosTotalesPeriodo,
   getTardeDetalleDia, getTardeDetallePeriodo,
 } from "@/app/actions/analisis-diario";
 import type {
   AnalisisDiarioPayload, ResumenAnalisisDia, EstadoDia, ClienteDia,
   HistoricoDia, HistoricoCliente, ClienteTotalPeriodo,
-  ZonaTotalPeriodo, EstadoTotalPeriodo, ChoferTotalPeriodo, TardeDetalleFila,
+  EstadoTotalPeriodo, TardeDetalleFila,
 } from "@/app/actions/analisis-diario";
 import { useChartTheme } from "@/hooks/useChartTheme";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -371,8 +371,6 @@ export function AnalisisDiario() {
   const [historicoCliente, setHistoricoCliente] = useState<HistoricoCliente[]>([]);
   const [tardeDetalleCliente, setTardeDetalleCliente] = useState<TardeDetalleFila[]>([]);
   const [clientesTotales, setClientesTotales] = useState<ClienteTotalPeriodo[]>([]);
-  const [zonasTotales, setZonasTotales] = useState<ZonaTotalPeriodo[]>([]);
-  const [choferesTotales, setChoferesTotales] = useState<ChoferTotalPeriodo[]>([]);
   const [resumenSemAnt, setResumenSemAnt] = useState<(ResumenAnalisisDia & { fecha: string }) | null>(null);
   const [estadosTotales, setEstadosTotales] = useState<EstadoTotalPeriodo[]>([]);
   const [cargandoHistorico, setCargandoHistorico] = useState(false);
@@ -402,18 +400,14 @@ export function AnalisisDiario() {
   const cargarHistorico = useCallback(async () => {
     setCargandoHistorico(true);
     try {
-      const [resGen, resTotales, resZonas, resEstados, resChoferes] = await Promise.all([
+      const [resGen, resTotales, resEstados] = await Promise.all([
         getAnalisisDiarioHistorico(desde, hasta),
         getClientesTotalesPeriodo(desde, hasta),
-        getZonasTotalesPeriodo(desde, hasta),
         getEstadosTotalesPeriodo(desde, hasta),
-        getChoferesTotalesPeriodo(desde, hasta),
       ]);
       setHistoricoGeneral(resGen.ok ? resGen.data ?? [] : []);
       setClientesTotales(resTotales.ok ? resTotales.data ?? [] : []);
-      setZonasTotales(resZonas.ok ? resZonas.data ?? [] : []);
       setEstadosTotales(resEstados.ok ? resEstados.data ?? [] : []);
-      setChoferesTotales(resChoferes.ok ? resChoferes.data ?? [] : []);
       if (clienteSel) {
         const [resCli, resDetalle] = await Promise.all([
           getHistoricoCliente(clienteSel, desde, hasta),
@@ -543,15 +537,22 @@ export function AnalisisDiario() {
   }
 
 
-  const chartGeneral = historicoGeneral.map(d => ({
-    dia: d.fecha.slice(5),
-    total: d.total_paquetes,
-    pctExito: d.pct_exito,
-    post21Total: d.post21_total,
-    post21Pct: d.post21_pct_del_dia,
-    enCaminoTotal: d.en_camino_destinatario,
-    enCaminoPct: d.en_camino_destinatario_pct,
-  }));
+  const chartGeneral = historicoGeneral.map(d => {
+    // en_camino_destinatario incluye el post-21hs sin entregar como subconjunto
+    // (mismo criterio que el KPI de "Demorados totales" más arriba).
+    const post21SinEntregar = Math.max(0, d.post21_total - (d.post21_entregados ?? 0));
+    const enCaminoAntes21 = Math.max(0, d.en_camino_destinatario - post21SinEntregar);
+    const exitosos = Math.max(0, d.total_paquetes - d.en_camino_destinatario);
+    return {
+      dia: d.fecha.slice(5),
+      fechaCompleta: d.fecha,
+      total: d.total_paquetes,
+      pctExito: d.pct_exito,
+      exitosos,
+      enCaminoAntes21,
+      post21SinEntregar,
+    };
+  });
   const chartCliente = historicoCliente.map(d => ({
     dia: d.fecha.slice(5),
     enCaminoPct: d.en_camino_destinatario_pct,
@@ -733,8 +734,6 @@ export function AnalisisDiario() {
           totalesPeriodo={totalesPeriodo}
           historicoCliente={historicoCliente}
           tardeDetalleCliente={tardeDetalleCliente}
-          zonasTotales={zonasTotales}
-          choferesTotales={choferesTotales}
           estadosTotales={estadosTotales}
           ct={ct}
         />
@@ -1094,7 +1093,7 @@ function BarraProp({ pct, tono = "blue" }: { pct: number; tono?: Tono }) {
 function HistoricoView({
   desde, setDesde, hasta, setHasta, clienteSel, setClienteSel, clientesDisponibles,
   cargando, chartGeneral, chartCliente, chartClientesTotales, totalesPeriodo, historicoCliente,
-  tardeDetalleCliente, zonasTotales, estadosTotales, choferesTotales, ct,
+  tardeDetalleCliente, estadosTotales, ct,
 }: {
   desde: string; setDesde: (v: string) => void;
   hasta: string; setHasta: (v: string) => void;
@@ -1106,9 +1105,7 @@ function HistoricoView({
   totalesPeriodo: { total: number; post21: number; enCamino: number; post21SinEntregar: number };
   historicoCliente: HistoricoCliente[];
   tardeDetalleCliente: TardeDetalleFila[];
-  zonasTotales: ZonaTotalPeriodo[];
   estadosTotales: EstadoTotalPeriodo[];
-  choferesTotales: ChoferTotalPeriodo[];
   ct: ReturnType<typeof useChartTheme>;
 }) {
   // Demorados totales: "total" = en camino + post-21hs sin entregar · "encamino" = solo en camino
@@ -1160,116 +1157,56 @@ function HistoricoView({
             })()}
           </div>
 
-          {/* Evolución diaria — un solo gráfico combinado en vez de 3 separados */}
+          {/* Evolución diaria — barras apiladas (composición real de cada día) + % de éxito */}
           <div className="border rounded-xl p-4 bg-card shadow-sm">
-            <p className="text-xs font-bold mb-2">Evolución diaria — paquetes, post-21hs, demorados y % de éxito</p>
+            <div className="flex items-baseline justify-between mb-2">
+              <p className="text-xs font-bold">Evolución diaria — composición de paquetes y % de éxito</p>
+              <p className="text-[10px] text-muted-foreground">
+                Objetivo de éxito: <span className="font-semibold">{UMBRAL_EXITO_PCT}%</span>
+              </p>
+            </div>
             {chartGeneral.length === 0 ? (
               <EmptyState icon={Package} title="Sin datos en este rango" />
             ) : (
-              <ResponsiveContainer width="100%" height={240}>
-                <ComposedChart data={chartGeneral}>
-                  <CartesianGrid stroke={ct.grid} strokeDasharray="3 3" />
+              <ResponsiveContainer width="100%" height={280}>
+                <ComposedChart data={chartGeneral} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+                  <CartesianGrid stroke={ct.grid} strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="dia" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
-                  <YAxis yAxisId="cant" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} />
-                  <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} unit="%" />
-                  <Tooltip {...ct.tooltip} />
-                  <Bar yAxisId="cant" dataKey="total" name="Paquetes totales" fill="#1d4ed8" radius={[3, 3, 0, 0]} />
-                  <Bar yAxisId="cant" dataKey="enCaminoTotal" name="Demorados totales" fill="#ef4444" radius={[3, 3, 0, 0]} />
-                  <Line yAxisId="pct" type="monotone" dataKey="pctExito" name="% éxito" stroke="#16a34a" strokeWidth={2} dot={false} />
+                  <YAxis yAxisId="cant" tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} width={44} />
+                  <YAxis yAxisId="pct" orientation="right" domain={[0, 100]} tick={{ fontSize: 11, fill: ct.axis }} axisLine={{ stroke: ct.axisLine }} unit="%" width={40} />
+                  <Tooltip {...ct.tooltip}
+                    labelFormatter={(_, p) => p?.[0]?.payload?.fechaCompleta ?? ""}
+                    formatter={(value, name) =>
+                      name === "% éxito" ? [`${Number(value).toFixed(1)}%`, name] : [Number(value).toLocaleString("es-AR"), name]} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" iconSize={8} />
+                  <ReferenceLine yAxisId="pct" y={UMBRAL_EXITO_PCT} stroke="#16a34a" strokeDasharray="4 4" strokeOpacity={0.6} />
+                  <Bar yAxisId="cant" dataKey="exitosos" name="Entregados" stackId="dia" fill="#1d4ed8" radius={[0, 0, 0, 0]} />
+                  <Bar yAxisId="cant" dataKey="enCaminoAntes21" name="En camino" stackId="dia" fill="#f59e0b" radius={[0, 0, 0, 0]} />
+                  <Bar yAxisId="cant" dataKey="post21SinEntregar" name="Post-21hs sin entregar" stackId="dia" fill="#ef4444" radius={[3, 3, 0, 0]} />
+                  <Line yAxisId="pct" type="monotone" dataKey="pctExito" name="% éxito" stroke="#16a34a" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
                 </ComposedChart>
               </ResponsiveContainer>
             )}
           </div>
 
-          {/* KPIs estilo informe ML/Flex — calculados con datos propios (zonas y estados), uno al lado del otro */}
-          <div className="grid lg:grid-cols-2 gap-4">
-            <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
-              <SeccionHeader icon={MapPin} titulo="Efectividad por zona" tono="blue" />
-              {zonasTotales.length === 0 ? (
-                <div className="p-4"><EmptyState icon={MapPin} title="Sin datos de zonas en este rango" /></div>
-              ) : (
-                <div className="max-h-52 overflow-y-auto">
-                  <table className="w-full text-xs">
-                    <thead className="bg-muted/20 sticky top-0">
-                      <tr>
-                        <th className="text-left px-4 py-1.5 font-medium text-muted-foreground">Zona</th>
-                        <th className="text-right px-3 py-1.5 font-medium text-muted-foreground">Envíos</th>
-                        <th className="px-3 py-1.5 font-medium text-muted-foreground w-28">Efectividad</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {zonasTotales.map(z => (
-                        <tr key={z.zona}>
-                          <td className="px-4 py-1 truncate max-w-[10rem]">{z.zona}</td>
-                          <td className="px-3 py-1 text-right tabular-nums">{z.cantidad.toLocaleString("es-AR")}</td>
-                          <td className="px-3 py-1">
-                            <div className="flex items-center gap-1.5">
-                              <BarraProp pct={z.pct_efectividad} tono="blue" />
-                              <span className="tabular-nums text-[10px] text-muted-foreground w-8 text-right shrink-0">{z.pct_efectividad.toFixed(0)}%</span>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
-              <SeccionHeader icon={AlertTriangle} titulo="Estados del período" tono="amber" />
-              {estadosTotales.length === 0 ? (
-                <div className="p-4"><EmptyState icon={AlertTriangle} title="Sin datos de estados en este rango" /></div>
-              ) : (
-                <div className="divide-y max-h-52 overflow-y-auto">
-                  {estadosTotales.map(e => (
-                    <div key={e.estado} className="px-4 py-1.5">
-                      <div className="flex items-center justify-between gap-3 mb-0.5">
-                        <span className="text-[11px] truncate">{e.estado}</span>
-                        <span className="text-[11px] tabular-nums shrink-0 font-semibold">
-                          {e.cantidad.toLocaleString("es-AR")} · {e.pct.toFixed(1)}%
-                        </span>
-                      </div>
-                      <BarraProp pct={e.pct / Math.max(1, ...estadosTotales.map(x => x.pct)) * 100} tono="amber" />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Ranking de choferes con tardanzas post-21hs del período */}
+          {/* Estados del período */}
           <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
-            <SeccionHeader icon={Truck} titulo="Choferes con más tardanzas del período" tono="red" />
-            {choferesTotales.length === 0 ? (
-              <div className="p-4"><EmptyState icon={Truck} title="Sin datos de choferes en este rango" /></div>
+            <SeccionHeader icon={AlertTriangle} titulo="Estados del período" tono="amber" />
+            {estadosTotales.length === 0 ? (
+              <div className="p-4"><EmptyState icon={AlertTriangle} title="Sin datos de estados en este rango" /></div>
             ) : (
-              <div className="max-h-64 overflow-y-auto">
-                <table className="w-full text-xs">
-                  <thead className="bg-muted/20 sticky top-0">
-                    <tr>
-                      <th className="text-left px-4 py-1.5 font-medium text-muted-foreground">Chofer</th>
-                      <th className="text-right px-3 py-1.5 font-medium text-muted-foreground">Paq. tarde</th>
-                      <th className="text-right px-3 py-1.5 font-medium text-muted-foreground">Días c/tardanza</th>
-                      <th className="px-3 py-1.5 font-medium text-muted-foreground w-28">Efectividad tardía</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {choferesTotales.slice(0, 15).map(c => (
-                      <tr key={c.chofer}>
-                        <td className="px-4 py-1 truncate max-w-[12rem]">{c.chofer}</td>
-                        <td className="px-3 py-1 text-right tabular-nums font-semibold">{c.cantidad.toLocaleString("es-AR")}</td>
-                        <td className="px-3 py-1 text-right tabular-nums">{c.dias_con_tardanzas}</td>
-                        <td className="px-3 py-1">
-                          <div className="flex items-center gap-1.5">
-                            <BarraProp pct={c.pct_efectividad} tono={c.pct_efectividad >= 90 ? "emerald" : c.pct_efectividad >= 75 ? "amber" : "red"} />
-                            <span className="tabular-nums text-[10px] text-muted-foreground w-8 text-right shrink-0">{c.pct_efectividad.toFixed(0)}%</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="divide-y max-h-52 overflow-y-auto">
+                {estadosTotales.map(e => (
+                  <div key={e.estado} className="px-4 py-1.5">
+                    <div className="flex items-center justify-between gap-3 mb-0.5">
+                      <span className="text-[11px] truncate">{e.estado}</span>
+                      <span className="text-[11px] tabular-nums shrink-0 font-semibold">
+                        {e.cantidad.toLocaleString("es-AR")} · {e.pct.toFixed(1)}%
+                      </span>
+                    </div>
+                    <BarraProp pct={e.pct / Math.max(1, ...estadosTotales.map(x => x.pct)) * 100} tono="amber" />
+                  </div>
+                ))}
               </div>
             )}
           </div>
