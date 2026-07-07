@@ -150,22 +150,26 @@ export function PendientesUI({
     toast.success(`${nombre}: ${recibido ? "todo recibido" : "desmarcado"} (${res.actualizados})`);
   }
 
+  // Normaliza para buscar: sin acentos, sin mayúsculas y con espacios
+  // colapsados — "Morón" encuentra "moron", "  jose " encuentra "José".
+  const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+
   // Paquetes de un grupo (en la zona/cliente filtrado). La búsqueda por texto NO
   // se aplica cuando coincide con el nombre del grupo: así, al buscar un conductor
   // o cliente, se ven todos sus paquetes (era el bug de la lista vacía).
   const detalleGrupo = (nombre: string) => {
-    const q = busqueda.trim().toLowerCase();
-    const buscaGrupo = q !== "" && nombre.toLowerCase().includes(q);
+    const q = norm(busqueda);
+    const buscaGrupo = q !== "" && norm(nombre).includes(q);
     return visibles.filter(p => keyOf(p) === nombre)
       .filter(p => !soloNoRecibidos || p.estado_recepcion !== "recibido")
-      .filter(p => !q || buscaGrupo || [p.cliente, p.cadete, p.direccion, p.tracking, p.zona].some(v => v?.toLowerCase().includes(q)))
+      .filter(p => !q || buscaGrupo || [p.cliente, p.cadete, p.direccion, p.tracking, p.zona].some(v => v != null && norm(v).includes(q)))
       .sort((a, b) => (a.estado_recepcion === b.estado_recepcion ? 0 : a.estado_recepcion === "recibido" ? 1 : b.estado_recepcion === "recibido" ? -1 : 0)
         || (a.urgencia === "urgente" ? -1 : b.urgencia === "urgente" ? 1 : 0));
   };
 
   const gruposFiltrados = grupos.filter(g => {
-    const q = busqueda.trim().toLowerCase();
-    return !q || g.nombre.toLowerCase().includes(q) || detalleGrupo(g.nombre).length > 0;
+    const q = norm(busqueda);
+    return !q || norm(g.nombre).includes(q) || detalleGrupo(g.nombre).length > 0;
   });
 
   return (
