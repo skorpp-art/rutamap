@@ -35,6 +35,16 @@ export interface Pendiente {
   observacion: string | null;
   recibido_en: string | null;
   recibido_por: string | null;
+  fecha_ultima_vista: string;
+  reincidencia: boolean;
+  nro_ciclo: number;
+}
+
+export interface ResultadoImport {
+  nuevos: number;
+  actualizados: number;
+  reincidencias: number;
+  total: number;
 }
 
 export interface FechaPendiente {
@@ -77,35 +87,24 @@ export async function getPendientes(fecha: string): Promise<{ ok: boolean; data?
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
-// Cuántos recibidos ya hay (para avisar antes de reimportar)
-export async function getMarcasExistentes(fecha: string): Promise<{ ok: boolean; marcas?: number; error?: string }> {
-  try {
-    const supabase = await createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any).rpc("pendientes_marcas_existentes", { p_fecha: fecha });
-    if (error) return { ok: false, error: error.message };
-    return { ok: true, marcas: (data ?? 0) as number };
-  } catch (e) { return { ok: false, error: String(e) }; }
-}
-
+// Importa un reporte de Pendientes. Ya no "borra y repone un día": cada fila se
+// fusiona por tracking. Si el tracking sigue abierto (no recibido), se actualiza
+// en el lugar sin duplicar ni tocar su fecha original ni sus marcas. Si el
+// tracking ya estaba recibido y reaparece, es una reincidencia real y se crea
+// una fila nueva ligada al mismo tracking. Por eso un mismo Excel puede traer
+// pendientes de días distintos (últimas 48hs hábiles) sin generar duplicados.
 export async function importarPendientes(
-  fecha: string, filas: PendienteFila[], forzar = false
-): Promise<{ ok: boolean; importados?: number; error?: string; requiereConfirmacion?: boolean }> {
+  fecha: string, filas: PendienteFila[]
+): Promise<{ ok: boolean; resultado?: ResultadoImport; error?: string }> {
   try {
     const supabase = await createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any).rpc("importar_pendientes", {
-      p_fecha: fecha, p_filas: filas, p_forzar: forzar,
+      p_fecha: fecha, p_filas: filas,
     });
-    if (error) {
-      // El RPC lanza este mensaje cuando hay marcas y no se forzó
-      if (error.message?.includes("marcados como recibidos")) {
-        return { ok: false, requiereConfirmacion: true, error: error.message };
-      }
-      return { ok: false, error: error.message };
-    }
+    if (error) return { ok: false, error: error.message };
     revalidatePath("/pendientes");
-    return { ok: true, importados: (data ?? 0) as number };
+    return { ok: true, resultado: data as ResultadoImport };
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 

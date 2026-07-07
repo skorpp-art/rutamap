@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { hoyAR } from "@/lib/fechas";
 import {
-  getPendientes, getPendientesFechas, importarPendientes, getMarcasExistentes,
+  getPendientes, getPendientesFechas, importarPendientes,
   type Pendiente, type PendienteFila, type FechaPendiente,
 } from "@/app/actions/pendientes";
 import { PendientesUI } from "./PendientesUI";
@@ -90,8 +90,6 @@ export function PendientesPanel({ puedeEditar }: { puedeEditar: boolean }) {
   const [busqueda, setBusqueda] = useState("");
   const [soloNoRecibidos, setSoloNoRecibidos] = useState(false);
   const [cadeteExpandido, setCadeteExpandido] = useState<string | null>(null);
-  // Import pendiente de confirmación (cuando hay marcas que se perderían)
-  const [confirmImport, setConfirmImport] = useState<{ fecha: string; filas: PendienteFila[]; marcas: number } | null>(null);
 
   const cargarFechas = useCallback(async () => {
     const res = await getPendientesFechas();
@@ -118,21 +116,26 @@ export function PendientesPanel({ puedeEditar }: { puedeEditar: boolean }) {
       const { fecha: fechaArchivo, filas, warning } = await parsearExcelPendientes(file);
       if (warning) { toast.error(warning); return; }
       if (filas.length === 0) { toast.error("No se encontraron pendientes en el archivo"); return; }
-      const fechaDestino = fechaArchivo ?? fecha;
-      // ¿Hay marcas que se perderían?
-      const marcasRes = await getMarcasExistentes(fechaDestino);
-      if (marcasRes.ok && (marcasRes.marcas ?? 0) > 0) {
-        setConfirmImport({ fecha: fechaDestino, filas, marcas: marcasRes.marcas ?? 0 });
-        return;
-      }
-      await ejecutarImport(fechaDestino, filas, false);
+      await ejecutarImport(fechaArchivo ?? fecha, filas);
     } finally { setImportando(false); }
   }
 
-  async function ejecutarImport(f: string, filas: PendienteFila[], forzar: boolean) {
-    const res = await importarPendientes(f, filas, forzar);
+  // Ya no borra ni reemplaza un día: cada fila se fusiona por tracking (ver
+  // importarPendientes). Por eso un mismo Excel puede traer pendientes de
+  // varios días (últimas 48hs hábiles) sin generar duplicados ni perder marcas.
+  async function ejecutarImport(f: string, filas: PendienteFila[]) {
+    const res = await importarPendientes(f, filas);
     if (!res.ok) { toast.error("Error al importar", { description: res.error }); return; }
-    toast.success(`${res.importados} pendientes importados para ${f}`);
+    const r = res.resultado;
+    const partes = [];
+    if (r) {
+      if (r.nuevos > 0) partes.push(`${r.nuevos} nuevos`);
+      if (r.actualizados > 0) partes.push(`${r.actualizados} actualizados`);
+      if (r.reincidencias > 0) partes.push(`${r.reincidencias} reincidencias`);
+    }
+    toast.success(`Importación completa (${r?.total ?? filas.length} filas)`, {
+      description: partes.length > 0 ? partes.join(" · ") : undefined,
+    });
     setFecha(f);
     setVista("dia");
     await Promise.all([cargar(f), cargarFechas()]);
@@ -182,7 +185,6 @@ export function PendientesPanel({ puedeEditar }: { puedeEditar: boolean }) {
       soloNoRecibidos={soloNoRecibidos} setSoloNoRecibidos={setSoloNoRecibidos}
       cadeteExpandido={cadeteExpandido} setCadeteExpandido={setCadeteExpandido}
       onArchivo={onArchivo}
-      confirmImport={confirmImport} setConfirmImport={setConfirmImport} ejecutarImport={ejecutarImport}
       recargar={() => cargar(fecha)}
       setPendientes={setPendientes}
     />

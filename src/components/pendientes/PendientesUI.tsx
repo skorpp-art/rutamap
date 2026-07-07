@@ -5,13 +5,13 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   Upload, Package, Calendar, RefreshCw, CheckCircle2, XCircle, Search,
-  AlertTriangle, MapPin, Truck, ChevronDown, ChevronRight,
+  AlertTriangle, MapPin, Truck, ChevronDown, ChevronRight, RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   marcarPendiente, marcarPendientesLote,
-  type Pendiente, type PendienteFila, type FechaPendiente, type EstadoRecepcion,
+  type Pendiente, type FechaPendiente, type EstadoRecepcion,
 } from "@/app/actions/pendientes";
 import type { PendientesStats } from "./PendientesPanel";
 import { PendientesHistorico } from "./PendientesHistorico";
@@ -40,9 +40,6 @@ interface Props {
   soloNoRecibidos: boolean; setSoloNoRecibidos: (v: boolean) => void;
   cadeteExpandido: string | null; setCadeteExpandido: (v: string | null) => void;
   onArchivo: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  confirmImport: { fecha: string; filas: PendienteFila[]; marcas: number } | null;
-  setConfirmImport: (v: { fecha: string; filas: PendienteFila[]; marcas: number } | null) => void;
-  ejecutarImport: (f: string, filas: PendienteFila[], forzar: boolean) => Promise<void>;
   recargar: () => void;
   setPendientes: React.Dispatch<React.SetStateAction<Pendiente[]>>;
 }
@@ -52,7 +49,7 @@ export function PendientesUI({
   fecha, setFecha, fechas, pendientes, stats, cargando, importando, puedeEditar,
   busqueda, setBusqueda, soloNoRecibidos, setSoloNoRecibidos,
   cadeteExpandido, setCadeteExpandido, onArchivo,
-  confirmImport, setConfirmImport, ejecutarImport, recargar, setPendientes,
+  recargar, setPendientes,
 }: Props) {
 
   // Filtro por zona (principal): al elegir una zona, contadores y conductores
@@ -430,6 +427,12 @@ export function PendientesUI({
                                     {agrupar === "conductor" ? (p.cliente ?? "—") : (p.cadete ?? "Sin asignar")}
                                   </span>
                                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{p.estado ?? "—"}</span>
+                                  {p.reincidencia && (
+                                    <span title={`Volvió a fallar — ciclo ${p.nro_ciclo} de este paquete`}
+                                      className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-700 dark:text-violet-300 inline-flex items-center gap-0.5">
+                                      <RotateCcw className="h-2.5 w-2.5" /> reincidencia · ciclo {p.nro_ciclo}
+                                    </span>
+                                  )}
                                   <span className="text-muted-foreground ml-auto shrink-0 tabular-nums">{fmtFechaHog(p.fecha_hogareno)}</span>
                                 </div>
                                 {/* Línea 2: dirección + localidad + (la otra dimensión) */}
@@ -507,34 +510,6 @@ export function PendientesUI({
         </div>
       )}
 
-      {/* ── Modal confirmar reimport ── */}
-      {confirmImport && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-background border rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-6 w-6 text-amber-500 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold">Ya hay marcas de recepción en este día</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  El día <span className="font-medium">{confirmImport.fecha}</span> tiene{" "}
-                  <span className="font-semibold text-foreground">{confirmImport.marcas}</span> paquetes marcados como recibidos.
-                  Reimportar reemplaza todo el día y borra esas marcas.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setConfirmImport(null)}>Cancelar</Button>
-              <Button variant="destructive" className="flex-1"
-                onClick={async () => {
-                  const c = confirmImport; setConfirmImport(null);
-                  await ejecutarImport(c.fecha, c.filas, true);
-                }}>
-                Reemplazar de todos modos
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
