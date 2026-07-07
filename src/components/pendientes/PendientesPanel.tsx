@@ -36,26 +36,30 @@ function parseFechaHogareno(v: unknown): string | null {
   return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}T${hh.padStart(2, "0")}:${mm}:00`;
 }
 
-interface ParseResult { fecha: string | null; filas: PendienteFila[]; warning?: string }
+interface ParseResult { fecha: string; fechaGenerado: string | null; filas: PendienteFila[]; warning?: string }
 
 async function parsearExcelPendientes(file: File): Promise<ParseResult> {
   const XLSX = await import("xlsx");
   const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
 
-  // Fecha del reporte: título de "Resumen General" → "Generado: 03/07/2026"
-  let fecha: string | null = null;
+  // Fecha del reporte: título de "Resumen General" → "Generado: 03/07/2026".
+  // OJO: esto es la fecha de corte del reporte de origen, NO necesariamente
+  // el día que se está cargando (el archivo puede decir "ayer" aunque se
+  // suba hoy). El import siempre usa la fecha real de HOY; esto solo se
+  // guarda para avisar si difieren mucho.
+  let fechaGenerado: string | null = null;
   if (wb.SheetNames.includes("Resumen General")) {
     const rg = XLSX.utils.sheet_to_json(wb.Sheets["Resumen General"], { header: 1, defval: "" }) as unknown[][];
     for (const row of rg.slice(0, 4)) {
       const f = parseFechaGenerado(String(row[0] ?? ""));
-      if (f) { fecha = f; break; }
+      if (f) { fechaGenerado = f; break; }
     }
   }
-  if (!fecha) fecha = hoyAR();
+  const fecha = hoyAR();
 
   // Detalle: hoja "Todos los Pendientes" (única con macrozona + todo junto)
   if (!wb.SheetNames.includes("Todos los Pendientes")) {
-    return { fecha, filas: [], warning: 'El archivo no parece ser el reporte de Pendientes (falta la hoja "Todos los Pendientes").' };
+    return { fecha, fechaGenerado, filas: [], warning: 'El archivo no parece ser el reporte de Pendientes (falta la hoja "Todos los Pendientes").' };
   }
   const rows = XLSX.utils.sheet_to_json(wb.Sheets["Todos los Pendientes"], { header: 1, defval: "" }) as unknown[][];
   const filas: PendienteFila[] = [];
@@ -76,7 +80,7 @@ async function parsearExcelPendientes(file: File): Promise<ParseResult> {
       cliente: String(r[8] ?? "").trim() || null,
     });
   }
-  return { fecha, filas };
+  return { fecha, fechaGenerado, filas };
 }
 
 // ── Componente principal ─────────────────────────────────────────────────────
@@ -113,10 +117,13 @@ export function PendientesPanel({ puedeEditar }: { puedeEditar: boolean }) {
     if (!file) return;
     setImportando(true);
     try {
-      const { fecha: fechaArchivo, filas, warning } = await parsearExcelPendientes(file);
+      const { fecha: fechaHoy, fechaGenerado, filas, warning } = await parsearExcelPendientes(file);
       if (warning) { toast.error(warning); return; }
       if (filas.length === 0) { toast.error("No se encontraron pendientes en el archivo"); return; }
-      await ejecutarImport(fechaArchivo ?? fecha, filas);
+      if (fechaGenerado && fechaGenerado !== fechaHoy) {
+        toast.info(`El archivo dice "Generado: ${fechaGenerado}" pero se está cargando como ${fechaHoy} (hoy)`);
+      }
+      await ejecutarImport(fechaHoy, filas);
     } finally { setImportando(false); }
   }
 
