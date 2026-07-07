@@ -42,8 +42,8 @@ export interface Pendiente {
 
 export interface ResultadoImport {
   nuevos: number;
+  reingresos: number;
   actualizados: number;
-  reincidencias: number;
   total: number;
 }
 

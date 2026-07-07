@@ -427,10 +427,10 @@ export function PendientesUI({
                                     {agrupar === "conductor" ? (p.cliente ?? "—") : (p.cadete ?? "Sin asignar")}
                                   </span>
                                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{p.estado ?? "—"}</span>
-                                  {p.reincidencia && (
-                                    <span title={`Volvió a fallar — ciclo ${p.nro_ciclo} de este paquete`}
+                                  {p.reincidencia && p.estado_recepcion !== "recibido" && (
+                                    <span title={`Volvió a aparecer sin poder entregarse — ${p.nro_ciclo}° vez`}
                                       className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-700 dark:text-violet-300 inline-flex items-center gap-0.5">
-                                      <RotateCcw className="h-2.5 w-2.5" /> reincidencia · ciclo {p.nro_ciclo}
+                                      <RotateCcw className="h-2.5 w-2.5" /> volvió a salir · {p.nro_ciclo}°
                                     </span>
                                   )}
                                   <span className="text-muted-foreground ml-auto shrink-0 tabular-nums">{fmtFechaHog(p.fecha_hogareno)}</span>

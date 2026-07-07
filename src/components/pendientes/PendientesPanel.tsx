@@ -121,8 +121,11 @@ export function PendientesPanel({ puedeEditar }: { puedeEditar: boolean }) {
   }
 
   // Ya no borra ni reemplaza un día: cada fila se fusiona por tracking (ver
-  // importarPendientes). Por eso un mismo Excel puede traer pendientes de
-  // varios días (últimas 48hs hábiles) sin generar duplicados ni perder marcas.
+  // importarPendientes). "Recibido" es una casilla del día, no un cierre
+  // permanente: si un pendiente reaparece en un día nuevo, se resetea a
+  // pendiente (volvió a salir y no se pudo entregar) y si tiene más de un
+  // día de antigüedad se marca urgente automáticamente. Si el mismo Excel
+  // se reimporta el mismo día, no se toca lo que ya se marcó hoy.
   async function ejecutarImport(f: string, filas: PendienteFila[]) {
     const res = await importarPendientes(f, filas);
     if (!res.ok) { toast.error("Error al importar", { description: res.error }); return; }
@@ -130,8 +133,8 @@ export function PendientesPanel({ puedeEditar }: { puedeEditar: boolean }) {
     const partes = [];
     if (r) {
       if (r.nuevos > 0) partes.push(`${r.nuevos} nuevos`);
+      if (r.reingresos > 0) partes.push(`${r.reingresos} reingresaron (reseteados a pendiente)`);
       if (r.actualizados > 0) partes.push(`${r.actualizados} actualizados`);
-      if (r.reincidencias > 0) partes.push(`${r.reincidencias} reincidencias`);
     }
     toast.success(`Importación completa (${r?.total ?? filas.length} filas)`, {
       description: partes.length > 0 ? partes.join(" · ") : undefined,
