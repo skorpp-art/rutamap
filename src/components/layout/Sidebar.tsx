@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { Map, Package, BarChart3, PackageCheck, Users, Lock, Truck, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { tieneSolapa } from "@/lib/permisos";
 import type { Perfil } from "@/types/database.types";
 
 interface SidebarProps {
@@ -23,11 +24,11 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
   const pathname = usePathname();
 
   const items: ItemNav[] = [
-    { href: "/", label: "Mapa", icon: Map, visible: true },
-    { href: "/volumenes", label: "Volúmenes", icon: Package, visible: true, bloqueado: esInvitado },
-    { href: "/analisis-diario", label: "Análisis del Día", icon: BarChart3, visible: true, bloqueado: esInvitado },
-    { href: "/carga", label: "Carga del Día", icon: ClipboardList, visible: !esInvitado },
-    { href: "/pendientes", label: "Pendientes", icon: PackageCheck, visible: !esInvitado },
+    { href: "/", label: "Mapa", icon: Map, visible: tieneSolapa(perfil, "mapa") || esInvitado },
+    { href: "/volumenes", label: "Volúmenes", icon: Package, visible: esInvitado || tieneSolapa(perfil, "volumenes"), bloqueado: esInvitado },
+    { href: "/analisis-diario", label: "Análisis del Día", icon: BarChart3, visible: esInvitado || tieneSolapa(perfil, "analisis"), bloqueado: esInvitado },
+    { href: "/carga", label: "Carga del Día", icon: ClipboardList, visible: !esInvitado && tieneSolapa(perfil, "carga") },
+    { href: "/pendientes", label: "Pendientes", icon: PackageCheck, visible: !esInvitado && tieneSolapa(perfil, "pendientes") },
     { href: "/usuarios", label: "Usuarios", icon: Users, visible: perfil?.rol === "maestro" },
   ];
 

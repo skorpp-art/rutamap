@@ -22,6 +22,8 @@ export type Database = {
           nombre: string;
           rol: Rol;
           creado_en: string;
+          solapas: string[] | null;
+          puede_editar: boolean | null;
         };
         Insert: {
           id: string;

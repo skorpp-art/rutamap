@@ -12,6 +12,9 @@ export interface UsuarioAdmin {
   email: string;
   creado_en: string;
   ultimo_login: string | null;
+  // null = sin restricción (ve todas las solapas / edición según rol)
+  solapas: string[] | null;
+  puede_editar: boolean | null;
 }
 
 export async function getUsuarios(): Promise<{ ok: boolean; data?: UsuarioAdmin[]; error?: string }> {
@@ -37,10 +40,27 @@ export async function setRolUsuario(
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
+// Asigna solapas visibles y flag de edición (solo maestro). null = sin restricción.
+export async function setPermisosUsuario(
+  id: string, solapas: string[] | null, puedeEditar: boolean | null
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc("admin_set_permisos", {
+      p_id: id, p_solapas: solapas, p_puede_editar: puedeEditar,
+    });
+    if (error) return { ok: false, error: error.message };
+    revalidatePath("/usuarios");
+    return { ok: true };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
 // El maestro crea una cuenta directamente (sin auto-registro ni confirmación de
 // email). Evita el rechazo de dominios de email del registro público.
 export async function crearUsuario(
-  nombre: string, email: string, password: string, rol: Rol
+  nombre: string, email: string, password: string, rol: Rol,
+  solapas: string[] | null = null, puedeEditar: boolean | null = null
 ): Promise<{ ok: boolean; error?: string }> {
   try {
     // 1) Verificar que quien llama es maestro
@@ -67,10 +87,10 @@ export async function crearUsuario(
       return { ok: false, error: m.includes("already") ? "Ya existe una cuenta con ese email" : m };
     }
 
-    // 3) Asignar el rol elegido (el trigger la creó como 'asesor')
+    // 3) Asignar rol y permisos elegidos (el trigger la creó como 'asesor')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: errRol } = await (admin as any)
-      .from("perfiles").update({ rol }).eq("id", creado.user.id);
+      .from("perfiles").update({ rol, solapas, puede_editar: puedeEditar }).eq("id", creado.user.id);
     if (errRol) return { ok: false, error: `Cuenta creada, pero no se pudo asignar el rol: ${errRol.message}` };
 
     revalidatePath("/usuarios");

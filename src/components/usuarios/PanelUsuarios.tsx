@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Users, RefreshCw, ShieldCheck, Eye, Pencil, UserPlus, Loader2 } from "lucide-react";
-import { getUsuarios, setRolUsuario, crearUsuario, type UsuarioAdmin } from "@/app/actions/usuarios";
+import { Users, RefreshCw, ShieldCheck, Eye, Pencil, UserPlus, Loader2, SlidersHorizontal, ChevronDown, ChevronRight } from "lucide-react";
+import { getUsuarios, setRolUsuario, setPermisosUsuario, crearUsuario, type UsuarioAdmin } from "@/app/actions/usuarios";
 import { ROLES, type Rol } from "@/lib/roles";
+import { SOLAPAS } from "@/lib/permisos";
 import { EmptyState } from "@/components/ui/empty-state";
 
 // Qué puede hacer cada rol — mostrado como referencia en el panel
@@ -37,15 +38,20 @@ const ROL_INFO: Record<Rol, { label: string; desc: string; edita: boolean; badge
   },
 };
 
+const TODAS_LAS_SOLAPAS = SOLAPAS.map(s => s.key as string);
+
 export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) {
   const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([]);
   const [cargando, setCargando] = useState(true);
   const [guardandoId, setGuardandoId] = useState<string | null>(null);
+  const [permisosAbierto, setPermisosAbierto] = useState<string | null>(null);
   // Formulario "crear usuario"
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevoEmail, setNuevoEmail] = useState("");
   const [nuevaPass, setNuevaPass] = useState("");
   const [nuevoRol, setNuevoRol] = useState<Rol>("coordinador");
+  const [nuevasSolapas, setNuevasSolapas] = useState<string[]>(TODAS_LAS_SOLAPAS);
+  const [nuevoEdita, setNuevoEdita] = useState(true);
   const [creando, setCreando] = useState(false);
 
   async function onCrear(e: React.FormEvent) {
@@ -53,12 +59,16 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
     if (nuevoNombre.trim().length < 2) { toast.error("Ingresá un nombre"); return; }
     if (!nuevoEmail.includes("@")) { toast.error("Email inválido"); return; }
     if (nuevaPass.length < 6) { toast.error("La contraseña debe tener al menos 6 caracteres"); return; }
+    if (nuevasSolapas.length === 0) { toast.error("Elegí al menos una solapa"); return; }
     setCreando(true);
     try {
-      const res = await crearUsuario(nuevoNombre, nuevoEmail, nuevaPass, nuevoRol);
+      // Si tiene todas las solapas, guardamos null (sin restricción)
+      const solapas = nuevasSolapas.length === TODAS_LAS_SOLAPAS.length ? null : nuevasSolapas;
+      const res = await crearUsuario(nuevoNombre, nuevoEmail, nuevaPass, nuevoRol, solapas, nuevoEdita);
       if (!res.ok) { toast.error("No se pudo crear la cuenta", { description: res.error }); return; }
       toast.success(`Cuenta creada para ${nuevoNombre} (${ROL_INFO[nuevoRol].label})`);
       setNuevoNombre(""); setNuevoEmail(""); setNuevaPass(""); setNuevoRol("coordinador");
+      setNuevasSolapas(TODAS_LAS_SOLAPAS); setNuevoEdita(true);
       await cargar();
     } finally { setCreando(false); }
   }
@@ -85,6 +95,27 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
     } finally { setGuardandoId(null); }
   }
 
+  // Solapas efectivas de un usuario (null = todas)
+  const solapasDe = (u: UsuarioAdmin) => u.solapas ?? TODAS_LAS_SOLAPAS;
+  const editaDe = (u: UsuarioAdmin) => u.puede_editar ?? ROL_INFO[u.rol].edita;
+
+  async function guardarPermisos(u: UsuarioAdmin, solapas: string[], edita: boolean) {
+    setGuardandoId(u.id);
+    try {
+      const solapasGuardar = solapas.length === TODAS_LAS_SOLAPAS.length ? null : solapas;
+      const res = await setPermisosUsuario(u.id, solapasGuardar, edita);
+      if (!res.ok) { toast.error("No se pudieron guardar los permisos", { description: res.error }); return; }
+      setUsuarios(prev => prev.map(x => x.id === u.id ? { ...x, solapas: solapasGuardar, puede_editar: edita } : x));
+    } finally { setGuardandoId(null); }
+  }
+
+  function toggleSolapaUsuario(u: UsuarioAdmin, key: string) {
+    const actuales = solapasDe(u);
+    const nuevas = actuales.includes(key) ? actuales.filter(s => s !== key) : [...actuales, key];
+    if (nuevas.length === 0) { toast.error("Tiene que quedar al menos una solapa"); return; }
+    guardarPermisos(u, nuevas, editaDe(u));
+  }
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-5">
       <div className="flex items-center gap-3">
@@ -94,7 +125,7 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
         <div className="flex-1">
           <h1 className="text-xl font-bold">Usuarios</h1>
           <p className="text-xs text-muted-foreground">
-            Las cuentas nuevas entran como <span className="font-medium">Asesor comercial</span> (solo lectura) hasta que les asignes un rol.
+            Creá cuentas y elegí, por persona, qué solapas ve y si puede editar.
           </p>
         </div>
         <button onClick={cargar} disabled={cargando}
@@ -118,11 +149,37 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
           <input value={nuevaPass} onChange={e => setNuevaPass(e.target.value)}
             placeholder="Contraseña (mín. 6)" type="text" autoComplete="new-password"
             className="text-sm border rounded-lg px-3 py-2 bg-background" />
-          <select value={nuevoRol} onChange={e => setNuevoRol(e.target.value as Rol)}
+          <select value={nuevoRol} onChange={e => { const r = e.target.value as Rol; setNuevoRol(r); setNuevoEdita(ROL_INFO[r].edita); }}
             className="text-sm border rounded-lg px-3 py-2 bg-background">
             {ROLES.map(r => <option key={r} value={r}>{ROL_INFO[r].label}</option>)}
           </select>
         </div>
+
+        {/* Permisos de la cuenta nueva */}
+        <div className="flex items-center gap-2 flex-wrap border rounded-lg px-3 py-2 bg-muted/20">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mr-1">Solapas:</span>
+          {SOLAPAS.map(s => (
+            <label key={s.key} className={cn("inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border cursor-pointer transition-colors",
+              nuevasSolapas.includes(s.key)
+                ? "bg-blue-600/10 border-blue-400 text-blue-700 dark:text-blue-300 font-medium"
+                : "border-border text-muted-foreground")}>
+              <input type="checkbox" className="hidden"
+                checked={nuevasSolapas.includes(s.key)}
+                onChange={() => setNuevasSolapas(prev =>
+                  prev.includes(s.key) ? prev.filter(x => x !== s.key) : [...prev, s.key])} />
+              {s.label}
+            </label>
+          ))}
+          <label className={cn("inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border cursor-pointer ml-auto transition-colors",
+            nuevoEdita
+              ? "bg-emerald-500/10 border-emerald-400 text-emerald-700 dark:text-emerald-300 font-medium"
+              : "border-border text-muted-foreground")}>
+            <input type="checkbox" className="hidden" checked={nuevoEdita} onChange={() => setNuevoEdita(!nuevoEdita)} />
+            {nuevoEdita ? <Pencil className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+            {nuevoEdita ? "Puede editar" : "Solo lectura"}
+          </label>
+        </div>
+
         <div className="flex items-center justify-between gap-3">
           <p className="text-[11px] text-muted-foreground">
             La cuenta queda lista para usar (sin confirmación de mail). Pasale el email y la contraseña a la persona.
@@ -134,21 +191,6 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
           </button>
         </div>
       </form>
-
-      {/* Referencia de roles */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-        {ROLES.map(r => (
-          <div key={r} className="border rounded-xl px-3 py-2 bg-card flex items-start gap-2">
-            {ROL_INFO[r].edita
-              ? <Pencil className="h-3.5 w-3.5 mt-0.5 text-emerald-600 dark:text-emerald-300 shrink-0" />
-              : <Eye className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />}
-            <div>
-              <p className="text-xs font-semibold">{ROL_INFO[r].label}</p>
-              <p className="text-[11px] text-muted-foreground leading-tight">{ROL_INFO[r].desc}</p>
-            </div>
-          </div>
-        ))}
-      </div>
 
       {/* Tabla de usuarios */}
       <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
@@ -163,41 +205,95 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
                 <th className="text-left px-4 py-2 font-medium text-muted-foreground text-xs">Usuario</th>
                 <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Email</th>
                 <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Último ingreso</th>
-                <th className="text-left px-4 py-2 font-medium text-muted-foreground text-xs w-48">Rol</th>
+                <th className="text-left px-4 py-2 font-medium text-muted-foreground text-xs w-44">Rol</th>
+                <th className="w-28 px-3 py-2 font-medium text-muted-foreground text-xs text-center">Permisos</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {usuarios.map(u => {
                 const esYo = u.id === usuarioActualId;
+                const esMaestro = u.rol === "maestro";
+                const abierto = permisosAbierto === u.id;
+                const solapasU = solapasDe(u);
+                const editaU = editaDe(u);
                 return (
-                  <tr key={u.id} className={cn(esYo && "bg-blue-50/40 dark:bg-blue-950/20")}>
-                    <td className="px-4 py-2.5">
-                      <span className="font-medium">{u.nombre}</span>
-                      {esYo && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-600/15 text-blue-700 dark:text-blue-300">vos</span>}
-                    </td>
-                    <td className="px-3 py-2.5 text-xs text-muted-foreground">{u.email}</td>
-                    <td className="px-3 py-2.5 text-xs text-muted-foreground tabular-nums">
-                      {u.ultimo_login
-                        ? new Date(u.ultimo_login).toLocaleDateString("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
-                        : "nunca"}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      {esYo ? (
-                        <span className={cn("inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full border", ROL_INFO[u.rol].badge)}>
-                          <ShieldCheck className="h-3 w-3" />{ROL_INFO[u.rol].label}
-                        </span>
-                      ) : (
-                        <select
-                          value={u.rol}
-                          disabled={guardandoId === u.id}
-                          onChange={e => cambiarRol(u, e.target.value as Rol)}
-                          className="text-xs border rounded-lg px-2 py-1.5 bg-background w-full disabled:opacity-50"
-                        >
-                          {ROLES.map(r => <option key={r} value={r}>{ROL_INFO[r].label}</option>)}
-                        </select>
-                      )}
-                    </td>
-                  </tr>
+                  <>
+                    <tr key={u.id} className={cn(esYo && "bg-blue-50/40 dark:bg-blue-950/20")}>
+                      <td className="px-4 py-2.5">
+                        <span className="font-medium">{u.nombre}</span>
+                        {esYo && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-600/15 text-blue-700 dark:text-blue-300">vos</span>}
+                      </td>
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground">{u.email}</td>
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground tabular-nums">
+                        {u.ultimo_login
+                          ? new Date(u.ultimo_login).toLocaleDateString("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+                          : "nunca"}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        {esYo ? (
+                          <span className={cn("inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full border", ROL_INFO[u.rol].badge)}>
+                            <ShieldCheck className="h-3 w-3" />{ROL_INFO[u.rol].label}
+                          </span>
+                        ) : (
+                          <select
+                            value={u.rol}
+                            disabled={guardandoId === u.id}
+                            onChange={e => cambiarRol(u, e.target.value as Rol)}
+                            className="text-xs border rounded-lg px-2 py-1.5 bg-background w-full disabled:opacity-50"
+                          >
+                            {ROLES.map(r => <option key={r} value={r}>{ROL_INFO[r].label}</option>)}
+                          </select>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
+                        {esYo || esMaestro ? (
+                          <span className="text-[10px] text-muted-foreground">{esMaestro ? "todo" : "—"}</span>
+                        ) : (
+                          <button onClick={() => setPermisosAbierto(abierto ? null : u.id)}
+                            className={cn("inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg border transition-colors",
+                              abierto ? "bg-blue-600/10 border-blue-400 text-blue-700 dark:text-blue-300" : "border-border text-muted-foreground hover:bg-muted")}>
+                            <SlidersHorizontal className="h-3 w-3" />
+                            {u.solapas ? `${solapasU.length}/${TODAS_LAS_SOLAPAS.length}` : "todas"}
+                            {abierto ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                    {abierto && !esYo && !esMaestro && (
+                      <tr key={`${u.id}-permisos`} className="bg-muted/10">
+                        <td colSpan={5} className="px-4 py-3">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mr-1">Solapas:</span>
+                            {SOLAPAS.map(s => (
+                              <label key={s.key} className={cn("inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border cursor-pointer transition-colors",
+                                solapasU.includes(s.key)
+                                  ? "bg-blue-600/10 border-blue-400 text-blue-700 dark:text-blue-300 font-medium"
+                                  : "border-border text-muted-foreground",
+                                guardandoId === u.id && "opacity-50 pointer-events-none")}>
+                                <input type="checkbox" className="hidden"
+                                  checked={solapasU.includes(s.key)}
+                                  onChange={() => toggleSolapaUsuario(u, s.key)} />
+                                {s.label}
+                              </label>
+                            ))}
+                            <label className={cn("inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border cursor-pointer ml-auto transition-colors",
+                              editaU
+                                ? "bg-emerald-500/10 border-emerald-400 text-emerald-700 dark:text-emerald-300 font-medium"
+                                : "border-border text-muted-foreground",
+                              guardandoId === u.id && "opacity-50 pointer-events-none")}>
+                              <input type="checkbox" className="hidden" checked={editaU}
+                                onChange={() => guardarPermisos(u, solapasU, !editaU)} />
+                              {editaU ? <Pencil className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                              {editaU ? "Puede editar" : "Solo lectura"}
+                            </label>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-2">
+                            Los cambios se guardan al instante. La persona los ve al recargar la página.
+                          </p>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 );
               })}
             </tbody>
@@ -206,9 +302,8 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
       </div>
 
       <p className="text-[11px] text-muted-foreground">
-        Para dar de alta a alguien: pedile que se registre en /registro con su email — va a entrar
-        como solo-lectura y desde acá le asignás el rol que corresponda. Tu propio rol no se puede
-        cambiar desde este panel (evita que te quedes sin acceso maestro).
+        El maestro siempre ve y edita todo. Tu propio rol y permisos no se pueden cambiar desde este
+        panel (evita que te quedes sin acceso maestro).
       </p>
     </div>
   );
