@@ -14,7 +14,7 @@ import {
   getCargaDia, upsertCargaFila, eliminarCargaFila, iniciarCargaDesdeOperacion,
   publicarCargaDia, getChoferesConocidos, setEstadoControlFila,
   getConductores, agregarConductor, importarConductores, eliminarConductor,
-  type CargaFila, type TurnoCarga,
+  type CargaFila, type TurnoCarga, type EstadoControl,
 } from "@/app/actions/carga-dia";
 import { getOperacionDia } from "@/app/actions/operacion";
 import type { OperacionRuta } from "@/app/actions/operacion";
@@ -209,11 +209,14 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
   }
 
   // Control de los coordinadores de noche: cada hora chequean cuántos paquetes
-  // lleva el chofer y marcan el recorrido. Ciclo: sin marcar → verde → rojo → sin marcar.
+  // lleva el chofer y marcan el recorrido. Ciclo: sin marcar → verde (en control)
+  // → rojo (por encima de lo esperado) → amarillo (recorrido finalizado) →
+  // azul (frenado por alguna razón) → sin marcar.
+  const CICLO_CONTROL: EstadoControl[] = [null, "verde", "rojo", "amarillo", "azul"];
   async function ciclarControl(fila: CargaFila) {
     if (!puedeEditar) return;
-    const siguiente: "verde" | "rojo" | null =
-      fila.estado_control === null ? "verde" : fila.estado_control === "verde" ? "rojo" : null;
+    const i = CICLO_CONTROL.indexOf(fila.estado_control);
+    const siguiente = CICLO_CONTROL[(i + 1) % CICLO_CONTROL.length];
     setFilas(prev => prev.map(f => f.id === fila.id ? { ...f, estado_control: siguiente } : f));
     const res = await setEstadoControlFila(fila.id, siguiente);
     if (!res.ok) {
@@ -507,6 +510,16 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
           </div>
         )}
 
+        {filasVisibles.length > 0 && (
+          <p className="text-[11px] text-muted-foreground -mt-2 flex items-center gap-3 flex-wrap">
+            <span className="font-medium">Control (clic en el círculo):</span>
+            <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> En control</span>
+            <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-red-500" /> Por encima de lo esperado</span>
+            <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-amber-400" /> Recorrido finalizado</span>
+            <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-blue-500" /> Frenado</span>
+          </p>
+        )}
+
         {/* ── Tablas por zona ── */}
         {filasVisibles.length === 0 && !cargando ? (
           <EmptyState icon={ClipboardList} title={`Sin carga para ${filtro === "preturno" ? "el pre-turno" : filtro ? `la zona ${filtro}` : "este día"}`}
@@ -544,15 +557,21 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
                       return (
                         <tr key={f.id} className={cn("hover:bg-muted/20 transition-colors",
                           f.estado_control === "rojo" && "bg-red-50/50 dark:bg-red-950/20",
-                          f.estado_control === "verde" && "bg-emerald-50/30 dark:bg-emerald-950/10")}>
+                          f.estado_control === "verde" && "bg-emerald-50/30 dark:bg-emerald-950/10",
+                          f.estado_control === "amarillo" && "bg-amber-50/50 dark:bg-amber-950/20",
+                          f.estado_control === "azul" && "bg-blue-50/50 dark:bg-blue-950/20")}>
                           <td className="px-2 py-2 text-center">
                             <button onClick={() => ciclarControl(f)} disabled={!puedeEditar}
                               title={f.estado_control === "verde" ? "En control — clic para marcar en rojo"
-                                : f.estado_control === "rojo" ? "Por encima de lo esperado — clic para desmarcar"
+                                : f.estado_control === "rojo" ? "Por encima de lo esperado — clic para marcar finalizado"
+                                : f.estado_control === "amarillo" ? "Recorrido finalizado — clic para marcar frenado"
+                                : f.estado_control === "azul" ? "Frenado por alguna razón — clic para desmarcar"
                                 : "Sin controlar — clic para marcar en verde"}
                               className={cn("h-5 w-5 rounded-full border-2 transition-colors",
                                 f.estado_control === "verde" && "bg-emerald-500 border-emerald-600",
                                 f.estado_control === "rojo" && "bg-red-500 border-red-600",
+                                f.estado_control === "amarillo" && "bg-amber-400 border-amber-500",
+                                f.estado_control === "azul" && "bg-blue-500 border-blue-600",
                                 !f.estado_control && "bg-transparent border-slate-300 dark:border-slate-600 hover:border-slate-400",
                                 puedeEditar && "cursor-pointer")} />
                           </td>

@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
 export type TurnoCarga = "tarde" | "preturno";
+// verde: dentro de lo esperado · rojo: por encima de lo esperado ·
+// amarillo: recorrido finalizado · azul: frenado por alguna razón
+export type EstadoControl = "verde" | "rojo" | "amarillo" | "azul" | null;
 
 export interface CargaFila {
   id: string;
@@ -17,7 +20,7 @@ export interface CargaFila {
   chofer: string | null;
   sistema: number;
   x_fuera: number;
-  estado_control: "verde" | "rojo" | null;
+  estado_control: EstadoControl;
 }
 
 export async function getCargaDia(fecha: string): Promise<{ ok: boolean; data?: CargaFila[]; error?: string }> {
@@ -83,10 +86,10 @@ export async function publicarCargaDia(fecha: string): Promise<{ ok: boolean; pu
 }
 
 // Control de los coordinadores de noche: cada hora chequean cuántos paquetes
-// tiene el chofer y marcan el recorrido en verde u rojo. Independiente de
-// sistema/x_fuera (ese es el que cargó el coordinador de zona antes del reparto).
+// tiene el chofer y marcan el recorrido. Independiente de sistema/x_fuera
+// (ese es el que cargó el coordinador de zona antes del reparto).
 export async function setEstadoControlFila(
-  id: string, estado: "verde" | "rojo" | null
+  id: string, estado: EstadoControl
 ): Promise<{ ok: boolean; error?: string }> {
   try {
     const supabase = await createClient();
