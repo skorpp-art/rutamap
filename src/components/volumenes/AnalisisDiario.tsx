@@ -351,9 +351,14 @@ export function AnalisisDiario() {
   const [guardandoLote, setGuardandoLote] = useState(false);
   const [progresoLote, setProgresoLote] = useState<{ hechos: number; total: number } | null>(null);
 
-  const { payload: previa, warnings } = (tardeRaw || resumenRaw)
+  const { payload: previaAuto, warnings } = (tardeRaw || resumenRaw)
     ? construirPayload(tardeRaw, resumenRaw)
     : { payload: null, warnings: [] as string[] };
+  // La fecha del Excel se detecta del título ("Generado: dd/mm/yyyy"), pero
+  // algunos reportes se generan de madrugada del día siguiente y quedan con
+  // la fecha corrida un día — se puede corregir acá antes de guardar.
+  const [fechaOverride, setFechaOverride] = useState<string | null>(null);
+  const previa = previaAuto && fechaOverride ? { ...previaAuto, fecha: fechaOverride } : previaAuto;
 
   // Día consultado
   const [fecha, setFecha] = useState(() => hoyAR());
@@ -459,6 +464,7 @@ export function AnalisisDiario() {
   function descartarCarga() {
     setTardeRaw(null);
     setResumenRaw(null);
+    setFechaOverride(null);
     if (fileTardeRef.current) fileTardeRef.current.value = "";
     if (fileResumenRef.current) fileResumenRef.current.value = "";
   }
@@ -678,10 +684,26 @@ export function AnalisisDiario() {
       {/* Preview de carga */}
       {(tardeRaw || resumenRaw) && (
         <div className="border rounded-xl p-4 space-y-3 bg-blue-50/40 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <FileSpreadsheet className="h-4 w-4 text-blue-600 dark:text-blue-300" />
-            <p className="text-sm font-bold">Vista previa{previa ? ` — ${previa.fecha}` : ""}</p>
+            <p className="text-sm font-bold">Vista previa</p>
+            {previa && (
+              <div className="flex items-center gap-1.5 ml-1">
+                <input type="date" value={previa.fecha}
+                  onChange={e => setFechaOverride(e.target.value)}
+                  className="text-xs border rounded-lg px-2 py-1 bg-background" />
+                {fechaOverride && previaAuto && fechaOverride !== previaAuto.fecha && (
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400">
+                    (el Excel decía {previaAuto.fecha})
+                  </span>
+                )}
+              </div>
+            )}
           </div>
+          <p className="text-[11px] text-muted-foreground -mt-1">
+            Revisá la fecha detectada antes de guardar: algunos reportes se generan de madrugada
+            del día siguiente y traen la fecha corrida.
+          </p>
           {warnings.length > 0 && (
             <div className="text-xs text-amber-700 dark:text-amber-300 space-y-1">
               {warnings.map((w, i) => <p key={i} className="flex items-center gap-1.5"><AlertTriangle className="h-3 w-3 shrink-0" /> {w}</p>)}
