@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   ClipboardList, Calendar, RefreshCw, Package, Trash2, Download,
-  Send, Sunrise, Plus, Users, Upload, X,
+  Send, Sunrise, Plus, Users, Upload, X, Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -20,6 +20,8 @@ import { getOperacionDia } from "@/app/actions/operacion";
 import type { OperacionRuta } from "@/app/actions/operacion";
 import {
   getPaquetesEspeciales, getPaquetesEspecialesRango, getClientesSugeridos, getChoferesRango,
+  getCondicionesEspeciales, importarCondicionesEspeciales,
+  type CondicionEspecial,
 } from "@/app/actions/paquetes-especiales";
 import { PaquetesEspecialesModal, urlImagen } from "@/components/volumenes/PaquetesEspecialesModal";
 
@@ -59,6 +61,11 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
   const [nuevoConductor, setNuevoConductor] = useState("");
   const [importandoCond, setImportandoCond] = useState(false);
   const fileCondRef = useRef<HTMLInputElement>(null);
+  // Banco de condiciones especiales por cliente (Excel de administración)
+  const [condicionesEsp, setCondicionesEsp] = useState<CondicionEspecial[]>([]);
+  const [modalCondiciones, setModalCondiciones] = useState(false);
+  const [importandoCondEsp, setImportandoCondEsp] = useState(false);
+  const fileCondEspRef = useRef<HTMLInputElement>(null);
   const [clientesSug, setClientesSug] = useState<string[]>([]);
   const [rutasDia, setRutasDia] = useState<OperacionRuta[]>([]);
   const [agregandoCodigo, setAgregandoCodigo] = useState("");
@@ -89,6 +96,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
     getChoferesConocidos().then(r => { if (r.ok) setChoferes(r.data ?? []); });
     getClientesSugeridos().then(r => { if (r.ok) setClientesSug(r.data ?? []); });
     getConductores().then(r => { if (r.ok) setConductores(r.data ?? []); });
+    getCondicionesEspeciales().then(r => { if (r.ok) setCondicionesEsp(r.data ?? []); });
   }, []);
 
   // Sugerencias del campo chofer: nómina de conductores + nombres ya usados en cargas
@@ -147,6 +155,47 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
       if (r2.ok) setConductores(r2.data ?? []);
     } finally { setImportandoCond(false); }
   }
+
+  // Importa la planilla "CONDICIONES DE PAGO ESPECIAL": columnas Cliente /
+  // Condición especial / Observación adicional, con el cliente en celdas
+  // combinadas (una fila sin cliente pertenece al último cliente visto).
+  // Reemplaza todo el banco — se resube entero cuando cambia el Excel.
+  async function onArchivoCondiciones(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImportandoCondEsp(true);
+    try {
+      const XLSX = await import("xlsx");
+      const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: "" }) as unknown[][];
+      const filasParseadas: { cliente: string; condicion: string; observacion: string | null }[] = [];
+      let clienteActual = "";
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        const cliente = String(r[0] ?? "").trim();
+        const condicion = String(r[1] ?? "").trim();
+        const obs = String(r[2] ?? "").trim();
+        if (!cliente && !condicion) continue;
+        if (cliente) clienteActual = cliente;
+        if (!condicion || !clienteActual) continue;
+        filasParseadas.push({ cliente: clienteActual, condicion, observacion: obs || null });
+      }
+      if (filasParseadas.length === 0) { toast.error("No se encontraron condiciones en el archivo"); return; }
+      const res = await importarCondicionesEspeciales(filasParseadas);
+      if (!res.ok) { toast.error("No se pudo importar", { description: res.error }); return; }
+      toast.success(`${res.importadas} condiciones especiales importadas (reemplazó el banco anterior)`);
+      const r2 = await getCondicionesEspeciales();
+      if (r2.ok) setCondicionesEsp(r2.data ?? []);
+    } finally { setImportandoCondEsp(false); }
+  }
+
+  // Clientes agrupados (para la lista del modal)
+  const condicionesPorCliente = useMemo(() => {
+    const m = new Map<string, CondicionEspecial[]>();
+    for (const c of condicionesEsp) m.set(c.cliente, [...(m.get(c.cliente) ?? []), c]);
+    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [condicionesEsp]);
 
   const filasTurno = useMemo(() => filas.filter(f => f.turno === turno), [filas, turno]);
   // Lo que se muestra en las tablas: el turno elegido, acotado a la zona si hay una seleccionada
@@ -277,7 +326,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
         Cliente: p.cliente ?? "", Tracking: p.tracking ?? "", "Dirección": p.direccion ?? "",
         "Alto (cm)": p.alto_cm ?? "", "Ancho (cm)": p.ancho_cm ?? "",
         "Largo (cm)": p.largo_cm ?? "", "Peso (kg)": p.peso_kg ?? "",
-        "Observación": p.observacion ?? "",
+        "Condición especial": p.condicion_especial ?? p.observacion ?? "",
         Fotos: p.imagenes.map(urlImagen).join("  "),
       }));
       const ws = XLSX.utils.json_to_sheet(hoja);
@@ -319,7 +368,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
           <td>${esc(p.fecha)}</td><td>${esc(p.zona)}</td><td><b>${esc(p.codigo)}</b><br>${esc(p.recorrido_nombre)}</td>
           <td>${esc(chofer)}</td><td>${esc(p.cliente ?? "—")}</td><td>${esc(p.tracking ?? "—")}</td>
           <td>${esc(p.direccion ?? "—")}</td><td>${esc(medidas)}${p.peso_kg != null ? ` · ${p.peso_kg} kg` : ""}</td>
-          <td>${esc(p.observacion ?? "")}</td>
+          <td>${esc(p.condicion_especial ?? p.observacion ?? "")}</td>
           <td>${fotos || "<span style=\"color:#999\">sin fotos</span>"}</td>
         </tr>`;
       }).join("\n");
@@ -334,7 +383,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
         <h1>Paquetes especiales — ${desde.slice(0, 7)}</h1>
         <table><thead><tr>
           <th>Fecha</th><th>Zona</th><th>Recorrido</th><th>Chofer</th><th>Cliente</th><th>Tracking</th>
-          <th>Dirección</th><th>Medidas</th><th>Observación</th><th>Fotos</th>
+          <th>Dirección</th><th>Medidas</th><th>Condición especial</th><th>Fotos</th>
         </tr></thead><tbody>${filas}</tbody></table>
         </body></html>`;
       const blob = new Blob([html], { type: "text/html" });
@@ -489,6 +538,10 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
             <Button size="sm" variant="outline" onClick={() => setModalConductores(true)} className="h-8 gap-1.5 text-xs">
               <Users className="h-3.5 w-3.5" />
               Conductores ({conductores.length})
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setModalCondiciones(true)} className="h-8 gap-1.5 text-xs">
+              <Wallet className="h-3.5 w-3.5" />
+              Condiciones especiales ({condicionesPorCliente.length})
             </Button>
             {rutasDisponibles.length > 0 && (
               <select value={agregandoCodigo}
@@ -714,6 +767,59 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
                     className="text-muted-foreground/40 hover:text-red-600 transition-colors">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal banco de condiciones especiales ── */}
+      {modalCondiciones && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={() => setModalCondiciones(false)}>
+          <div className="bg-background border rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col p-6 gap-4"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-start gap-3">
+              <span className="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-300 shrink-0">
+                <Wallet className="h-5 w-5" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold">Condiciones especiales por cliente</p>
+                <p className="text-xs text-muted-foreground">
+                  {condicionesPorCliente.length} clientes con condición registrada — se muestra al cargar un paquete especial.
+                </p>
+              </div>
+              <button onClick={() => setModalCondiciones(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div>
+              <input ref={fileCondEspRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={onArchivoCondiciones} />
+              <button onClick={() => fileCondEspRef.current?.click()} disabled={importandoCondEsp}
+                className="w-full inline-flex items-center justify-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-dashed border-border hover:bg-muted transition-colors disabled:opacity-50">
+                <Upload className="h-3.5 w-3.5" />
+                {importandoCondEsp ? "Importando…" : "Importar / actualizar desde Excel (reemplaza el banco anterior)"}
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto border rounded-xl divide-y min-h-24">
+              {condicionesPorCliente.length === 0 ? (
+                <p className="text-center text-xs text-muted-foreground py-6">
+                  Todavía no hay condiciones cargadas. Importá el Excel de "Condiciones de pago especial".
+                </p>
+              ) : condicionesPorCliente.map(([cliente, lista]) => (
+                <div key={cliente} className="px-3 py-2">
+                  <p className="text-xs font-semibold mb-1">{cliente}</p>
+                  <div className="space-y-1">
+                    {lista.map(c => (
+                      <div key={c.id} className="text-[11px] text-muted-foreground pl-2 border-l-2 border-amber-300 dark:border-amber-800">
+                        <span className="whitespace-pre-line">{c.condicion}</span>
+                        {c.observacion_adicional && <span className="block italic">{c.observacion_adicional}</span>}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
