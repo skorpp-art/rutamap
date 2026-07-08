@@ -160,11 +160,28 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
     return parts.join(" · ");
   };
 
-  function cerrar() {
-    if (mostrarForm && (direccion.trim() || tracking.trim() || cliente.trim())) {
-      toast.info("Se descartó el paquete que estabas cargando (no llegaste a confirmarlo)");
-    }
-    onClose(paquetes.length);
+  // "Listo" / cerrar: si quedó algo cargado en el wizard, lo guarda antes de
+  // cerrar en vez de descartarlo (no hace falta llegar al paso 3 a propósito).
+  async function cerrar() {
+    const hayDatos = mostrarForm && (direccion.trim() || tracking.trim() || cliente.trim());
+    if (!hayDatos) { onClose(paquetes.length); return; }
+    setGuardando(true);
+    try {
+      const res = await crearPaqueteEspecial(fecha, recorrido.recorrido_id, {
+        cliente: cliente.trim() || null,
+        tracking: tracking.trim() || null,
+        direccion: direccion.trim() || null,
+        alto_cm: null, ancho_cm: null, largo_cm: null, peso_kg: null,
+        condicionEspecial: condicionElegida,
+        imagenes,
+      });
+      if (!res.ok) {
+        toast.error("No se pudo guardar el paquete especial", { description: res.error, duration: 8000 });
+        return; // no cierra: que no se pierda lo cargado
+      }
+      toast.success("Paquete cargado");
+      onClose(paquetes.length + 1);
+    } finally { setGuardando(false); }
   }
 
   return (
