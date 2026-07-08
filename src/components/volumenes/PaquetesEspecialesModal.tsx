@@ -39,13 +39,9 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
   const [mostrarForm, setMostrarForm] = useState(false);
   const [paso, setPaso] = useState<Paso>(1);
 
-  // Form — paso a paso: 1) dirección/tracking/medidas/fotos · 2) cliente · 3) condición especial
+  // Form — paso a paso: 1) dirección/tracking/fotos · 2) cliente · 3) condición especial
   const [tracking, setTracking] = useState("");
   const [direccion, setDireccion] = useState("");
-  const [alto, setAlto] = useState("");
-  const [ancho, setAncho] = useState("");
-  const [largo, setLargo] = useState("");
-  const [peso, setPeso] = useState("");
   const [cliente, setCliente] = useState("");
   const [condicionElegida, setCondicionElegida] = useState<string | null>(null);
   const [imagenes, setImagenes] = useState<string[]>([]); // paths en el bucket
@@ -80,7 +76,7 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
   );
 
   function resetForm() {
-    setTracking(""); setDireccion(""); setAlto(""); setAncho(""); setLargo(""); setPeso("");
+    setTracking(""); setDireccion("");
     setCliente(""); setCondicionElegida(null); setImagenes([]); setPaso(1); setMostrarForm(false);
   }
 
@@ -106,11 +102,6 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
     await supabase.storage.from(BUCKET).remove([path]);
   }
 
-  function num(s: string): number | null {
-    const v = parseFloat(s.replace(",", "."));
-    return isNaN(v) ? null : v;
-  }
-
   async function guardarPaquete() {
     setGuardando(true);
     try {
@@ -118,7 +109,7 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
         cliente: cliente.trim() || null,
         tracking: tracking.trim() || null,
         direccion: direccion.trim() || null,
-        alto_cm: num(alto), ancho_cm: num(ancho), largo_cm: num(largo), peso_kg: num(peso),
+        alto_cm: null, ancho_cm: null, largo_cm: null, peso_kg: null,
         condicionEspecial: condicionElegida,
         imagenes,
       });
@@ -287,7 +278,7 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
                 ))}
               </div>
 
-              {/* Paso 1: dirección, tracking, medidas, fotos */}
+              {/* Paso 1: dirección, tracking, fotos */}
               {paso === 1 && (
                 <div className="space-y-2.5">
                   <div className="relative">
@@ -299,12 +290,6 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
                     <Barcode className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                     <input value={tracking} onChange={e => setTracking(e.target.value)} placeholder="Tracking (LD…)"
                       className="w-full text-sm pl-8 pr-2 py-2 rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-amber-400 font-mono" />
-                  </div>
-                  <div className="grid grid-cols-4 gap-2">
-                    {([["Alto", alto, setAlto], ["Ancho", ancho, setAncho], ["Largo", largo, setLargo], ["Peso", peso, setPeso]] as const).map(([ph, val, set]) => (
-                      <input key={ph} value={val} onChange={e => set(e.target.value)} placeholder={ph} inputMode="decimal"
-                        className="w-full text-sm px-2 py-2 rounded-lg border bg-background focus:outline-none focus:ring-1 focus:ring-amber-400 text-center" />
-                    ))}
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
