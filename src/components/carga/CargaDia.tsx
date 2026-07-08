@@ -291,7 +291,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
     } finally { setPublicando(false); }
   }
 
-  // Rango del mes de la fecha elegida (para ambos exports de especiales)
+  // Rango del mes de la fecha elegida (para el export "todo el mes")
   function rangoMes() {
     const desde = fecha.slice(0, 8) + "01";
     const [y, m] = fecha.split("-").map(Number);
@@ -300,25 +300,32 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
     return { desde, hasta };
   }
 
+  // Alcance del export: "dia" = solo la fecha elegida (default) · "mes" = todo el mes
+  const [alcanceExport, setAlcanceExport] = useState<"dia" | "mes">("dia");
+
   // Trae especiales + chofer por recorrido/fecha (para completar la columna Chofer)
-  async function traerEspecialesDelMes() {
-    const { desde, hasta } = rangoMes();
+  async function traerEspecialesExport() {
+    const { desde, hasta } = alcanceExport === "dia" ? { desde: fecha, hasta: fecha } : rangoMes();
     const [rEsp, rChof] = await Promise.all([getPaquetesEspecialesRango(desde, hasta), getChoferesRango(desde, hasta)]);
     if (!rEsp.ok) { toast.error("No se pudo exportar", { description: rEsp.error }); return null; }
     const lista = rEsp.data ?? [];
-    if (lista.length === 0) { toast.info("No hay paquetes especiales en el mes de la fecha elegida"); return null; }
+    if (lista.length === 0) {
+      toast.info(alcanceExport === "dia" ? "No hay paquetes especiales en la fecha elegida" : "No hay paquetes especiales en el mes de la fecha elegida");
+      return null;
+    }
     const choferPorRuta = new Map<string, string>();
     if (rChof.ok) for (const c of rChof.data ?? []) choferPorRuta.set(`${c.fecha}|${c.codigo}`, c.chofer);
-    return { lista, choferPorRuta, desde };
+    const etiqueta = alcanceExport === "dia" ? desde : desde.slice(0, 7);
+    return { lista, choferPorRuta, etiqueta };
   }
 
-  // Exporta a Excel los paquetes especiales del mes (para administración)
+  // Exporta a Excel los paquetes especiales (para administración)
   async function exportarEspeciales() {
     setExportandoEsp(true);
     try {
-      const datos = await traerEspecialesDelMes();
+      const datos = await traerEspecialesExport();
       if (!datos) return;
-      const { lista, choferPorRuta, desde } = datos;
+      const { lista, choferPorRuta, etiqueta } = datos;
       const XLSX = await import("xlsx");
       const hoja = lista.map(p => ({
         Fecha: p.fecha, Zona: p.zona, "Código": p.codigo, Recorrido: p.recorrido_nombre,
@@ -341,8 +348,8 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
       });
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Paquetes especiales");
-      XLSX.writeFile(wb, `paquetes-especiales-${desde.slice(0, 7)}.xlsx`);
-      toast.success(`${lista.length} paquetes especiales exportados (${desde.slice(0, 7)})`);
+      XLSX.writeFile(wb, `paquetes-especiales-${etiqueta}.xlsx`);
+      toast.success(`${lista.length} paquetes especiales exportados (${etiqueta})`);
     } finally { setExportandoEsp(false); }
   }
 
@@ -352,9 +359,9 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
   async function exportarEspecialesConFotos() {
     setExportandoEsp(true);
     try {
-      const datos = await traerEspecialesDelMes();
+      const datos = await traerEspecialesExport();
       if (!datos) return;
-      const { lista, choferPorRuta, desde } = datos;
+      const { lista, choferPorRuta, etiqueta } = datos;
       const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       const filas = lista.map(p => {
         const chofer = choferPorRuta.get(`${p.fecha}|${p.codigo}`) ?? "—";
@@ -372,7 +379,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
           <td>${fotos || "<span style=\"color:#999\">sin fotos</span>"}</td>
         </tr>`;
       }).join("\n");
-      const html = `<!doctype html><html><head><meta charset="utf-8"><title>Paquetes especiales ${desde.slice(0, 7)}</title>
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>Paquetes especiales ${etiqueta}</title>
         <style>
           body{font-family:system-ui,sans-serif;padding:20px;color:#111}
           table{border-collapse:collapse;width:100%;font-size:13px}
@@ -380,7 +387,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
           th{background:#fef3c7;position:sticky;top:0}
           h1{font-size:18px}
         </style></head><body>
-        <h1>Paquetes especiales — ${desde.slice(0, 7)}</h1>
+        <h1>Paquetes especiales — ${etiqueta}</h1>
         <table><thead><tr>
           <th>Fecha</th><th>Zona</th><th>Recorrido</th><th>Chofer</th><th>Cliente</th><th>Tracking</th>
           <th>Dirección</th><th>Medidas</th><th>Condición especial</th><th>Fotos</th>
@@ -389,10 +396,10 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
       const blob = new Blob([html], { type: "text/html" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url; a.download = `paquetes-especiales-${desde.slice(0, 7)}.html`;
+      a.href = url; a.download = `paquetes-especiales-${etiqueta}.html`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`${lista.length} paquetes especiales exportados con fotos (${desde.slice(0, 7)})`);
+      toast.success(`${lista.length} paquetes especiales exportados con fotos (${etiqueta})`);
     } finally { setExportandoEsp(false); }
   }
 
@@ -693,6 +700,18 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
 
         {/* ── Cierre del día ── */}
         <div className="flex items-center gap-2 flex-wrap border-t pt-4 pb-8">
+          <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5">
+            <button onClick={() => setAlcanceExport("dia")}
+              className={cn("text-[11px] px-2.5 py-1.5 rounded-md font-medium transition-colors",
+                alcanceExport === "dia" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground")}>
+              Solo {fecha}
+            </button>
+            <button onClick={() => setAlcanceExport("mes")}
+              className={cn("text-[11px] px-2.5 py-1.5 rounded-md font-medium transition-colors",
+                alcanceExport === "mes" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground")}>
+              Todo el mes
+            </button>
+          </div>
           <Button size="sm" onClick={exportarEspeciales} disabled={exportandoEsp}
             variant="outline" className="h-9 gap-1.5 text-xs">
             <Download className="h-3.5 w-3.5" />
