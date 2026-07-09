@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   ClipboardList, Calendar, RefreshCw, Package, Trash2, Download,
-  Send, Sunrise, Plus, Users, Upload, X, Wallet,
+  Send, Sunrise, Plus, Users, Upload, X, Wallet, Boxes, PackagePlus, Sigma,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -42,6 +42,47 @@ function semaforo(total: number): string {
   if (total >= 30) return "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800";
   if (total > 0) return "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800";
   return "bg-muted text-muted-foreground border-border";
+}
+
+// Stat card estilo dashboard: cuadro de ícono + número grande
+const STAT_TONO: Record<string, { tile: string; num: string }> = {
+  slate: { tile: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300", num: "text-foreground" },
+  blue: { tile: "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300", num: "text-blue-700 dark:text-blue-300" },
+  amber: { tile: "bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300", num: "text-amber-700 dark:text-amber-300" },
+};
+function StatCard({ icon: Icon, tono, label, valor, sub }: {
+  icon: typeof Package; tono: "slate" | "blue" | "amber"; label: string; valor: number; sub?: string;
+}) {
+  const t = STAT_TONO[tono];
+  return (
+    <div className="border rounded-xl p-3.5 bg-card shadow-sm flex items-center gap-3">
+      <span className={cn("inline-flex items-center justify-center h-10 w-10 rounded-xl shrink-0", t.tile)}>
+        <Icon className="h-5 w-5" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">{label}</p>
+        <p className={cn("text-2xl font-bold tabular-nums leading-tight", t.num)}>{valor.toLocaleString("es-AR")}</p>
+        {sub && <p className="text-[11px] text-muted-foreground leading-tight">{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
+// Pill de filtro de zona (tab con punto de color + contador)
+function ZonaPill({ activo, onClick, dot, label, count, icon: Icon }: {
+  activo: boolean; onClick: () => void; dot: string; label: string; count: number; icon?: typeof Package;
+}) {
+  return (
+    <button onClick={onClick}
+      className={cn("shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border text-xs font-medium transition-colors",
+        activo ? "bg-blue-600 text-white border-blue-600 shadow-sm" : "bg-card border-border hover:bg-muted")}>
+      {Icon
+        ? <Icon className={cn("h-3 w-3", activo ? "text-white" : "text-violet-500")} />
+        : <span className={cn("h-2 w-2 rounded-full", dot)} />}
+      <span className={activo ? "text-white" : "text-foreground"}>{label}</span>
+      <span className={cn("tabular-nums", activo ? "text-white/80" : "text-muted-foreground")}>{count}</span>
+    </button>
+  );
 }
 
 export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
@@ -464,75 +505,28 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
           </button>
         </div>
 
-        {/* ── Resumen (como la hoja RESUMEN del Excel) ── */}
+        {/* ── Resumen (stat cards estilo dashboard) ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="border rounded-xl p-4 bg-card">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Sistema</p>
-            <p className="text-2xl font-bold tabular-nums mt-1">{granTotal.sistema}</p>
-          </div>
-          <div className="border rounded-xl p-4 bg-card">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">X fuera</p>
-            <p className="text-2xl font-bold tabular-nums mt-1">{granTotal.xFuera}</p>
-          </div>
-          <div className="border rounded-xl p-4 bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/60 dark:border-blue-900/50">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Gran total</p>
-            <p className="text-2xl font-bold tabular-nums mt-1 text-blue-700 dark:text-blue-300">{granTotal.total}</p>
-            <p className="text-[11px] text-muted-foreground">{filasVisibles.length} recorridos</p>
-          </div>
-          <div className="border rounded-xl p-4 bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/50">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Especiales</p>
-            <p className="text-2xl font-bold tabular-nums mt-1 text-amber-700 dark:text-amber-300">{granTotal.especiales}</p>
-          </div>
+          <StatCard icon={Boxes} tono="slate" label="Sistema" valor={granTotal.sistema} />
+          <StatCard icon={PackagePlus} tono="slate" label="X fuera" valor={granTotal.xFuera} />
+          <StatCard icon={Sigma} tono="blue" label="Gran total" valor={granTotal.total}
+            sub={`${filasVisibles.length} recorridos`} />
+          <StatCard icon={Package} tono="amber" label="Especiales" valor={granTotal.especiales} />
         </div>
 
-        {/* Filtro por zona (+ pre-turno como 5ta zona) — clic para ver solo esos recorridos */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-          <button onClick={() => setFiltro(null)}
-            className={cn("border rounded-xl p-3 text-left transition-all",
-              filtro === null ? "border-blue-500 ring-2 ring-blue-400/40 bg-blue-50/40 dark:bg-blue-950/30" : "bg-card hover:border-blue-300")}>
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">TODAS</span>
-            <p className="text-lg font-bold tabular-nums mt-1">
-              {filasTarde.reduce((s, f) => s + f.sistema + f.x_fuera, 0)}
-              <span className="text-xs text-muted-foreground font-normal ml-1.5">{filasTarde.length} rec.</span>
-            </p>
-          </button>
+        {/* Filtro por zona (pills tipo tabs; pre-turno como 5ta zona) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+          <ZonaPill activo={filtro === null} onClick={() => setFiltro(null)}
+            dot="bg-slate-400" label="Todas" count={filasTarde.length} />
           {ORDEN_ZONAS.map(zona => {
             const st = subtotalZona(zona);
-            const sel = filtro === zona;
             return (
-              <button key={zona} onClick={() => setFiltro(sel ? null : zona)}
-                className={cn("border rounded-xl p-3 text-left transition-all",
-                  sel ? "border-blue-500 ring-2 ring-blue-400/40 bg-blue-50/40 dark:bg-blue-950/30" : "bg-card hover:border-blue-300")}>
-                <div className="flex items-center justify-between">
-                  <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded", ZONA_BADGE[zona] ?? "bg-muted text-muted-foreground")}>
-                    {zona.toUpperCase()}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">{st.n} rec.</span>
-                </div>
-                <p className="text-lg font-bold tabular-nums mt-1">
-                  {st.total}
-                  <span className="text-xs text-muted-foreground font-normal ml-1.5">({st.sistema}+{st.xFuera})</span>
-                </p>
-              </button>
+              <ZonaPill key={zona} activo={filtro === zona} onClick={() => setFiltro(filtro === zona ? null : zona)}
+                dot={ZONA_COLOR[zona] ?? "bg-slate-400"} label={zona} count={st.n} />
             );
           })}
-          {/* Pre-turno como 5ta zona */}
-          <button onClick={() => setFiltro(filtro === "preturno" ? null : "preturno")}
-            className={cn("border rounded-xl p-3 text-left transition-all",
-              filtro === "preturno" ? "border-violet-500 ring-2 ring-violet-400/40 bg-violet-50/40 dark:bg-violet-950/30" : "bg-card hover:border-violet-300")}>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 inline-flex items-center gap-1">
-                <Sunrise className="h-2.5 w-2.5" /> PRE-TURNO
-              </span>
-              <span className="text-[10px] text-muted-foreground">{filasPre.length} rec.</span>
-            </div>
-            <p className="text-lg font-bold tabular-nums mt-1">
-              {filasPre.reduce((s, f) => s + f.sistema + f.x_fuera, 0)}
-              <span className="text-xs text-muted-foreground font-normal ml-1.5">
-                ({filasPre.reduce((s, f) => s + f.sistema, 0)}+{filasPre.reduce((s, f) => s + f.x_fuera, 0)})
-              </span>
-            </p>
-          </button>
+          <ZonaPill activo={filtro === "preturno"} onClick={() => setFiltro(filtro === "preturno" ? null : "preturno")}
+            dot="bg-violet-500" label="Pre-Turno" count={filasPre.length} icon={Sunrise} />
         </div>
 
         {/* ── Acciones de armado ── */}
