@@ -96,6 +96,7 @@ const ZONA_COLORS: Record<string, { bg: string; text: string }> = {
   Norte: { bg: "bg-amber-100 dark:bg-amber-900/40", text: "text-amber-700 dark:text-amber-300" },
   Sur:   { bg: "bg-green-100 dark:bg-green-900/40", text: "text-green-700 dark:text-green-300" },
   CABA:  { bg: "bg-red-100 dark:bg-red-900/40",   text: "text-red-700 dark:text-red-300" },
+  "Pre-Turno": { bg: "bg-violet-100 dark:bg-violet-900/40", text: "text-violet-700 dark:text-violet-300" },
 };
 function colorProm(p: number) {
   if (p > 40) return "text-red-600 dark:text-red-300 font-bold";
@@ -175,7 +176,7 @@ function DiaDetalleInline({ fecha }: { fecha: string }) {
             </p>
             {porZona.map(z => (
               <div key={z.zona} className="flex items-center gap-2 text-xs">
-                <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium w-14 text-center", ZONA_COLORS[z.zona]?.bg, ZONA_COLORS[z.zona]?.text)}>{z.zona}</span>
+                <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium min-w-14 text-center shrink-0", ZONA_COLORS[z.zona]?.bg, ZONA_COLORS[z.zona]?.text)}>{z.zona}</span>
                 <span className="text-muted-foreground tabular-nums w-14">{z.rutas} rutas</span>
                 <span className={cn("font-semibold tabular-nums", colorProm(z.prom))}>{z.prom} prom</span>
                 {z.alertas > 0 && <span className="text-[10px] text-red-600 dark:text-red-300 font-bold">⚠{z.alertas}</span>}
