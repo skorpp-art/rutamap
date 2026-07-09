@@ -627,7 +627,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
                                 : f.estado_control === "amarillo" ? "Recorrido finalizado — clic para marcar frenado"
                                 : f.estado_control === "azul" ? "Frenado por alguna razón — clic para desmarcar"
                                 : "Sin controlar — clic para marcar en verde"}
-                              className={cn("h-5 w-5 rounded-full border-2 transition-colors",
+                              className={cn("h-7 w-7 sm:h-5 sm:w-5 rounded-full border-2 transition-colors",
                                 f.estado_control === "verde" && "bg-emerald-500 border-emerald-600",
                                 f.estado_control === "rojo" && "bg-red-500 border-red-600",
                                 f.estado_control === "amarillo" && "bg-amber-400 border-amber-500",
@@ -641,19 +641,21 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
                             <input list="choferes-carga" value={f.chofer ?? ""} disabled={!puedeEditar}
                               onChange={e => editarFila(f, { chofer: e.target.value })}
                               placeholder="Nombre del chofer…"
-                              className="w-full border-0 border-b border-dashed border-slate-300 dark:border-slate-600 bg-transparent text-xs focus:outline-none focus:border-blue-400 py-0.5 placeholder:text-slate-300" />
+                              className="w-full border-0 border-b border-dashed border-slate-300 dark:border-slate-600 bg-transparent text-base sm:text-xs focus:outline-none focus:border-blue-400 py-1.5 sm:py-0.5 placeholder:text-slate-300" />
                           </td>
                           <td className="px-2 py-2 text-center">
                             <input type="number" min={0} value={f.sistema === 0 ? "" : f.sistema} disabled={!puedeEditar}
                               onChange={e => editarFila(f, { sistema: numero(e.target.value) })}
                               placeholder="0"
-                              className="w-16 text-center border rounded-lg py-1 bg-background text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 tabular-nums" />
+                              inputMode="numeric"
+                              className="w-16 text-center border rounded-lg py-2 sm:py-1 bg-background text-base sm:text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 tabular-nums" />
                           </td>
                           <td className="px-2 py-2 text-center">
                             <input type="number" min={0} value={f.x_fuera === 0 ? "" : f.x_fuera} disabled={!puedeEditar}
                               onChange={e => editarFila(f, { x_fuera: numero(e.target.value) })}
                               placeholder="0"
-                              className="w-16 text-center border rounded-lg py-1 bg-background text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 tabular-nums" />
+                              inputMode="numeric"
+                              className="w-16 text-center border rounded-lg py-2 sm:py-1 bg-background text-base sm:text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 tabular-nums" />
                           </td>
                           <td className="px-2 py-2 text-center">
                             <span className={cn("inline-flex items-center justify-center min-w-12 px-2 py-1 rounded-lg border font-bold tabular-nums", semaforo(total))}>
@@ -668,7 +670,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
                                   ? "text-amber-500 hover:text-amber-600"
                                   : "text-muted-foreground/40 hover:text-amber-500")}
                               title="Paquetes especiales">
-                              <Package className="h-4 w-4" />
+                              <Package className="h-6 w-6 sm:h-4 sm:w-4" />
                               {(especialesCount[f.recorrido_id] ?? 0) > 0 && (
                                 <span className="absolute -top-1.5 -right-2.5 h-3.5 min-w-3.5 px-0.5 rounded-full bg-amber-500 text-white text-[8px] font-bold flex items-center justify-center">
                                   {especialesCount[f.recorrido_id]}
@@ -679,8 +681,8 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
                           {puedeEditar && (
                             <td className="px-2 py-2 text-center">
                               <button onClick={() => quitarFila(f)} title="Quitar de la carga"
-                                className="text-muted-foreground/30 hover:text-red-600 transition-colors">
-                                <Trash2 className="h-3.5 w-3.5" />
+                                className="p-1.5 sm:p-0 text-muted-foreground/30 hover:text-red-600 transition-colors">
+                                <Trash2 className="h-5 w-5 sm:h-3.5 sm:w-3.5" />
                               </button>
                             </td>
                           )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { Map, Package, BarChart3, PackageCheck, Users, Lock, Truck, ClipboardList } from "lucide-react";
+import { Map, Package, BarChart3, PackageCheck, Users, Lock, Truck, ClipboardList, MonitorSmartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { tieneSolapa } from "@/lib/permisos";
 import type { Perfil } from "@/types/database.types";
@@ -30,6 +30,7 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
     { href: "/carga", label: "Carga del Día", icon: ClipboardList, visible: !esInvitado && tieneSolapa(perfil, "carga") },
     { href: "/pendientes", label: "Pendientes", icon: PackageCheck, visible: !esInvitado && tieneSolapa(perfil, "pendientes") },
     { href: "/usuarios", label: "Usuarios", icon: Users, visible: perfil?.rol === "maestro" },
+    { href: "/descargar", label: "Instalar app", icon: MonitorSmartphone, visible: !esInvitado },
   ];
 
   return (
