@@ -56,6 +56,30 @@ export async function setPermisosUsuario(
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
+// El maestro establece una contraseña nueva para cualquier cuenta. No existe
+// forma de "ver" la contraseña actual (Supabase la guarda hasheada, es
+// irreversible por diseño) — esto es un reseteo, no una consulta.
+export async function setPasswordUsuario(
+  id: string, nuevaPassword: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { ok: false, error: "No autenticado" };
+    const { data: perfil } = await supabase
+      .from("perfiles").select("rol").eq("id", user.id).single<{ rol: string }>();
+    if (perfil?.rol !== "maestro") return { ok: false, error: "Solo el usuario maestro puede cambiar contraseñas" };
+
+    const admin = createAdmin();
+    if (!admin) {
+      return { ok: false, error: "Falta configurar SUPABASE_SERVICE_ROLE_KEY en el servidor. Ver instrucciones." };
+    }
+    const { error } = await admin.auth.admin.updateUserById(id, { password: nuevaPassword });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
 // El maestro crea una cuenta directamente (sin auto-registro ni confirmación de
 // email). Evita el rechazo de dominios de email del registro público.
 export async function crearUsuario(

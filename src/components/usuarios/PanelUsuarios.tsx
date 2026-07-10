@@ -3,8 +3,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Users, RefreshCw, ShieldCheck, Eye, Pencil, UserPlus, Loader2, SlidersHorizontal, ChevronDown, ChevronRight } from "lucide-react";
-import { getUsuarios, setRolUsuario, setPermisosUsuario, crearUsuario, type UsuarioAdmin } from "@/app/actions/usuarios";
+import {
+  Users, RefreshCw, ShieldCheck, Eye, EyeOff, Pencil, UserPlus, Loader2,
+  SlidersHorizontal, ChevronDown, ChevronRight, KeyRound, X,
+} from "lucide-react";
+import { getUsuarios, setRolUsuario, setPermisosUsuario, setPasswordUsuario, crearUsuario, type UsuarioAdmin } from "@/app/actions/usuarios";
 import { ROLES, type Rol } from "@/lib/roles";
 import { SOLAPAS } from "@/lib/permisos";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -45,6 +48,11 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
   const [cargando, setCargando] = useState(true);
   const [guardandoId, setGuardandoId] = useState<string | null>(null);
   const [permisosAbierto, setPermisosAbierto] = useState<string | null>(null);
+  // Modal "cambiar contraseña" (no existe forma de VER la actual — solo resetear)
+  const [modalPass, setModalPass] = useState<{ id: string; nombre: string } | null>(null);
+  const [nuevaPassUsuario, setNuevaPassUsuario] = useState("");
+  const [verPass, setVerPass] = useState(false);
+  const [guardandoPass, setGuardandoPass] = useState(false);
   // Formulario "crear usuario"
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevoEmail, setNuevoEmail] = useState("");
@@ -107,6 +115,25 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
       if (!res.ok) { toast.error("No se pudieron guardar los permisos", { description: res.error }); return; }
       setUsuarios(prev => prev.map(x => x.id === u.id ? { ...x, solapas: solapasGuardar, puede_editar: edita } : x));
     } finally { setGuardandoId(null); }
+  }
+
+  function abrirModalPass(u: UsuarioAdmin) {
+    setNuevaPassUsuario(""); setVerPass(false);
+    setModalPass({ id: u.id, nombre: u.nombre });
+  }
+
+  async function confirmarNuevaPass() {
+    if (!modalPass) return;
+    if (nuevaPassUsuario.length < 6) { toast.error("La contraseña debe tener al menos 6 caracteres"); return; }
+    setGuardandoPass(true);
+    try {
+      const res = await setPasswordUsuario(modalPass.id, nuevaPassUsuario);
+      if (!res.ok) { toast.error("No se pudo cambiar la contraseña", { description: res.error }); return; }
+      toast.success(`Contraseña actualizada para ${modalPass.nombre}`, {
+        description: "Pasale la contraseña nueva por un medio seguro.",
+      });
+      setModalPass(null); setNuevaPassUsuario("");
+    } finally { setGuardandoPass(false); }
   }
 
   function toggleSolapaUsuario(u: UsuarioAdmin, key: string) {
@@ -207,6 +234,7 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
                 <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Último ingreso</th>
                 <th className="text-left px-4 py-2 font-medium text-muted-foreground text-xs w-44">Rol</th>
                 <th className="w-28 px-3 py-2 font-medium text-muted-foreground text-xs text-center">Permisos</th>
+                <th className="w-16 px-3 py-2 font-medium text-muted-foreground text-xs text-center">Clave</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -258,10 +286,16 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
                           </button>
                         )}
                       </td>
+                      <td className="px-3 py-2.5 text-center">
+                        <button onClick={() => abrirModalPass(u)} title="Cambiar contraseña"
+                          className="inline-flex items-center justify-center h-7 w-7 rounded-lg border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                          <KeyRound className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
                     </tr>
                     {abierto && !esYo && !esMaestro && (
                       <tr key={`${u.id}-permisos`} className="bg-muted/10">
-                        <td colSpan={5} className="px-4 py-3">
+                        <td colSpan={6} className="px-4 py-3">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mr-1">Solapas:</span>
                             {SOLAPAS.map(s => (
@@ -305,6 +339,63 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
         El maestro siempre ve y edita todo. Tu propio rol y permisos no se pueden cambiar desde este
         panel (evita que te quedes sin acceso maestro).
       </p>
+
+      {/* Modal: cambiar contraseña — no existe forma de ver la actual, solo resetear */}
+      {modalPass && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={() => setModalPass(null)}>
+          <div className="bg-background border rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-start gap-3">
+              <span className="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-blue-500/15 text-blue-700 dark:text-blue-300 shrink-0">
+                <KeyRound className="h-5 w-5" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold">Cambiar contraseña</p>
+                <p className="text-xs text-muted-foreground truncate">{modalPass.nombre}</p>
+              </div>
+              <button onClick={() => setModalPass(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
+              No es posible ver la contraseña actual (queda guardada de forma irreversible, por seguridad).
+              Esto establece una contraseña nueva — la persona va a tener que usar esta a partir de ahora.
+            </p>
+
+            <div className="relative">
+              <input
+                type={verPass ? "text" : "password"}
+                value={nuevaPassUsuario}
+                onChange={e => setNuevaPassUsuario(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") confirmarNuevaPass(); }}
+                placeholder="Contraseña nueva (mín. 6 caracteres)"
+                autoComplete="new-password"
+                autoFocus
+                className="w-full text-sm border rounded-lg pl-3 pr-9 py-2.5 bg-background"
+              />
+              <button type="button" onClick={() => setVerPass(v => !v)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                title={verPass ? "Ocultar" : "Mostrar"}>
+                {verPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+
+            <div className="flex gap-2">
+              <button onClick={() => setModalPass(null)}
+                className="flex-1 h-9 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors">
+                Cancelar
+              </button>
+              <button onClick={confirmarNuevaPass} disabled={guardandoPass || nuevaPassUsuario.length < 6}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-lg bg-brand-blue text-white text-sm font-medium hover:bg-brand-blue/90 disabled:opacity-50 transition-colors">
+                {guardandoPass ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
