@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   X, MapPin, Tag, Calendar, Pencil, Route,
-  Settings2, PowerOff, Power, Check, Copy, Printer, Trash2,
+  Settings2, PowerOff, Power, Check, Copy, Printer, Trash2, Eye,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -399,8 +399,8 @@ export function PanelDetalle({
       {/* ── Acciones ── */}
       <div className="px-3 py-2.5 border-t space-y-1.5">
         {!puedeEditar && (
-          <div className="text-[11px] text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 mb-1">
-            👁 Modo invitado — solo lectura. Iniciá sesión para editar recorridos.
+          <div className="text-[11px] text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 mb-1 flex items-center gap-1.5">
+            <Eye className="h-3.5 w-3.5 shrink-0" /> Modo invitado — solo lectura. Iniciá sesión para editar recorridos.
           </div>
         )}
 
@@ -501,7 +501,7 @@ export function PanelDetalle({
                 className="h-7 px-2 text-xs"
                 onClick={() => { setMostrarDuplicar(false); setCodigoCopia(""); }}
               >
-                ✕
+                <X className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>

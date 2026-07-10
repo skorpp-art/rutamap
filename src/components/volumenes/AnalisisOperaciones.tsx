@@ -431,7 +431,7 @@ export function AnalisisOperaciones() {
             className={cn("h-7 gap-1.5 text-xs", mostrarImportar && "bg-blue-600 text-white")}
             onClick={() => setMostrarImportar(v => !v)}>
             <Upload className="h-3 w-3" />
-            {mostrarImportar ? "Cerrar" : "📥 Importar datos"}
+            {mostrarImportar ? "Cerrar" : "Importar datos"}
           </Button>
         </div>
       </div>

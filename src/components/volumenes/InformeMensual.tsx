@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { FileDown, RefreshCw, TrendingUp, TrendingDown, Minus, AlertTriangle, CalendarRange } from "lucide-react";
+import { FileDown, RefreshCw, TrendingUp, TrendingDown, Minus, AlertTriangle, CalendarRange, X } from "lucide-react";
 import { getHistorialDiasV2 } from "@/app/actions/operaciones-diarias";
 import type { HistorialDiaV2 } from "@/app/actions/operaciones-diarias";
 import { SkeletonTable } from "@/components/ui/skeleton";
@@ -511,7 +511,7 @@ export function InformeMensual() {
               <div className="mt-3 border rounded-xl overflow-hidden">
                 <div className="px-3 py-2 bg-blue-50/60 dark:bg-blue-950/30 border-b flex items-center justify-between">
                   <p className="text-xs font-bold">Detalle — todos los {diaSeleccionado} de {resumen.mesLabel}</p>
-                  <button onClick={() => setDiaSeleccionado(null)} className="text-xs text-muted-foreground hover:text-foreground">✕</button>
+                  <button onClick={() => setDiaSeleccionado(null)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
                 </div>
                 <table className="w-full text-xs">
                   <thead className="bg-muted/20 border-b">

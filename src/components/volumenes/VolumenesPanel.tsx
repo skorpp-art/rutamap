@@ -9,7 +9,10 @@ import {
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { CheckCircle, ArrowLeft } from "lucide-react";
+import {
+  CheckCircle, ArrowLeft, TrendingUp, Settings2, BarChart3, Wrench,
+  CalendarDays, CalendarOff, LineChart, ClipboardList, FileText, Lightbulb,
+} from "lucide-react";
 import {
   getDashboardSemanalV2, getResumenSemanalV2,
   getTopClientes,
@@ -307,16 +310,17 @@ export function VolumenesPanel() {
 
       <div className="border-b px-3 sm:px-5 flex gap-0.5 overflow-x-auto no-scrollbar">
         {([
-          ["proyeccion",   "📐 Proyección"],
-          ["operacion",    "⚙ Operación del Día"],
-          ["analisis",     "📊 Análisis"],
-          ["herramientas", "🗓 Herramientas"],
-        ] as const).map(([t, lbl]) => (
+          ["proyeccion",   "Proyección",        TrendingUp],
+          ["operacion",    "Operación del Día", Settings2],
+          ["analisis",     "Análisis",          BarChart3],
+          ["herramientas", "Herramientas",      Wrench],
+        ] as const).map(([t, lbl, Icon]) => (
           <button key={t} onClick={() => setTab(t)}
             className={cn(
-              "px-4 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0",
+              "inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0",
               tab === t ? "border-blue-600 text-blue-600 dark:text-blue-300" : "border-transparent text-muted-foreground hover:text-foreground"
             )}>
+            <Icon className="h-3.5 w-3.5" />
             {lbl}
           </button>
         ))}
@@ -360,7 +364,7 @@ export function VolumenesPanel() {
                           <Button variant="outline" size="sm"
                             className="h-11 text-xs whitespace-nowrap border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-50"
                             onClick={() => setCalcPaquetes(plantillaPara(fechaProyeccion))}>
-                            🗓 {plantillaPara(fechaProyeccion).toLocaleString("es-AR")}
+                            <CalendarDays className="h-3.5 w-3.5" /> {plantillaPara(fechaProyeccion).toLocaleString("es-AR")}
                           </Button>
                         )}
                       </div>
@@ -496,7 +500,7 @@ export function VolumenesPanel() {
                       {recomendaciones.length > 0 && (
                         <div className="border rounded-lg overflow-hidden">
                           <div className="px-3 py-2 bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-900">
-                            <span className="text-xs font-bold text-amber-700 dark:text-amber-300">💡 Recomendaciones basadas en historial</span>
+                            <span className="text-xs font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1.5"><Lightbulb className="h-3.5 w-3.5" /> Recomendaciones basadas en historial</span>
                           </div>
                           <div className="divide-y max-h-40 overflow-y-auto">
                             {recomendaciones.map(r => (
@@ -613,11 +617,11 @@ export function VolumenesPanel() {
 
         {tab === "herramientas" && (() => {
           const HERRAMIENTAS = [
-            { id: "plantillas", icono: "🗓", titulo: "Plantillas semanales", sub: "Valores de referencia por semana del mes y día de la semana" },
-            { id: "feriados", icono: "🗓", titulo: "Feriados", sub: "Días sin operación y ajuste de proyección posterior" },
-            { id: "kpis", icono: "📈", titulo: "Monitoreo de KPIs", sub: "Indicadores de performance a largo plazo" },
-            { id: "historial", icono: "📋", titulo: "Historial de días", sub: "Registro completo de operaciones pasadas" },
-            { id: "informe", icono: "📄", titulo: "Informe del mes", sub: "Resumen mensual de paquetes y rutas, exportable a PDF" },
+            { id: "plantillas", Icono: CalendarDays, titulo: "Plantillas semanales", sub: "Valores de referencia por semana del mes y día de la semana" },
+            { id: "feriados", Icono: CalendarOff, titulo: "Feriados", sub: "Días sin operación y ajuste de proyección posterior" },
+            { id: "kpis", Icono: LineChart, titulo: "Monitoreo de KPIs", sub: "Indicadores de performance a largo plazo" },
+            { id: "historial", Icono: ClipboardList, titulo: "Historial de días", sub: "Registro completo de operaciones pasadas" },
+            { id: "informe", Icono: FileText, titulo: "Informe del mes", sub: "Resumen mensual de paquetes y rutas, exportable a PDF" },
           ] as const;
           const activa = HERRAMIENTAS.find(h => h.id === herramientaActiva);
 
@@ -627,7 +631,7 @@ export function VolumenesPanel() {
                 {HERRAMIENTAS.map(h => (
                   <button key={h.id} onClick={() => setHerramientaActiva(h.id)}
                     className="text-left border rounded-xl p-4 bg-background hover:border-blue-400 hover:shadow-md transition-all hover-lift">
-                    <p className="text-sm font-bold">{h.icono} {h.titulo}</p>
+                    <p className="text-sm font-bold flex items-center gap-2"><h.Icono className="h-4 w-4 text-blue-600 dark:text-blue-300" /> {h.titulo}</p>
                     <p className="text-xs text-muted-foreground mt-1">{h.sub}</p>
                   </button>
                 ))}
@@ -645,7 +649,7 @@ export function VolumenesPanel() {
                 </button>
                 <div className="h-4 w-px bg-border" />
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{activa.icono} {activa.titulo}</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5"><activa.Icono className="h-3.5 w-3.5" /> {activa.titulo}</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">{activa.sub}</p>
                 </div>
               </div>

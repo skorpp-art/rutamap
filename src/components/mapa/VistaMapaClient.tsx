@@ -921,7 +921,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
                     className={cn("h-7 px-2.5 text-xs gap-1 font-semibold",
                       modoEditarNodos ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : "border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-100")}
                     title="Mover los puntos libremente">
-                    ✎ Editar puntos
+                    <Pencil className="h-3.5 w-3.5" /> Editar puntos
                   </Button>
 
                   {/* Pluma — agregar / quitar nodos */}

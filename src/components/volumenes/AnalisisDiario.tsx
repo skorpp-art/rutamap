@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Upload, FileSpreadsheet, CheckCircle, AlertTriangle, Calendar,
   Search, Package, Users, Clock, RefreshCw, Truck, MapPin, Layers,
-  ChevronDown, ChevronRight,
+  ChevronDown, ChevronRight, X,
 } from "lucide-react";
 import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid,
@@ -966,7 +966,7 @@ function DiaView({
                 <div className="m-3 rounded-xl border bg-gradient-to-br from-violet-50 to-sky-50/40 dark:from-violet-950/30 dark:to-sky-950/10 border-violet-200/70 dark:border-violet-900/50 p-3">
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <p className="text-sm font-bold flex items-center gap-1.5"><Users className="h-4 w-4 text-violet-600 dark:text-violet-300" /> {sel.cliente}</p>
-                    <button onClick={() => setClienteSel(null)} className="text-[11px] text-muted-foreground hover:text-foreground">Cerrar ✕</button>
+                    <button onClick={() => setClienteSel(null)} className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">Cerrar <X className="h-3 w-3" /></button>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <MiniKpi label="Paquetes" valor={sel.cantidad.toLocaleString("es-AR")} />
