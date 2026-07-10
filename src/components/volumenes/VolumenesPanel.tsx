@@ -368,7 +368,7 @@ export function VolumenesPanel() {
                     {calcPaquetes > 0 && (
                       <Button className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-semibold gap-2"
                         onClick={() => { setPkgProyectado(calcPaquetes); setTipoProyeccion("esperado"); setTab("operacion"); }}>
-                        ✓ Usar {calcPaquetes.toLocaleString("es-AR")} paq → Operación del Día
+                        <CheckCircle className="h-4 w-4" /> Usar {calcPaquetes.toLocaleString("es-AR")} paq · Operación del Día
                       </Button>
                     )}
                     <div className="grid grid-cols-2 gap-4">
@@ -520,7 +520,7 @@ export function VolumenesPanel() {
                       )}
                       {tipoProyeccion && pkgProyectado > 0 && (
                         <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-2 font-semibold" onClick={() => setTab("operacion")}>
-                          ✓ Ir a Operación del Día con {pkgProyectado.toLocaleString("es-AR")} paq
+                          <CheckCircle className="h-4 w-4" /> Ir a Operación del Día con {pkgProyectado.toLocaleString("es-AR")} paq
                         </Button>
                       )}
                       <p className="text-[10px] text-muted-foreground text-center">{proyeccion.registros} {proyeccion.dia_nombre}s históricos</p>

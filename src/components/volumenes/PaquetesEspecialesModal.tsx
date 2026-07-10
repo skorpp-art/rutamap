@@ -419,8 +419,8 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
         )}
 
         <div className="flex justify-end">
-          <Button className="bg-amber-500 hover:bg-amber-600 text-white" onClick={cerrar}>
-            ✓ Listo
+          <Button className="bg-amber-500 hover:bg-amber-600 text-white gap-1.5" onClick={cerrar}>
+            <Check className="h-4 w-4" /> Listo
           </Button>
         </div>
       </div>

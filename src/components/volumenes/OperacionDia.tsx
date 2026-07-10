@@ -1459,8 +1459,8 @@ export function OperacionDia({
                 className="w-full bg-green-600 hover:bg-green-700 text-white gap-2 font-semibold"
                 onClick={() => { setMostrarAlerta(false); exportarPDF(); }}>
                 {promedio >= targetPkg - 5 && promedio <= targetPkg + 5
-                  ? "✓ Exportar PDF"
-                  : "Acepto el riesgo → Exportar igual"}
+                  ? <><CheckCircle className="h-4 w-4" /> Exportar PDF</>
+                  : "Acepto el riesgo — Exportar igual"}
               </Button>
               {promedio > 0 && !(promedio >= targetPkg - 5 && promedio <= targetPkg + 5) && (
                 <Button variant="outline" className="w-full"

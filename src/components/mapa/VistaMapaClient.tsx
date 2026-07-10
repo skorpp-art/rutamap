@@ -13,7 +13,7 @@ import { DashboardCobertura } from "./DashboardCobertura";
 import { Button } from "@/components/ui/button";
 import {
   Pencil, Scissors, Undo2, Satellite, Map as MapIcon,
-  Layers, BarChart2, ZoomIn, Wand2, Trash2, PenTool, Flame,
+  Layers, BarChart2, ZoomIn, Wand2, Trash2, PenTool, Flame, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { actualizarAreaRecorrido, actualizarTrazaRecorrido } from "@/app/actions/recorridos";
@@ -1011,7 +1011,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
                 <Button size="sm" onClick={guardarEdicion}
                   disabled={guardando || (!geometriaTemporalRef.current && !geometriaTemporal && !ultimaGeometriaRef.current)}
                   className="h-7 px-4 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white gap-1">
-                  {guardando ? "Guardando…" : <>✓ Guardar</>}
+                  {guardando ? "Guardando…" : <><Check className="h-3.5 w-3.5" /> Guardar</>}
                 </Button>
               </div>
             </div>
