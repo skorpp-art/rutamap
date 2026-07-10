@@ -310,13 +310,24 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
     return isNaN(v) || v < 0 ? 0 : v;
   }
 
+  // Trae ambos turnos (tarde y pre-turno) sin importar en qué pestaña esté
+  // parado el coordinador, para no dejar afuera los pre-turnos por accidente.
   async function traerDeOperacion() {
-    const res = await iniciarCargaDesdeOperacion(fecha, turno);
-    if (!res.ok) { toast.error("No se pudo iniciar la carga", { description: res.error }); return; }
-    if ((res.agregados ?? 0) === 0) {
+    const [rTarde, rPre] = await Promise.all([
+      iniciarCargaDesdeOperacion(fecha, "tarde"),
+      iniciarCargaDesdeOperacion(fecha, "preturno"),
+    ]);
+    if (!rTarde.ok || !rPre.ok) {
+      toast.error("No se pudo iniciar la carga", { description: rTarde.error ?? rPre.error });
+      return;
+    }
+    const total = (rTarde.agregados ?? 0) + (rPre.agregados ?? 0);
+    if (total === 0) {
       toast.info("No hay recorridos activos nuevos en la Operación del Día para esta fecha");
     } else {
-      toast.success(`${res.agregados} recorridos agregados desde la Operación del Día`);
+      toast.success(`${total} recorridos agregados desde la Operación del Día`, {
+        description: `${rTarde.agregados ?? 0} de tarde · ${rPre.agregados ?? 0} de pre-turno`,
+      });
     }
     await cargar(fecha);
   }
