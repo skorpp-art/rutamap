@@ -156,6 +156,16 @@
 .animate-fade-up { animation: rm-fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-pop-in  { animation: rm-pop-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
+/* Tilde de "guardado" que aparece y se desvanece (feedback de autosave) */
+@keyframes rm-check-ok {
+  0%   { opacity: 0; transform: scale(0.5); }
+  20%  { opacity: 1; transform: scale(1.15); }
+  35%  { opacity: 1; transform: scale(1); }
+  80%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+.animate-check-ok { animation: rm-check-ok 1.3s ease both; }
+
 /* Lift táctil para tarjetas/elementos clickeables */
 .hover-lift {
   transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease;

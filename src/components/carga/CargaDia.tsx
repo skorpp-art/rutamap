@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   ClipboardList, Calendar, RefreshCw, Package, Trash2, Download,
-  Send, Sunrise, Plus, Users, Upload, X, Wallet, Boxes, PackagePlus, Sigma,
+  Send, Sunrise, Plus, Users, Upload, X, Wallet, Boxes, PackagePlus, Sigma, Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -44,6 +44,32 @@ function semaforo(total: number): string {
   return "bg-muted text-muted-foreground border-border";
 }
 
+// Anima un número de su valor anterior al nuevo (count-up) con easing.
+// Respeta prefers-reduced-motion: si está activo, muestra el valor directo.
+function useCountUp(value: number, duration = 550): number {
+  const [display, setDisplay] = useState(value);
+  const fromRef = useRef(value);
+  useEffect(() => {
+    const reduce = typeof window !== "undefined"
+      && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const from = fromRef.current;
+    const to = value;
+    if (reduce || from === to) { setDisplay(to); fromRef.current = to; return; }
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(Math.round(from + (to - from) * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else fromRef.current = to;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, duration]);
+  return display;
+}
+
 // Stat card estilo dashboard: cuadro de ícono + número grande
 const STAT_TONO: Record<string, { tile: string; num: string }> = {
   slate: { tile: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300", num: "text-foreground" },
@@ -54,14 +80,15 @@ function StatCard({ icon: Icon, tono, label, valor, sub }: {
   icon: typeof Package; tono: "slate" | "blue" | "amber"; label: string; valor: number; sub?: string;
 }) {
   const t = STAT_TONO[tono];
+  const shown = useCountUp(valor);
   return (
-    <div className="border rounded-xl p-3.5 bg-card shadow-sm flex items-center gap-3">
+    <div className="border rounded-xl p-3.5 bg-card shadow-sm flex items-center gap-3 hover-lift">
       <span className={cn("inline-flex items-center justify-center h-10 w-10 rounded-xl shrink-0", t.tile)}>
         <Icon className="h-5 w-5" />
       </span>
       <div className="min-w-0">
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">{label}</p>
-        <p className={cn("text-2xl font-bold tabular-nums leading-tight", t.num)}>{valor.toLocaleString("es-AR")}</p>
+        <p className={cn("text-2xl font-bold tabular-nums leading-tight", t.num)}>{shown.toLocaleString("es-AR")}</p>
         {sub && <p className="text-[11px] text-muted-foreground leading-tight">{sub}</p>}
       </div>
     </div>
@@ -115,6 +142,8 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
   const [modalEspeciales, setModalEspeciales] = useState<{ recorrido_id: string; codigo: string; nombre: string; zona: string } | null>(null);
   // Debounce de autoguardado por fila
   const timersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  // Feedback visual de autosave: id de fila → timestamp del último guardado ok
+  const [guardadoOk, setGuardadoOk] = useState<Record<string, number>>({});
 
   const cargar = useCallback(async (f: string) => {
     setCargando(true);
@@ -269,7 +298,10 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
         actualizada.fecha, actualizada.turno, actualizada.recorrido_id,
         actualizada.chofer, actualizada.sistema, actualizada.x_fuera,
       );
-      if (!res.ok) toast.error(`No se pudo guardar ${actualizada.codigo}`, { description: res.error });
+      if (!res.ok) { toast.error(`No se pudo guardar ${actualizada.codigo}`, { description: res.error }); return; }
+      // Tilde de "guardado" en la fila (se limpia al terminar la animación)
+      setGuardadoOk(g => ({ ...g, [key]: Date.now() }));
+      setTimeout(() => setGuardadoOk(g => { const n = { ...g }; delete n[key]; return n; }), 1400);
     }, 600);
   }
 
@@ -506,7 +538,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
         </div>
 
         {/* ── Resumen (stat cards estilo dashboard) ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 stagger-children">
           <StatCard icon={Boxes} tono="slate" label="Sistema" valor={granTotal.sistema} />
           <StatCard icon={PackagePlus} tono="slate" label="X fuera" valor={granTotal.xFuera} />
           <StatCard icon={Sigma} tono="blue" label="Gran total" valor={granTotal.total}
@@ -515,7 +547,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
         </div>
 
         {/* Filtro por zona (pills tipo tabs; pre-turno como 5ta zona) */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 stagger-children">
           <ZonaPill activo={filtro === null} onClick={() => setFiltro(null)}
             dot="bg-slate-400" label="Todas" count={filasTarde.length} />
           {ORDEN_ZONAS.map(zona => {
@@ -629,7 +661,14 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
                                 !f.estado_control && "bg-transparent border-slate-300 dark:border-slate-600 hover:border-slate-400",
                                 puedeEditar && "cursor-pointer")} />
                           </td>
-                          <td className="px-3 py-2 font-mono font-bold whitespace-nowrap">{f.codigo}</td>
+                          <td className="px-3 py-2 font-mono font-bold whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1">
+                              {f.codigo}
+                              {guardadoOk[f.id] && (
+                                <Check key={guardadoOk[f.id]} className="h-3.5 w-3.5 text-emerald-500 animate-check-ok shrink-0" />
+                              )}
+                            </span>
+                          </td>
                           <td className="px-3 py-2 text-muted-foreground max-w-[260px] truncate">{f.nombre}</td>
                           <td className="px-3 py-2">
                             <input list="choferes-carga" value={f.chofer ?? ""} disabled={!puedeEditar}

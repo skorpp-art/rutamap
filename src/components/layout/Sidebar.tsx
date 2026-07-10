@@ -54,6 +54,9 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
     router.refresh();
   }
 
+  const visibles = items.filter(i => i.visible);
+  const activeIndex = visibles.findIndex(i => i.href === "/" ? pathname === "/" : pathname.startsWith(i.href));
+
   return (
     <aside className="w-16 md:w-56 shrink-0 bg-brand-black border-r border-white/5 flex flex-col py-3">
       {/* Logo */}
@@ -71,8 +74,14 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
       </button>
 
       {/* Navegación */}
-      <nav className="flex-1 flex flex-col gap-0.5 px-2 overflow-y-auto scrollbar-thin">
-        {items.filter(i => i.visible).map(item => {
+      <nav className="relative flex-1 flex flex-col gap-0.5 px-2 overflow-y-auto scrollbar-thin">
+        {/* Indicador azul que se desliza entre secciones (los ítems miden h-10=40px + gap 2px = 42px) */}
+        {activeIndex >= 0 && (
+          <span aria-hidden
+            className="absolute top-0 left-2 right-2 h-10 rounded-lg bg-brand-blue shadow-sm z-0 transition-transform duration-300 ease-out"
+            style={{ transform: `translateY(${activeIndex * 42}px)` }} />
+        )}
+        {visibles.map(item => {
           const activo = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const Icon = item.icon;
           return (
@@ -81,9 +90,9 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
               onClick={() => router.push(item.href)}
               title={item.bloqueado ? `${item.label} (requiere iniciar sesión)` : item.label}
               className={cn(
-                "group relative flex items-center gap-3 h-10 rounded-lg px-2.5 md:px-3 transition-all duration-150",
+                "group relative z-10 flex items-center gap-3 h-10 rounded-lg px-2.5 md:px-3 transition-colors duration-150",
                 activo
-                  ? "bg-brand-blue text-white shadow-sm"
+                  ? "text-white"
                   : "text-white/60 hover:bg-white/10 hover:text-white"
               )}
             >
