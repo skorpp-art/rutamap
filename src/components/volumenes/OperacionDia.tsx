@@ -745,9 +745,9 @@ export function OperacionDia({
 
         {/* Chips días recientes */}
         <div className="flex items-center gap-1">
-          {[-2, -1, 0].map(d => {
+          {[-2, -1, 0, 1, 2].map(d => {
             const f = addDias(hoy(), d);
-            const lbl = d === 0 ? "Hoy" : d === -1 ? "Ayer" : new Date(f + "T12:00:00").toLocaleDateString("es-AR", { weekday: "short" });
+            const lbl = d === 0 ? "Hoy" : d === -1 ? "Ayer" : d === 1 ? "Mañana" : new Date(f + "T12:00:00").toLocaleDateString("es-AR", { weekday: "short" });
             return (
               <button key={d}
                 onClick={() => setFecha(f)}
