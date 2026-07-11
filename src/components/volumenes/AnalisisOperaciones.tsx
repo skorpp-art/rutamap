@@ -27,7 +27,6 @@ import { PALETA } from "@/lib/estados";
 import { useChartTheme } from "@/hooks/useChartTheme";
 import { SkeletonCards, SkeletonChart } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ImportarClientes } from "./ImportarClientes";
 import { hoyAR } from "@/lib/fechas";
 
 // ── Colores ───────────────────────────────────────────────────────────────────
@@ -207,7 +206,6 @@ function PatronDiaInline({ codigo }: { codigo: string }) {
 
 // ── Componente principal ──────────────────────────────────────────────────────
 export function AnalisisOperaciones() {
-  const [mostrarImportar, setMostrarImportar] = useState(false);
   const [dashboard, setDashboard] = useState<DashboardUnificado[]>([]);
   const [alertas, setAlertas] = useState<RutaAlerta[]>([]);
   const [analisis, setAnalisis] = useState<AnalisisRecorrido[]>([]);
@@ -292,28 +290,10 @@ export function AnalisisOperaciones() {
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => cargarDatos(diasVista)} disabled={cargando}>
           <RefreshCw className={cn("h-3.5 w-3.5", cargando && "animate-spin")} />
         </Button>
-        <div className="ml-auto">
-          <Button
-            variant={mostrarImportar ? "default" : "outline"}
-            size="sm"
-            className={cn("h-7 gap-1.5 text-xs", mostrarImportar && "bg-blue-600 text-white")}
-            onClick={() => setMostrarImportar(v => !v)}>
-            <Upload className="h-3 w-3" />
-            {mostrarImportar ? "Cerrar" : "Importar datos"}
-          </Button>
-        </div>
       </div>
 
       {/* ── Contenido en scroll único ── */}
       <div className="flex-1 overflow-y-auto">
-
-        {/* Panel de importar (colapsable) — los recorridos por operación ya se
-            cargan desde Carga del Día; acá solo queda el Excel de clientes. */}
-        {mostrarImportar && (
-          <div className="border-b bg-slate-50/80 dark:bg-slate-800/40">
-            <ImportarClientes onImportado={() => cargarDatos(diasVista)} />
-          </div>
-        )}
 
         <div className="p-5 space-y-6 stagger-children">
 
@@ -327,12 +307,7 @@ export function AnalisisOperaciones() {
             <EmptyState
               icon={BarChart2}
               title="No hay datos todavía"
-              description="Publicá el día desde Carga del Día e importá el Excel de clientes para ver el análisis unificado."
-              action={
-                <Button size="sm" onClick={() => setMostrarImportar(true)}>
-                  <Upload className="h-3.5 w-3.5 mr-1.5" /> Importar primeros datos
-                </Button>
-              }
+              description='Cargá y publicá el día desde "Carga del Día" (incluye el Excel de paquetes por cliente) para ver el análisis unificado.'
             />
           ) : (
             <>

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import {
   ClipboardList, Calendar, RefreshCw, Package, Trash2, Download,
   Send, Sunrise, Plus, Users, Upload, X, Wallet, Boxes, PackagePlus, Sigma, Check,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -16,7 +17,7 @@ import {
   getConductores, agregarConductor, importarConductores, eliminarConductor,
   type CargaFila, type TurnoCarga, type EstadoControl,
 } from "@/app/actions/carga-dia";
-import { getOperacionDia } from "@/app/actions/operacion";
+import { getOperacionDia, getTotalPaquetesFecha } from "@/app/actions/operacion";
 import type { OperacionRuta } from "@/app/actions/operacion";
 import {
   getPaquetesEspeciales, getPaquetesEspecialesRango, getClientesSugeridos, getChoferesRango,
@@ -24,6 +25,7 @@ import {
   type CondicionEspecial,
 } from "@/app/actions/paquetes-especiales";
 import { PaquetesEspecialesModal, urlImagen } from "@/components/volumenes/PaquetesEspecialesModal";
+import { ImportarClientes } from "@/components/volumenes/ImportarClientes";
 
 const ORDEN_ZONAS = ["Oeste", "Norte", "CABA", "Sur"];
 const ZONA_COLOR: Record<string, string> = {
@@ -137,6 +139,8 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
   const [clientesSug, setClientesSug] = useState<string[]>([]);
   const [rutasDia, setRutasDia] = useState<OperacionRuta[]>([]);
   const [agregandoCodigo, setAgregandoCodigo] = useState("");
+  const [mostrarImportarClientes, setMostrarImportarClientes] = useState(false);
+  const [totalPaquetesCliente, setTotalPaquetesCliente] = useState(0);
   // Paquetes especiales
   const [especialesCount, setEspecialesCount] = useState<Record<string, number>>({});
   const [modalEspeciales, setModalEspeciales] = useState<{ recorrido_id: string; codigo: string; nombre: string; zona: string } | null>(null);
@@ -151,8 +155,8 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
   const cargar = useCallback(async (f: string) => {
     setCargando(true);
     try {
-      const [rCarga, rEsp, rOp] = await Promise.all([
-        getCargaDia(f), getPaquetesEspeciales(f), getOperacionDia(f),
+      const [rCarga, rEsp, rOp, rCli] = await Promise.all([
+        getCargaDia(f), getPaquetesEspeciales(f), getOperacionDia(f), getTotalPaquetesFecha(f),
       ]);
       if (rCarga.ok) setFilas(rCarga.data ?? []);
       if (rEsp.ok) {
@@ -161,6 +165,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
         setEspecialesCount(counts);
       }
       if (rOp.ok) setRutasDia(rOp.data ?? []);
+      if (rCli.ok) setTotalPaquetesCliente(rCli.total ?? 0);
     } finally { setCargando(false); }
   }, []);
 
@@ -568,12 +573,14 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
         </div>
 
         {/* ── Resumen (stat cards estilo dashboard) ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 stagger-children">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 stagger-children">
           <StatCard icon={Boxes} tono="slate" label="Sistema" valor={granTotal.sistema} />
           <StatCard icon={PackagePlus} tono="slate" label="X fuera" valor={granTotal.xFuera} />
           <StatCard icon={Sigma} tono="blue" label="Gran total" valor={granTotal.total}
             sub={`${filasVisibles.length} recorridos`} />
           <StatCard icon={Package} tono="amber" label="Especiales" valor={granTotal.especiales} />
+          <StatCard icon={FileSpreadsheet} tono="blue" label="Paq. por cliente" valor={totalPaquetesCliente}
+            sub={totalPaquetesCliente > 0 ? "Excel importado" : "sin importar"} />
         </div>
 
         {/* Filtro por zona (pills tipo tabs; pre-turno como 5ta zona) */}
@@ -606,6 +613,12 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
               <Wallet className="h-3.5 w-3.5" />
               Condiciones especiales ({condicionesPorCliente.length})
             </Button>
+            <Button size="sm" variant={mostrarImportarClientes ? "default" : "outline"}
+              onClick={() => setMostrarImportarClientes(v => !v)}
+              className={cn("h-8 gap-1.5 text-xs", mostrarImportarClientes && "bg-blue-600 text-white hover:bg-blue-700")}>
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+              {mostrarImportarClientes ? "Cerrar" : "Paquetes por cliente (Excel)"}
+            </Button>
             {rutasDisponibles.length > 0 && (
               <select value={agregandoCodigo}
                 onChange={e => { if (e.target.value) agregarRecorrido(e.target.value); }}
@@ -623,6 +636,13 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
               <span className="text-amber-600 font-medium">30–39</span> ·{" "}
               <span className="text-red-600 font-medium">40+</span> — se guarda solo al escribir
             </span>
+          </div>
+        )}
+
+        {mostrarImportarClientes && (
+          <div className="border rounded-xl overflow-hidden bg-slate-50/80 dark:bg-slate-800/40">
+            <ImportarClientes fechaFija={fecha}
+              onImportado={() => cargar(fecha)} />
           </div>
         )}
 

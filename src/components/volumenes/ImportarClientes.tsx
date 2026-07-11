@@ -25,12 +25,17 @@ interface Props {
   /** Se llama tras importar o cambiar clientes manuales, para refrescar al padre. */
   onImportado?: () => void;
   targetPkg?: number;
+  /** Si se pasa, la fecha queda fija a la del día que se está cargando (ej:
+   * desde Carga del Día) y se oculta el selector de fecha propio. */
+  fechaFija?: string;
 }
 
-export function ImportarClientes({ onImportado, targetPkg = 30 }: Props) {
+export function ImportarClientes({ onImportado, targetPkg = 30, fechaFija }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<{ cliente: string; paquetes: number }[]>([]);
-  const [fechaImport, setFechaImport] = useState(hoy());
+  const [fechaLibre, setFechaLibre] = useState(hoy());
+  const fechaImport = fechaFija ?? fechaLibre;
+  const setFechaImport = setFechaLibre;
   const [importando, setImportando] = useState(false);
   const [nombreArchivo, setNombreArchivo] = useState("");
   const [vistaTab, setVistaTab] = useState<"preview" | "topClientes">("preview");
@@ -156,21 +161,28 @@ export function ImportarClientes({ onImportado, targetPkg = 30 }: Props) {
 
       {/* Selector de fecha + archivo */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-medium">Fecha:</label>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7"
-              onClick={() => setFechaImport(addDias(fechaImport, -1))}>
-              <ChevronLeft className="h-3.5 w-3.5" />
-            </Button>
-            <input type="date" value={fechaImport} onChange={e => setFechaImport(e.target.value)}
-              className="border rounded px-2 py-1 text-xs h-7 bg-background" />
-            <Button variant="ghost" size="icon" className="h-7 w-7" disabled={fechaImport >= hoy()}
-              onClick={() => setFechaImport(addDias(fechaImport, 1))}>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
+        {fechaFija ? (
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium">Fecha:</label>
+            <span className="text-xs font-semibold bg-muted rounded px-2 py-1">{fechaFija}</span>
           </div>
-        </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium">Fecha:</label>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-7 w-7"
+                onClick={() => setFechaImport(addDias(fechaImport, -1))}>
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+              <input type="date" value={fechaImport} onChange={e => setFechaImport(e.target.value)}
+                className="border rounded px-2 py-1 text-xs h-7 bg-background" />
+              <Button variant="ghost" size="icon" className="h-7 w-7" disabled={fechaImport >= hoy()}
+                onClick={() => setFechaImport(addDias(fechaImport, 1))}>
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
         <Button variant="outline" size="sm" className="gap-2 text-xs h-8"
           onClick={() => fileRef.current?.click()}>
           <Upload className="h-3.5 w-3.5" />
