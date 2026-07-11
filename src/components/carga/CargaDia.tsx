@@ -142,6 +142,9 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
   const [modalEspeciales, setModalEspeciales] = useState<{ recorrido_id: string; codigo: string; nombre: string; zona: string } | null>(null);
   // Debounce de autoguardado por fila
   const timersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  // Última versión editada (sin guardar todavía) de cada fila, para poder
+  // forzar el guardado antes de publicar y no perder tipeos recientes.
+  const pendientesRef = useRef<Record<string, CargaFila>>({});
   // Feedback visual de autosave: id de fila → timestamp del último guardado ok
   const [guardadoOk, setGuardadoOk] = useState<Record<string, number>>({});
 
@@ -292,17 +295,32 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
     const actualizada = { ...fila, ...patch };
     setFilas(prev => prev.map(f => f.id === fila.id ? actualizada : f));
     const key = fila.id;
+    pendientesRef.current[key] = actualizada;
     if (timersRef.current[key]) clearTimeout(timersRef.current[key]);
-    timersRef.current[key] = setTimeout(async () => {
-      const res = await upsertCargaFila(
-        actualizada.fecha, actualizada.turno, actualizada.recorrido_id,
-        actualizada.chofer, actualizada.sistema, actualizada.x_fuera,
-      );
-      if (!res.ok) { toast.error(`No se pudo guardar ${actualizada.codigo}`, { description: res.error }); return; }
-      // Tilde de "guardado" en la fila (se limpia al terminar la animación)
-      setGuardadoOk(g => ({ ...g, [key]: Date.now() }));
-      setTimeout(() => setGuardadoOk(g => { const n = { ...g }; delete n[key]; return n; }), 1400);
-    }, 600);
+    timersRef.current[key] = setTimeout(() => guardarFila(key), 600);
+  }
+
+  async function guardarFila(key: string) {
+    const actualizada = pendientesRef.current[key];
+    if (!actualizada) return;
+    delete pendientesRef.current[key];
+    if (timersRef.current[key]) { clearTimeout(timersRef.current[key]); delete timersRef.current[key]; }
+    const res = await upsertCargaFila(
+      actualizada.fecha, actualizada.turno, actualizada.recorrido_id,
+      actualizada.chofer, actualizada.sistema, actualizada.x_fuera,
+    );
+    if (!res.ok) { toast.error(`No se pudo guardar ${actualizada.codigo}`, { description: res.error }); return; }
+    // Tilde de "guardado" en la fila (se limpia al terminar la animación)
+    setGuardadoOk(g => ({ ...g, [key]: Date.now() }));
+    setTimeout(() => setGuardadoOk(g => { const n = { ...g }; delete n[key]; return n; }), 1400);
+  }
+
+  // Antes de publicar/exportar hay que asegurarse de que no queden ediciones
+  // recién tipeadas esperando el debounce de 600ms — si no, se publican con
+  // el valor viejo (ej: paquetes de pre-turno recién cargados que no entran).
+  async function flushPendientes() {
+    const keys = Object.keys(pendientesRef.current);
+    await Promise.all(keys.map(k => guardarFila(k)));
   }
 
   function numero(s: string): number {
@@ -367,6 +385,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
   async function publicar() {
     setPublicando(true);
     try {
+      await flushPendientes();
       const res = await publicarCargaDia(fecha);
       if (!res.ok) { toast.error("No se pudo enviar al análisis", { description: res.error }); return; }
       toast.success(`Día enviado al análisis: ${res.publicados} recorridos publicados`, {

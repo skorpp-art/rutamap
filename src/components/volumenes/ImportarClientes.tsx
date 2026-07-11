@@ -291,7 +291,7 @@ export function ImportarClientes({ onImportado, targetPkg = 30 }: Props) {
               Cancelar
             </Button>
             <span className="text-xs text-muted-foreground ml-auto">
-              Reemplaza los datos de ese día si ya existían
+              Solo actualiza los clientes de este archivo — no borra otros ya cargados ese día
             </span>
           </div>
         </div>
