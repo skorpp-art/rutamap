@@ -276,7 +276,12 @@ function construirPayload(tardeRaw: TardeRaw | null, resumenRaw: ResumenRaw | nu
   }
 
   const totalPaquetes = resumenRaw.totalPaquetes;
-  const entregados = resumenRaw.estados.find(e => e.estado === "Entregado")?.cantidad ?? 0;
+  // Contempla todas las variantes de "Entregado" (ej. "Entregado 2da Visita"),
+  // no solo el estado exacto "Entregado" — antes esos paquetes quedaban
+  // afuera del numerador de éxito aunque sí llegaron a destino.
+  const entregados = resumenRaw.estados
+    .filter(e => e.estado.toLowerCase().startsWith("entregado"))
+    .reduce((s, e) => s + e.cantidad, 0);
   const pctExito = totalPaquetes > 0 ? round2(entregados / totalPaquetes * 100) : 0;
 
   const post21Total = tardeRaw.post21.total;
@@ -794,7 +799,7 @@ function DiaView({
   const [detallePost21, setDetallePost21] = useState<TardeDetalleFila[]>([]);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
 
-  const clientesOrdenados = [...clientes].sort((a, b) => b.en_camino_destinatario - a.en_camino_destinatario || b.cantidad - a.cantidad);
+  const clientesOrdenados = [...clientes].sort((a, b) => b.cantidad - a.cantidad || b.en_camino_destinatario - a.en_camino_destinatario);
   const maxPctDia = Math.max(1, ...clientes.map(c => c.pct_del_dia));
   const filtrados = clientesOrdenados.filter(c => c.cliente.toLowerCase().includes(busqueda.toLowerCase()));
   const sel = clienteSel ? clientes.find(c => c.cliente === clienteSel) ?? null : null;
@@ -838,6 +843,35 @@ function DiaView({
           description="Cargá los dos reportes (Resumen de Envíos + Análisis Tarde) para este día." />
       ) : resumen ? (
         <>
+          {(() => {
+            const noEntregados = Math.max(0, resumen.total_paquetes - resumen.entregados);
+            const pctNoEntregado = resumen.total_paquetes > 0 ? round2(noEntregados / resumen.total_paquetes * 100) : 0;
+            return (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="border rounded-xl p-4 bg-card">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Total paquetes</p>
+                    <p className="text-2xl font-bold tabular-nums mt-1">{resumen.total_paquetes.toLocaleString("es-AR")}</p>
+                  </div>
+                  <div className="border rounded-xl p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/50">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Entregados</p>
+                    <p className="text-2xl font-bold tabular-nums mt-1 text-emerald-700 dark:text-emerald-300">{resumen.entregados.toLocaleString("es-AR")}</p>
+                    <p className="text-[11px] text-muted-foreground">{resumen.pct_exito.toFixed(1)}% del total</p>
+                  </div>
+                  <div className={cn("border rounded-xl p-4",
+                    noEntregados > 0 ? "bg-red-50/50 dark:bg-red-950/20 border-red-200/60 dark:border-red-900/50" : "bg-card")}>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">No entregados</p>
+                    <p className={cn("text-2xl font-bold tabular-nums mt-1", noEntregados > 0 && "text-red-600 dark:text-red-300")}>{noEntregados.toLocaleString("es-AR")}</p>
+                    <p className="text-[11px] text-muted-foreground">{pctNoEntregado.toFixed(1)}% del total</p>
+                  </div>
+                </div>
+                <div className="h-2 w-full rounded-full bg-muted overflow-hidden flex">
+                  <div className="h-full bg-emerald-500 transition-all" style={{ width: `${resumen.pct_exito}%` }} />
+                  <div className="h-full bg-red-500 transition-all" style={{ width: `${pctNoEntregado}%` }} />
+                </div>
+              </div>
+            );
+          })()}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {(() => {
               // Deltas vs el mismo día de la semana anterior (si hay datos)
@@ -1332,7 +1366,7 @@ function HistoricoView({
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Paquetes</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">En camino</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Post-21hs s/entregar</th>
-                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">%</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">% cumplimiento</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -1340,7 +1374,8 @@ function HistoricoView({
                     const detalleDia = post21PorDia.get(d.fecha) ?? [];
                     const exp = diaExpandido === d.fecha;
                     const demDia = d.en_camino_destinatario + detalleDia.length;
-                    const pctDiaMostrado = d.cantidad > 0 ? round2((demoradosModo === "total" ? demDia : d.en_camino_destinatario) / d.cantidad * 100) : 0;
+                    const pctDemorado = d.cantidad > 0 ? round2((demoradosModo === "total" ? demDia : d.en_camino_destinatario) / d.cantidad * 100) : 0;
+                    const pctCumplimiento = round2(100 - pctDemorado);
                     return (
                       <Fragment key={d.fecha}>
                         <tr onClick={() => detalleDia.length > 0 && setDiaExpandido(exp ? null : d.fecha)}
@@ -1354,7 +1389,10 @@ function HistoricoView({
                           <td className="px-3 py-1.5 text-right tabular-nums">
                             {detalleDia.length > 0 ? <span className="font-semibold text-red-600 dark:text-red-300">{detalleDia.length}</span> : "—"}
                           </td>
-                          <td className="px-3 py-1.5 text-right tabular-nums font-semibold">{pctDiaMostrado.toFixed(2)}%</td>
+                          <td className={cn("px-3 py-1.5 text-right tabular-nums font-semibold",
+                            pctCumplimiento >= 95 ? "text-emerald-600 dark:text-emerald-300" : pctCumplimiento >= 85 ? "text-amber-600 dark:text-amber-300" : "text-red-600 dark:text-red-300")}>
+                            {pctCumplimiento.toFixed(2)}%
+                          </td>
                         </tr>
                         {exp && (
                           <tr>
