@@ -61,14 +61,16 @@ interface Props {
   modo?: "planificacion" | "resumen";
   onConfirmar?: () => void;
   totalPaquetes?: number;
+  /** Fecha con la que arrancar (ej: la que se acaba de calcular en Proyección). */
+  fechaInicial?: string;
 }
 
 export function OperacionDia({
   pkgProyectado = 0, totalPaquetes = 0, tipoProyeccion,
-  targetPkg = 30, onConfirmar,
+  targetPkg = 30, onConfirmar, fechaInicial,
 }: Props) {
   const pkgBase = pkgProyectado || totalPaquetes;
-  const [fecha, setFecha] = useState(hoy());
+  const [fecha, setFecha] = useState(fechaInicial ?? hoy());
   const [rutas, setRutas] = useState<OperacionRuta[]>([]);
   const [editados, setEditados] = useState<Record<string, Partial<OperacionRuta>>>({});
   const [cargando, setCargando] = useState(false);

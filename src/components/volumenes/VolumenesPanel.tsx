@@ -609,6 +609,7 @@ export function VolumenesPanel() {
             pkgProyectado={pkgProyectado || (resumen?.hoy_total ?? 0)}
             tipoProyeccion={tipoProyeccion}
             targetPkg={targetPkg}
+            fechaInicial={tipoProyeccion ? fechaProyeccion : undefined}
             onConfirmar={() => {}}
           />
         )}
