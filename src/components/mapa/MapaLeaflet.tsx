@@ -5,13 +5,21 @@ import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import { useEffect, useRef } from "react";
 import * as turf from "@turf/turf";
 import { toast } from "sonner";
-import { MapContainer, TileLayer, GeoJSON, Tooltip, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON, Tooltip, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import type { Zona } from "@/types/database.types";
 import L from "leaflet";
 import "@geoman-io/leaflet-geoman-free";
 import type { RecorridoGeo } from "@/types/database.types";
 
 export type ModoEdicion = "area" | "traza" | null;
+
+// Dirección buscada + los recorridos que la contienen (point-in-polygon).
+export interface PuntoDireccion {
+  lat: number;
+  lon: number;
+  label: string;
+  recorridos: { codigo: string; nombre: string; zona: string; color: string; activo: boolean }[];
+}
 
 // Fix íconos de marcadores de Leaflet con webpack/Next.js
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -128,6 +136,43 @@ function AjustarVista({ recorrido }: { recorrido: RecorridoGeo | null }) {
     }
   }, [recorrido?.id, map]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
+}
+
+// Sub-componente: pin (gotita) de la dirección buscada + popup con el/los
+// recorridos a los que pertenece. Vuela hacia el punto al aparecer.
+function MarcadorDireccion({ punto }: { punto: PuntoDireccion | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!punto) return;
+    map.flyTo([punto.lat, punto.lon], Math.max(map.getZoom(), 15), { duration: 0.7 });
+  }, [punto?.lat, punto?.lon]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!punto) return null;
+  return (
+    <Marker position={[punto.lat, punto.lon]}>
+      <Popup autoPan minWidth={220}>
+        <div className="space-y-1.5">
+          <p className="font-semibold text-[13px] leading-snug">{punto.label}</p>
+          {punto.recorridos.length === 0 ? (
+            <p className="text-[12px] text-red-600">No pertenece a ningún recorrido con área cargada.</p>
+          ) : (
+            <div className="space-y-1">
+              <p className="text-[11px] text-neutral-500 uppercase tracking-wide font-medium">
+                {punto.recorridos.length > 1 ? "Recorridos que la incluyen" : "Recorrido"}
+              </p>
+              {punto.recorridos.map((r) => (
+                <div key={r.codigo} className="flex items-center gap-1.5 text-[12px]">
+                  <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: r.color }} />
+                  <span className="font-mono font-bold">{r.codigo}</span>
+                  <span className="text-neutral-600 truncate">— {r.nombre}</span>
+                  {!r.activo && <span className="text-[10px] text-amber-600">(inactivo)</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Popup>
+    </Marker>
+  );
 }
 
 // ─── Editor de ÁREA (polígonos) ──────────────────────────────────────────────
@@ -1029,6 +1074,8 @@ interface MapaLeafletProps {
   // Cambiar este número dispara la descarga de la imagen del recorrido activo.
   encuadrarTick?: number;
   onDescargaLista?: (ok: boolean) => void;
+  // Pin de la dirección buscada.
+  puntoDireccion?: PuntoDireccion | null;
 }
 
 export function MapaLeaflet({
@@ -1056,6 +1103,7 @@ export function MapaLeaflet({
   modoEnfoque,
   encuadrarTick,
   onDescargaLista,
+  puntoDireccion,
 }: MapaLeafletProps) {
   const editando = modoEdicion !== null;
   // Enfoque activo solo si además hay un recorrido seleccionado.
@@ -1095,6 +1143,7 @@ export function MapaLeaflet({
 
       <AjustarVista recorrido={editando ? recorridoEditando : recorridoActivo} />
       <CapturaRecorrido recorrido={recorridoActivo} tick={encuadrarTick ?? 0} onListo={onDescargaLista} />
+      <MarcadorDireccion punto={puntoDireccion ?? null} />
       <ZoomAZona zona={zoomarAZona ?? null} recorridos={recorridos} />
       {onClickMapa && <ClickFuera onClickMapa={onClickMapa} />}
 

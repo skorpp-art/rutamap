@@ -9,7 +9,9 @@ import { PanelDetalle } from "./PanelDetalle";
 import { MapaWrapper } from "./MapaWrapper";
 import { ExportarMapa } from "./ExportarMapa";
 import { BuscadorLocalidad } from "./BuscadorLocalidad";
+import { BuscadorDireccion } from "./BuscadorDireccion";
 import { DashboardCobertura } from "./DashboardCobertura";
+import type { PuntoDireccion } from "./MapaLeaflet";
 import { Button } from "@/components/ui/button";
 import {
   Pencil, Scissors, Undo2, Satellite, Map as MapIcon,
@@ -254,6 +256,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
   const [modoEnfoque, setModoEnfoque] = useState(false);
   const [encuadrarTick, setEncuadrarTick] = useState(0);
   const [descargandoImg, setDescargandoImg] = useState(false);
+  const [puntoDireccion, setPuntoDireccion] = useState<PuntoDireccion | null>(null);
   const [zoomarAZona, setZoomarAZona] = useState<Zona | null>(null);
   const [mostrarZonas, setMostrarZonas] = useState(false);
   const [mostrarSolapamientos, setMostrarSolapamientos] = useState(false);
@@ -398,6 +401,36 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mostrarSolapamientos]);
+
+  // Al elegir una dirección buscada: coloca el pin y calcula a qué recorrido(s)
+  // pertenece (point-in-polygon sobre las áreas). Resalta el primero que la contiene.
+  function onDireccionElegida(lat: number, lon: number, label: string) {
+    const pt = turf.point([lon, lat]);
+    const contenedores: PuntoDireccion["recorridos"] = [];
+    for (const r of recorridos) {
+      if (!r.area_geojson) continue;
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const geom: any = JSON.parse(r.area_geojson);
+        const feat = geom.type === "Feature" ? geom : turf.feature(geom);
+        if (turf.booleanPointInPolygon(pt, feat)) {
+          contenedores.push({ codigo: r.codigo, nombre: r.nombre, zona: r.zona, color: r.color, activo: r.activo });
+        }
+      } catch { /* geometría problemática — ignorar */ }
+    }
+    // Activos primero
+    contenedores.sort((a, b) => Number(b.activo) - Number(a.activo));
+    setPuntoDireccion({ lat, lon, label, recorridos: contenedores });
+    // Resaltar el primer recorrido que la contiene (si hay), para verlo en el mapa
+    const primero = contenedores.find((c) => c.activo) ?? contenedores[0];
+    if (primero) {
+      const r = recorridos.find((x) => x.codigo === primero.codigo);
+      if (r) { setRecorridoActivoId(r.id); setVisibles((prev) => new Set(prev).add(r.id)); }
+      toast.success(`Dirección en ${primero.codigo} — ${primero.nombre}`);
+    } else {
+      toast.info("La dirección no cae en ningún recorrido con área cargada");
+    }
+  }
 
   function seleccionarRecorrido(id: string) {
     if (editando) return;
@@ -731,6 +764,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
           modoEnfoque={modoEnfoque}
           encuadrarTick={encuadrarTick}
           onDescargaLista={onDescargaLista}
+          puntoDireccion={puntoDireccion}
         />
 
         {/* Buscador de localidades — solo visible al editar área */}
@@ -739,6 +773,16 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
             onPolygonEncontrado={handleAgregarLocalidad}
             onPolygonEliminar={handleEliminarZona}
           />
+        )}
+
+        {/* Buscador de direcciones (pin + a qué recorrido pertenece) — vista normal */}
+        {!editando && (
+          <div data-no-export>
+            <BuscadorDireccion
+              onDireccionElegida={onDireccionElegida}
+              onLimpiar={() => setPuntoDireccion(null)}
+            />
+          </div>
         )}
 
         {/* Botones de exportar — ocultos durante edición */}
