@@ -692,10 +692,10 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
                       const total = f.sistema + f.x_fuera;
                       return (
                         <tr key={f.id} className={cn("hover:bg-muted/20 transition-colors",
-                          f.estado_control === "rojo" && "bg-red-50/50 dark:bg-red-950/20",
-                          f.estado_control === "verde" && "bg-emerald-50/30 dark:bg-emerald-950/10",
-                          f.estado_control === "amarillo" && "bg-amber-50/50 dark:bg-amber-950/20",
-                          f.estado_control === "azul" && "bg-blue-50/50 dark:bg-blue-950/20")}>
+                          f.estado_control === "rojo" && "bg-red-200/80 dark:bg-red-900/40",
+                          f.estado_control === "verde" && "bg-emerald-200/80 dark:bg-emerald-900/40",
+                          f.estado_control === "amarillo" && "bg-amber-200/80 dark:bg-amber-900/40",
+                          f.estado_control === "azul" && "bg-blue-200/80 dark:bg-blue-900/40")}>
                           <td className="px-2 py-2 text-center">
                             <button onClick={() => ciclarControl(f)} disabled={!puedeEditar}
                               title={f.estado_control === "verde" ? "En control — clic para marcar en rojo"
