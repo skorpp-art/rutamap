@@ -44,6 +44,7 @@ interface MapaWrapperProps {
   onModoPluma?: (modo: "agregar" | "quitar" | null) => void;
   modoEditarNodos?: boolean;
   vaciarTrigger?: number;
+  modoEnfoque?: boolean;
 }
 
 export function MapaWrapper(props: MapaWrapperProps) {

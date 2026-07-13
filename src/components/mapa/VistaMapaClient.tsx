@@ -13,7 +13,7 @@ import { DashboardCobertura } from "./DashboardCobertura";
 import { Button } from "@/components/ui/button";
 import {
   Pencil, Scissors, Undo2, Satellite, Map as MapIcon,
-  Layers, BarChart2, ZoomIn, Wand2, Trash2, PenTool, Flame, Check,
+  Layers, BarChart2, ZoomIn, Wand2, Trash2, PenTool, Flame, Check, Crosshair,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { actualizarAreaRecorrido, actualizarTrazaRecorrido } from "@/app/actions/recorridos";
@@ -250,6 +250,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
 
   // Nuevos estados — mejoras
   const [capaSatelite, setCapaSatelite] = useState(false);
+  const [modoEnfoque, setModoEnfoque] = useState(false);
   const [zoomarAZona, setZoomarAZona] = useState<Zona | null>(null);
   const [mostrarZonas, setMostrarZonas] = useState(false);
   const [mostrarSolapamientos, setMostrarSolapamientos] = useState(false);
@@ -708,6 +709,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
           modoPluma={modoPluma}
           modoEditarNodos={modoEditarNodos}
           vaciarTrigger={vaciarTrigger}
+          modoEnfoque={modoEnfoque}
         />
 
         {/* Buscador de localidades — solo visible al editar área */}
@@ -741,6 +743,26 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
               {capaSatelite ? <MapIcon className="h-3.5 w-3.5" /> : <Satellite className="h-3.5 w-3.5" />}
               {capaSatelite ? "Mapa" : "Satélite"}
             </Button>
+
+            {/* Enfocar el recorrido seleccionado (atenúa el resto para una
+                imagen limpia al exportar). Solo con un recorrido activo. */}
+            {recorridoActivo && (
+              <Button
+                size="sm"
+                variant="secondary"
+                className={cn(
+                  "shadow-md gap-1.5 h-8 text-xs",
+                  modoEnfoque && "bg-blue-600 text-white hover:bg-blue-700"
+                )}
+                onClick={() => setModoEnfoque((v) => !v)}
+                title={modoEnfoque
+                  ? "Mostrar todos los recorridos"
+                  : "Resaltar solo el recorrido seleccionado (ideal para descargar la imagen)"}
+              >
+                <Crosshair className="h-3.5 w-3.5" />
+                {modoEnfoque ? "Ver todos" : "Enfocar"}
+              </Button>
+            )}
 
             {/* Zoom por zona */}
             <div className="relative">

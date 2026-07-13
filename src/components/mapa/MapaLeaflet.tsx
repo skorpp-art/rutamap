@@ -966,6 +966,9 @@ interface MapaLeafletProps {
   onModoPluma?: (modo: "agregar" | "quitar" | null) => void;
   modoEditarNodos?: boolean;
   vaciarTrigger?: number;
+  // Enfoque: atenúa fuertemente el resto de los recorridos y resalta el
+  // seleccionado, para descargar una imagen enfocada en ese recorrido.
+  modoEnfoque?: boolean;
 }
 
 export function MapaLeaflet({
@@ -990,8 +993,11 @@ export function MapaLeaflet({
   modoPluma,
   modoEditarNodos,
   vaciarTrigger,
+  modoEnfoque,
 }: MapaLeafletProps) {
   const editando = modoEdicion !== null;
+  // Enfoque activo solo si además hay un recorrido seleccionado.
+  const enfocando = !!modoEnfoque && !!recorridoActivo && !editando;
 
   // Excluir el recorrido en edición del render estático
   const recorridosVisibles =
@@ -1069,15 +1075,15 @@ export function MapaLeaflet({
         }
         return (
           <GeoJSON
-            key={`area-${r.id}-${r.actualizado_en}-${seleccionado}-${r.color}`}
+            key={`area-${r.id}-${r.actualizado_en}-${seleccionado}-${r.color}-${enfocando}`}
             data={geom as GeoJSON.GeoJsonObject}
             style={{
               color: r.color,
-              weight: seleccionado ? 3 : 1.5,
-              opacity: editando ? 0.2 : inactivo ? 0.35 : seleccionado ? 1 : 0.75,
+              weight: seleccionado ? (enfocando ? 4.5 : 3) : 1.5,
+              opacity: editando ? 0.2 : enfocando ? (seleccionado ? 1 : 0.12) : inactivo ? 0.35 : seleccionado ? 1 : 0.75,
               fillColor: r.color,
-              fillOpacity: editando ? 0.04 : inactivo ? 0.04 : seleccionado ? 0.28 : 0.12,
-              dashArray: inactivo ? "4 4" : undefined,
+              fillOpacity: editando ? 0.04 : enfocando ? (seleccionado ? 0.4 : 0.02) : inactivo ? 0.04 : seleccionado ? 0.28 : 0.12,
+              dashArray: inactivo && !seleccionado ? "4 4" : undefined,
             }}
             eventHandlers={
               editando || inactivo
@@ -1134,6 +1140,7 @@ export function MapaLeaflet({
       {/* Trazas internas (LineString punteado) */}
       {recorridosVisibles.map((r) => {
         if (!r.traza_geojson) return null;
+        const seleccionado = r.id === recorridoActivo?.id;
         let geom: object;
         try {
           geom = JSON.parse(r.traza_geojson);
@@ -1142,12 +1149,12 @@ export function MapaLeaflet({
         }
         return (
           <GeoJSON
-            key={`traza-${r.id}-${r.actualizado_en}`}
+            key={`traza-${r.id}-${r.actualizado_en}-${enfocando}-${seleccionado}`}
             data={geom as GeoJSON.GeoJsonObject}
             style={{
               color: r.color,
-              weight: 2.5,
-              opacity: editando ? 0.2 : 0.85,
+              weight: seleccionado && enfocando ? 3.5 : 2.5,
+              opacity: editando ? 0.2 : enfocando ? (seleccionado ? 0.95 : 0.1) : 0.85,
               dashArray: "6 4",
               fill: false,
             }}
