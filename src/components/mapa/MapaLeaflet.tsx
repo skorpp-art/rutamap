@@ -69,20 +69,23 @@ function CapturaRecorrido({
     (async () => {
       const geojson = recorrido.area_geojson ?? recorrido.traza_geojson;
       if (!geojson) { onListo?.(false); return; }
+      const zoomSnapOriginal = map.options.zoomSnap;
       try {
         // El contenedor puede haber cambiado de tamaño (panel de detalle, etc.):
         // recalcular el tamaño real antes de encuadrar para no cortar el recorrido.
         map.invalidateSize();
         const bounds = L.geoJSON(JSON.parse(geojson)).getBounds();
         if (!bounds.isValid()) { onListo?.(false); return; }
-        // Encuadre sin animación → la vista queda fija de inmediato. Margen
-        // chico para aprovechar la imagen: el recorrido ocupa casi todo el
-        // cuadro, dejando solo un borde para ver las calles que lo delimitan.
-        map.fitBounds(bounds, { padding: [18, 18], maxZoom: 17, animate: false });
-      } catch { onListo?.(false); return; }
+        // CLAVE: Leaflet por defecto solo usa zooms ENTEROS (zoomSnap=1). Si el
+        // recorrido no entra en el zoom N+1, cae al N y queda un margen enorme.
+        // Habilitamos zoom fraccional solo para este encuadre, así el nivel se
+        // ajusta exacto al tamaño del recorrido y ocupa casi toda la imagen.
+        map.options.zoomSnap = 0;
+        map.fitBounds(bounds, { padding: [14, 14], maxZoom: 17.5, animate: false });
+      } catch { map.options.zoomSnap = zoomSnapOriginal; onListo?.(false); return; }
       // Esperar a que carguen los tiles del nuevo encuadre antes de capturar.
-      await new Promise((r) => setTimeout(r, 1300));
-      if (cancelado) return;
+      await new Promise((r) => setTimeout(r, 1500));
+      if (cancelado) { map.options.zoomSnap = zoomSnapOriginal; return; }
       try {
         const el = document.getElementById("mapa-contenedor");
         if (!el) throw new Error("No se encontró el mapa");
@@ -99,6 +102,9 @@ function CapturaRecorrido({
         onListo?.(true);
       } catch {
         onListo?.(false);
+      } finally {
+        // Restaurar el zoom entero normal para la navegación manual.
+        map.options.zoomSnap = zoomSnapOriginal;
       }
     })();
     return () => { cancelado = true; };
