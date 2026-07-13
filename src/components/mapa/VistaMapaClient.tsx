@@ -550,36 +550,20 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
     toast.info("Zona restada. Si fue sin querer → Ctrl+Z o botón Deshacer ↩", { duration: 6000 });
   }
 
-  // Descarga una PNG del recorrido activo COMPLETO: enfoca, encuadra todo el
-  // polígono con margen, espera a que carguen los tiles y captura en alta
-  // resolución para que se lean las calles que lo delimitan.
-  async function descargarImagenRecorrido() {
+  // Descarga una PNG del recorrido activo COMPLETO. El encuadre + captura los
+  // hace el mapa (sub-componente CapturaRecorrido) que tiene acceso directo a
+  // Leaflet; acá solo enfocamos y disparamos el tick.
+  function descargarImagenRecorrido() {
     if (!recorridoActivo) { toast.warning("Seleccioná un recorrido primero"); return; }
     setDescargandoImg(true);
-    try {
-      setModoEnfoque(true);
-      setEncuadrarTick((t) => t + 1); // fuerza encuadre al recorrido completo
-      // esperar el encuadre + carga de tiles del nuevo encuadre
-      await new Promise((r) => setTimeout(r, 1200));
-      const el = document.getElementById("mapa-contenedor");
-      if (!el) throw new Error("No se encontró el mapa");
-      const { toPng } = await import("html-to-image");
-      const dataUrl = await toPng(el, {
-        pixelRatio: 3,
-        cacheBust: true,
-        filter: (node) =>
-          !(node instanceof HTMLElement && node.hasAttribute("data-no-export")),
-      });
-      const link = document.createElement("a");
-      link.download = `recorrido-${recorridoActivo.codigo}.png`;
-      link.href = dataUrl;
-      link.click();
-      toast.success("Imagen del recorrido descargada");
-    } catch (e) {
-      toast.error("No se pudo descargar la imagen", { description: String(e) });
-    } finally {
-      setDescargandoImg(false);
-    }
+    setModoEnfoque(true);
+    setEncuadrarTick((t) => t + 1);
+  }
+
+  function onDescargaLista(ok: boolean) {
+    setDescargandoImg(false);
+    if (ok) toast.success("Imagen del recorrido descargada");
+    else toast.error("No se pudo descargar la imagen");
   }
 
   async function handleImprimirRecorrido() {
@@ -746,6 +730,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
           vaciarTrigger={vaciarTrigger}
           modoEnfoque={modoEnfoque}
           encuadrarTick={encuadrarTick}
+          onDescargaLista={onDescargaLista}
         />
 
         {/* Buscador de localidades — solo visible al editar área */}

@@ -46,6 +46,7 @@ interface MapaWrapperProps {
   vaciarTrigger?: number;
   modoEnfoque?: boolean;
   encuadrarTick?: number;
+  onDescargaLista?: (ok: boolean) => void;
 }
 
 export function MapaWrapper(props: MapaWrapperProps) {

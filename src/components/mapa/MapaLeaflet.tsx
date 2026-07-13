@@ -55,19 +55,51 @@ function ClickFuera({ onClickMapa }: { onClickMapa: () => void }) {
   return null;
 }
 
-// Sub-componente: encuadra el recorrido activo COMPLETO (con margen) cada vez
-// que cambia `tick`. Se usa antes de descargar la imagen para garantizar que
-// entre todo el recorrido y se vean las calles que lo delimitan.
-function EncuadrarRecorrido({ recorrido, tick }: { recorrido: RecorridoGeo | null; tick: number }) {
+// Sub-componente: encuadra el recorrido activo COMPLETO (con margen) y descarga
+// una PNG en alta resolución, todo con acceso directo a la instancia del mapa.
+// Se dispara cada vez que cambia `tick`. Garantiza que entre TODO el recorrido
+// y que las calles que lo delimitan se vean nítidas.
+function CapturaRecorrido({
+  recorrido, tick, onListo,
+}: { recorrido: RecorridoGeo | null; tick: number; onListo?: (ok: boolean) => void }) {
   const map = useMap();
   useEffect(() => {
     if (!tick || !recorrido) return;
-    const geojson = recorrido.area_geojson ?? recorrido.traza_geojson;
-    if (!geojson) return;
-    try {
-      const bounds = L.geoJSON(JSON.parse(geojson)).getBounds();
-      if (bounds.isValid()) map.fitBounds(bounds, { padding: [55, 55], maxZoom: 16, animate: false });
-    } catch { /* geometría inválida — ignorar */ }
+    let cancelado = false;
+    (async () => {
+      const geojson = recorrido.area_geojson ?? recorrido.traza_geojson;
+      if (!geojson) { onListo?.(false); return; }
+      try {
+        // El contenedor puede haber cambiado de tamaño (panel de detalle, etc.):
+        // recalcular el tamaño real antes de encuadrar para no cortar el recorrido.
+        map.invalidateSize();
+        const bounds = L.geoJSON(JSON.parse(geojson)).getBounds();
+        if (!bounds.isValid()) { onListo?.(false); return; }
+        // Encuadre sin animación → la vista queda fija de inmediato.
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16, animate: false });
+      } catch { onListo?.(false); return; }
+      // Esperar a que carguen los tiles del nuevo encuadre antes de capturar.
+      await new Promise((r) => setTimeout(r, 1300));
+      if (cancelado) return;
+      try {
+        const el = document.getElementById("mapa-contenedor");
+        if (!el) throw new Error("No se encontró el mapa");
+        const { toPng } = await import("html-to-image");
+        const dataUrl = await toPng(el, {
+          pixelRatio: 3,
+          cacheBust: true,
+          filter: (node) => !(node instanceof HTMLElement && node.hasAttribute("data-no-export")),
+        });
+        const link = document.createElement("a");
+        link.download = `recorrido-${recorrido.codigo}.png`;
+        link.href = dataUrl;
+        link.click();
+        onListo?.(true);
+      } catch {
+        onListo?.(false);
+      }
+    })();
+    return () => { cancelado = true; };
   }, [tick]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }
@@ -986,8 +1018,9 @@ interface MapaLeafletProps {
   // Enfoque: atenúa fuertemente el resto de los recorridos y resalta el
   // seleccionado, para descargar una imagen enfocada en ese recorrido.
   modoEnfoque?: boolean;
-  // Cambiar este número fuerza a encuadrar el recorrido activo completo.
+  // Cambiar este número dispara la descarga de la imagen del recorrido activo.
   encuadrarTick?: number;
+  onDescargaLista?: (ok: boolean) => void;
 }
 
 export function MapaLeaflet({
@@ -1014,6 +1047,7 @@ export function MapaLeaflet({
   vaciarTrigger,
   modoEnfoque,
   encuadrarTick,
+  onDescargaLista,
 }: MapaLeafletProps) {
   const editando = modoEdicion !== null;
   // Enfoque activo solo si además hay un recorrido seleccionado.
@@ -1052,7 +1086,7 @@ export function MapaLeaflet({
       )}
 
       <AjustarVista recorrido={editando ? recorridoEditando : recorridoActivo} />
-      <EncuadrarRecorrido recorrido={recorridoActivo} tick={encuadrarTick ?? 0} />
+      <CapturaRecorrido recorrido={recorridoActivo} tick={encuadrarTick ?? 0} onListo={onDescargaLista} />
       <ZoomAZona zona={zoomarAZona ?? null} recorridos={recorridos} />
       {onClickMapa && <ClickFuera onClickMapa={onClickMapa} />}
 
