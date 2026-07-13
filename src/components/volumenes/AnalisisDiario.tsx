@@ -1354,8 +1354,8 @@ function HistoricoView({
                   </p>
                 ) : (
                   <p className="text-[11px] text-muted-foreground">
-                    Clic en un día con post-21hs sin entregar (resaltado) para ver la dirección, localidad y tracking de
-                    cada paquete. Los "en camino al destinatario" no tienen dirección disponible — el Excel no la trae por cliente.
+                    Clic en cualquier día para ver su resumen; los días con post-21hs sin entregar muestran además la
+                    dirección, localidad y tracking de cada paquete.
                   </p>
                 )}
                 <table className="w-full text-xs">
@@ -1378,10 +1378,10 @@ function HistoricoView({
                     const pctCumplimiento = round2(100 - pctDemorado);
                     return (
                       <Fragment key={d.fecha}>
-                        <tr onClick={() => detalleDia.length > 0 && setDiaExpandido(exp ? null : d.fecha)}
-                          className={cn(detalleDia.length > 0 && "cursor-pointer hover:bg-muted/30", exp && "bg-red-50/40 dark:bg-red-950/20")}>
+                        <tr onClick={() => setDiaExpandido(exp ? null : d.fecha)}
+                          className={cn("cursor-pointer hover:bg-muted/30", exp && "bg-violet-50/50 dark:bg-violet-950/20")}>
                           <td className="px-2 py-1.5 text-center text-muted-foreground">
-                            {detalleDia.length > 0 && (exp ? <ChevronDown className="h-3.5 w-3.5 inline" /> : <ChevronRight className="h-3.5 w-3.5 inline" />)}
+                            {exp ? <ChevronDown className="h-3.5 w-3.5 inline" /> : <ChevronRight className="h-3.5 w-3.5 inline" />}
                           </td>
                           <td className="px-3 py-1.5">{d.fecha}</td>
                           <td className="px-3 py-1.5 text-right tabular-nums">{d.cantidad}</td>
@@ -1397,21 +1397,36 @@ function HistoricoView({
                         {exp && (
                           <tr>
                             <td colSpan={6} className="bg-muted/10 px-4 py-2">
-                              <div className="space-y-1.5 py-1">
-                                {detalleDia.map((p, i) => (
-                                  <div key={p.id ?? i} className="flex items-start gap-2 text-[11px]">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-red-500 shrink-0 mt-1" />
-                                    <div className="flex-1 min-w-0">
-                                      <span className="text-muted-foreground">{p.direccion ?? "Sin dirección"}</span>
-                                      {p.zona && <span className="text-foreground/70"> · {p.zona}</span>}
-                                      {p.localidad && <span className="text-foreground/60"> · {p.localidad}</span>}
-                                      {p.chofer && <span className="text-muted-foreground/70"> · {p.chofer}</span>}
-                                      {p.tracking && <span className="text-muted-foreground/60 font-mono"> · {p.tracking}</span>}
-                                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground ml-2">{p.estado ?? "—"}</span>
-                                    </div>
-                                  </div>
-                                ))}
+                              {/* Resumen del día, siempre visible al abrir */}
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] pb-2 mb-1 border-b border-border/50">
+                                <span><b className="tabular-nums">{d.cantidad}</b> paquetes</span>
+                                <span><b className="tabular-nums text-emerald-600 dark:text-emerald-300">{Math.max(0, d.cantidad - demDia)}</b> entregados</span>
+                                <span><b className="tabular-nums text-amber-600 dark:text-amber-300">{d.en_camino_destinatario}</b> en camino</span>
+                                <span><b className="tabular-nums text-red-600 dark:text-red-300">{detalleDia.length}</b> post-21hs sin entregar</span>
+                                <span>cumplimiento <b className="tabular-nums">{pctCumplimiento.toFixed(2)}%</b></span>
                               </div>
+                              {detalleDia.length > 0 ? (
+                                <div className="space-y-1.5 py-1">
+                                  {detalleDia.map((p, i) => (
+                                    <div key={p.id ?? i} className="flex items-start gap-2 text-[11px]">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-red-500 shrink-0 mt-1" />
+                                      <div className="flex-1 min-w-0">
+                                        <span className="text-muted-foreground">{p.direccion ?? "Sin dirección"}</span>
+                                        {p.zona && <span className="text-foreground/70"> · {p.zona}</span>}
+                                        {p.localidad && <span className="text-foreground/60"> · {p.localidad}</span>}
+                                        {p.chofer && <span className="text-muted-foreground/70"> · {p.chofer}</span>}
+                                        {p.tracking && <span className="text-muted-foreground/60 font-mono"> · {p.tracking}</span>}
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground ml-2">{p.estado ?? "—"}</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-[11px] text-muted-foreground py-1">
+                                  Sin paquetes post-21hs sin entregar con dirección guardada este día.
+                                  {d.en_camino_destinatario > 0 && " Los \"en camino al destinatario\" no traen dirección por cliente en el Excel."}
+                                </p>
+                              )}
                             </td>
                           </tr>
                         )}
