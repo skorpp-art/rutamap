@@ -8,6 +8,7 @@ import {
   Save, RefreshCw, ChevronLeft, ChevronRight,
   FileDown, AlertTriangle, CheckCircle, Users, Clock,
   Plus, Pencil, X, Lightbulb, Scissors, Sunrise, Trash2, Gauge, Search, Wand2,
+  FileSpreadsheet,
 } from "lucide-react";
 import {
   getOperacionDia, inicializarOperacionDia,
@@ -529,6 +530,36 @@ export function OperacionDia({
   // Manejar clic exportar: mostrar alerta si fuera de rango
   function handleExportar() {
     setMostrarAlerta(true);
+  }
+
+  // Exportar Excel — TODOS los recorridos de la operación (activos e inactivos)
+  async function exportarExcel() {
+    try {
+      const XLSX = await import("xlsx");
+      const orden = { Oeste: 0, Norte: 1, Sur: 2, CABA: 3 } as Record<string, number>;
+      const filas = [...rutasConEdits]
+        .sort((a, b) =>
+          (a.tipo === "pre_turno" ? 1 : 0) - (b.tipo === "pre_turno" ? 1 : 0) ||
+          (orden[a.zona] ?? 9) - (orden[b.zona] ?? 9) ||
+          a.codigo.localeCompare(b.codigo))
+        .map(r => ({
+          Zona: r.tipo === "pre_turno" ? "Pre-Turno" : r.zona,
+          Código: r.codigo,
+          Nombre: r.nombre,
+          Tipo: TIPO_LABEL[r.tipo] ?? r.tipo,
+          Activo: r.activo ? "Sí" : "No",
+          "Paquetes asignados": r.paquetes_asignados ?? 0,
+          Notas: r.notas_dia ?? "",
+        }));
+      const ws = XLSX.utils.json_to_sheet(filas);
+      ws["!cols"] = [{ wch: 12 }, { wch: 12 }, { wch: 38 }, { wch: 8 }, { wch: 8 }, { wch: 18 }, { wch: 30 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Operación");
+      XLSX.writeFile(wb, `operacion-${fecha}.xlsx`);
+      toast.success(`Excel exportado (${filas.length} recorridos)`);
+    } catch (e) {
+      toast.error("Error al exportar Excel", { description: String(e) });
+    }
   }
 
   // Exportar PDF — diseño por zonas, solo activos
@@ -1126,8 +1157,13 @@ export function OperacionDia({
             {guardando ? "…" : "Guardar"}
           </Button>
         )}
+        <Button size="sm" onClick={exportarExcel} variant="outline"
+          className="ml-auto h-8 gap-1.5 text-xs font-semibold">
+          <FileSpreadsheet className="h-3.5 w-3.5" />
+          Exportar Excel
+        </Button>
         <Button size="sm" onClick={handleExportar}
-          className="ml-auto h-8 gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white font-semibold">
+          className="h-8 gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white font-semibold">
           <FileDown className="h-3.5 w-3.5" />
           Exportar PDF
         </Button>
