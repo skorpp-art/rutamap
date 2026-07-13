@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import {
   Pencil, Scissors, Undo2, Satellite, Map as MapIcon,
   Layers, BarChart2, ZoomIn, Wand2, Trash2, PenTool, Flame, Check, Crosshair,
+  Download, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { actualizarAreaRecorrido, actualizarTrazaRecorrido } from "@/app/actions/recorridos";
@@ -251,6 +252,8 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
   // Nuevos estados — mejoras
   const [capaSatelite, setCapaSatelite] = useState(false);
   const [modoEnfoque, setModoEnfoque] = useState(false);
+  const [encuadrarTick, setEncuadrarTick] = useState(0);
+  const [descargandoImg, setDescargandoImg] = useState(false);
   const [zoomarAZona, setZoomarAZona] = useState<Zona | null>(null);
   const [mostrarZonas, setMostrarZonas] = useState(false);
   const [mostrarSolapamientos, setMostrarSolapamientos] = useState(false);
@@ -547,6 +550,38 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
     toast.info("Zona restada. Si fue sin querer → Ctrl+Z o botón Deshacer ↩", { duration: 6000 });
   }
 
+  // Descarga una PNG del recorrido activo COMPLETO: enfoca, encuadra todo el
+  // polígono con margen, espera a que carguen los tiles y captura en alta
+  // resolución para que se lean las calles que lo delimitan.
+  async function descargarImagenRecorrido() {
+    if (!recorridoActivo) { toast.warning("Seleccioná un recorrido primero"); return; }
+    setDescargandoImg(true);
+    try {
+      setModoEnfoque(true);
+      setEncuadrarTick((t) => t + 1); // fuerza encuadre al recorrido completo
+      // esperar el encuadre + carga de tiles del nuevo encuadre
+      await new Promise((r) => setTimeout(r, 1200));
+      const el = document.getElementById("mapa-contenedor");
+      if (!el) throw new Error("No se encontró el mapa");
+      const { toPng } = await import("html-to-image");
+      const dataUrl = await toPng(el, {
+        pixelRatio: 3,
+        cacheBust: true,
+        filter: (node) =>
+          !(node instanceof HTMLElement && node.hasAttribute("data-no-export")),
+      });
+      const link = document.createElement("a");
+      link.download = `recorrido-${recorridoActivo.codigo}.png`;
+      link.href = dataUrl;
+      link.click();
+      toast.success("Imagen del recorrido descargada");
+    } catch (e) {
+      toast.error("No se pudo descargar la imagen", { description: String(e) });
+    } finally {
+      setDescargandoImg(false);
+    }
+  }
+
   async function handleImprimirRecorrido() {
     if (!recorridoActivo) return;
     try {
@@ -710,6 +745,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
           modoEditarNodos={modoEditarNodos}
           vaciarTrigger={vaciarTrigger}
           modoEnfoque={modoEnfoque}
+          encuadrarTick={encuadrarTick}
         />
 
         {/* Buscador de localidades — solo visible al editar área */}
@@ -761,6 +797,21 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
               >
                 <Crosshair className="h-3.5 w-3.5" />
                 {modoEnfoque ? "Ver todos" : "Enfocar"}
+              </Button>
+            )}
+
+            {/* Descargar imagen del recorrido completo, en alta resolución */}
+            {recorridoActivo && (
+              <Button
+                size="sm"
+                variant="secondary"
+                className="shadow-md gap-1.5 h-8 text-xs"
+                onClick={descargarImagenRecorrido}
+                disabled={descargandoImg}
+                title="Descargar una imagen con el recorrido completo y las calles que lo delimitan"
+              >
+                {descargandoImg ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                {descargandoImg ? "Generando…" : "Descargar recorrido"}
               </Button>
             )}
 

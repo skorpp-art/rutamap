@@ -55,6 +55,23 @@ function ClickFuera({ onClickMapa }: { onClickMapa: () => void }) {
   return null;
 }
 
+// Sub-componente: encuadra el recorrido activo COMPLETO (con margen) cada vez
+// que cambia `tick`. Se usa antes de descargar la imagen para garantizar que
+// entre todo el recorrido y se vean las calles que lo delimitan.
+function EncuadrarRecorrido({ recorrido, tick }: { recorrido: RecorridoGeo | null; tick: number }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!tick || !recorrido) return;
+    const geojson = recorrido.area_geojson ?? recorrido.traza_geojson;
+    if (!geojson) return;
+    try {
+      const bounds = L.geoJSON(JSON.parse(geojson)).getBounds();
+      if (bounds.isValid()) map.fitBounds(bounds, { padding: [55, 55], maxZoom: 16, animate: false });
+    } catch { /* geometría inválida — ignorar */ }
+  }, [tick]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
 // Sub-componente: ajusta la vista al polígono/traza del recorrido activo
 function AjustarVista({ recorrido }: { recorrido: RecorridoGeo | null }) {
   const map = useMap();
@@ -969,6 +986,8 @@ interface MapaLeafletProps {
   // Enfoque: atenúa fuertemente el resto de los recorridos y resalta el
   // seleccionado, para descargar una imagen enfocada en ese recorrido.
   modoEnfoque?: boolean;
+  // Cambiar este número fuerza a encuadrar el recorrido activo completo.
+  encuadrarTick?: number;
 }
 
 export function MapaLeaflet({
@@ -994,6 +1013,7 @@ export function MapaLeaflet({
   modoEditarNodos,
   vaciarTrigger,
   modoEnfoque,
+  encuadrarTick,
 }: MapaLeafletProps) {
   const editando = modoEdicion !== null;
   // Enfoque activo solo si además hay un recorrido seleccionado.
@@ -1032,6 +1052,7 @@ export function MapaLeaflet({
       )}
 
       <AjustarVista recorrido={editando ? recorridoEditando : recorridoActivo} />
+      <EncuadrarRecorrido recorrido={recorridoActivo} tick={encuadrarTick ?? 0} />
       <ZoomAZona zona={zoomarAZona ?? null} recorridos={recorridos} />
       {onClickMapa && <ClickFuera onClickMapa={onClickMapa} />}
 

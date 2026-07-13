@@ -45,6 +45,7 @@ interface MapaWrapperProps {
   modoEditarNodos?: boolean;
   vaciarTrigger?: number;
   modoEnfoque?: boolean;
+  encuadrarTick?: number;
 }
 
 export function MapaWrapper(props: MapaWrapperProps) {
