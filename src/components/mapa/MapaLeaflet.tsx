@@ -75,8 +75,10 @@ function CapturaRecorrido({
         map.invalidateSize();
         const bounds = L.geoJSON(JSON.parse(geojson)).getBounds();
         if (!bounds.isValid()) { onListo?.(false); return; }
-        // Encuadre sin animación → la vista queda fija de inmediato.
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16, animate: false });
+        // Encuadre sin animación → la vista queda fija de inmediato. Margen
+        // chico para aprovechar la imagen: el recorrido ocupa casi todo el
+        // cuadro, dejando solo un borde para ver las calles que lo delimitan.
+        map.fitBounds(bounds, { padding: [18, 18], maxZoom: 17, animate: false });
       } catch { onListo?.(false); return; }
       // Esperar a que carguen los tiles del nuevo encuadre antes de capturar.
       await new Promise((r) => setTimeout(r, 1300));
