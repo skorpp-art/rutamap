@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   Upload, Package, Calendar, RefreshCw, CheckCircle2, XCircle, Search,
-  AlertTriangle, MapPin, Truck, ChevronDown, ChevronRight, RotateCcw,
+  AlertTriangle, MapPin, Truck, ChevronDown, ChevronRight, RotateCcw, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -40,6 +40,7 @@ interface Props {
   soloNoRecibidos: boolean; setSoloNoRecibidos: (v: boolean) => void;
   cadeteExpandido: string | null; setCadeteExpandido: (v: string | null) => void;
   onArchivo: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onEliminarDia: () => void;
   recargar: () => void;
   setPendientes: React.Dispatch<React.SetStateAction<Pendiente[]>>;
 }
@@ -48,7 +49,7 @@ export function PendientesUI({
   vista, setVista,
   fecha, setFecha, fechas, pendientes, stats, cargando, importando, puedeEditar,
   busqueda, setBusqueda, soloNoRecibidos, setSoloNoRecibidos,
-  cadeteExpandido, setCadeteExpandido, onArchivo,
+  cadeteExpandido, setCadeteExpandido, onArchivo, onEliminarDia,
   recargar, setPendientes,
 }: Props) {
 
@@ -220,12 +221,20 @@ export function PendientesUI({
                 <RefreshCw className={cn("h-4 w-4 text-muted-foreground", cargando && "animate-spin")} />
               </button>
               {puedeEditar && (
-                <label className={cn("inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium cursor-pointer",
+                <label title={`Importa el Excel en la fecha seleccionada (${fecha})`}
+                  className={cn("inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium cursor-pointer",
                   "bg-brand-blue text-white hover:bg-brand-blue/90", importando && "opacity-60 pointer-events-none")}>
                   <Upload className="h-4 w-4" />
                   {importando ? "Importando…" : "Importar Excel"}
                   <input type="file" accept=".xlsx,.xls" className="hidden" onChange={onArchivo} disabled={importando} />
                 </label>
+              )}
+              {puedeEditar && pendientes.length > 0 && (
+                <button onClick={onEliminarDia} title={`Eliminar la planilla del ${fecha}`}
+                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium border border-red-300 dark:border-red-900 text-red-600 dark:text-red-300 hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors">
+                  <Trash2 className="h-4 w-4" />
+                  Eliminar planilla
+                </button>
               )}
             </>
           )}

@@ -108,6 +108,21 @@ export async function importarPendientes(
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
+// Borra toda la planilla de una fecha (filas con fecha_ultima_vista = fecha).
+// Sirve para deshacer una importación cargada mal o limpiar un día.
+export async function eliminarPendientesDia(
+  fecha: string
+): Promise<{ ok: boolean; eliminados?: number; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("eliminar_pendientes_dia", { p_fecha: fecha });
+    if (error) return { ok: false, error: error.message };
+    revalidatePath("/pendientes");
+    return { ok: true, eliminados: (data ?? 0) as number };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
 export async function marcarPendiente(
   id: string, estado: EstadoRecepcion, motivo?: string | null, observacion?: string | null
 ): Promise<{ ok: boolean; error?: string }> {

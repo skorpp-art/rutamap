@@ -36,17 +36,15 @@ function parseFechaHogareno(v: unknown): string | null {
   return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}T${hh.padStart(2, "0")}:${mm}:00`;
 }
 
-interface ParseResult { fecha: string; fechaGenerado: string | null; filas: PendienteFila[]; warning?: string }
+interface ParseResult { fechaGenerado: string | null; filas: PendienteFila[]; warning?: string }
 
 async function parsearExcelPendientes(file: File): Promise<ParseResult> {
   const XLSX = await import("xlsx");
   const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
 
   // Fecha del reporte: título de "Resumen General" → "Generado: 03/07/2026".
-  // OJO: esto es la fecha de corte del reporte de origen, NO necesariamente
-  // el día que se está cargando (el archivo puede decir "ayer" aunque se
-  // suba hoy). El import siempre usa la fecha real de HOY; esto solo se
-  // guarda para avisar si difieren mucho.
+  // Es la fecha de corte del reporte de origen; se usa solo para avisar si
+  // difiere de la fecha en la que se está cargando (la del selector).
   let fechaGenerado: string | null = null;
   if (wb.SheetNames.includes("Resumen General")) {
     const rg = XLSX.utils.sheet_to_json(wb.Sheets["Resumen General"], { header: 1, defval: "" }) as unknown[][];
@@ -55,11 +53,10 @@ async function parsearExcelPendientes(file: File): Promise<ParseResult> {
       if (f) { fechaGenerado = f; break; }
     }
   }
-  const fecha = hoyAR();
 
   // Detalle: hoja "Todos los Pendientes" (única con macrozona + todo junto)
   if (!wb.SheetNames.includes("Todos los Pendientes")) {
-    return { fecha, fechaGenerado, filas: [], warning: 'El archivo no parece ser el reporte de Pendientes (falta la hoja "Todos los Pendientes").' };
+    return { fechaGenerado, filas: [], warning: 'El archivo no parece ser el reporte de Pendientes (falta la hoja "Todos los Pendientes").' };
   }
   const rows = XLSX.utils.sheet_to_json(wb.Sheets["Todos los Pendientes"], { header: 1, defval: "" }) as unknown[][];
   const filas: PendienteFila[] = [];
@@ -80,7 +77,7 @@ async function parsearExcelPendientes(file: File): Promise<ParseResult> {
       cliente: String(r[8] ?? "").trim() || null,
     });
   }
-  return { fecha, fechaGenerado, filas };
+  return { fechaGenerado, filas };
 }
 
 // ── Componente principal ─────────────────────────────────────────────────────
@@ -115,16 +112,30 @@ export function PendientesPanel({ puedeEditar }: { puedeEditar: boolean }) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    // Se carga en la fecha elegida en el selector (no siempre "hoy").
+    const fechaDestino = fecha;
     setImportando(true);
     try {
-      const { fecha: fechaHoy, fechaGenerado, filas, warning } = await parsearExcelPendientes(file);
+      const { fechaGenerado, filas, warning } = await parsearExcelPendientes(file);
       if (warning) { toast.error(warning); return; }
       if (filas.length === 0) { toast.error("No se encontraron pendientes en el archivo"); return; }
-      if (fechaGenerado && fechaGenerado !== fechaHoy) {
-        toast.info(`El archivo dice "Generado: ${fechaGenerado}" pero se está cargando como ${fechaHoy} (hoy)`);
+      if (fechaGenerado && fechaGenerado !== fechaDestino) {
+        toast.info(`El archivo dice "Generado: ${fechaGenerado}" y lo estás cargando en ${fechaDestino}`);
       }
-      await ejecutarImport(fechaHoy, filas);
+      await ejecutarImport(fechaDestino, filas);
     } finally { setImportando(false); }
+  }
+
+  async function onEliminarDia() {
+    const f = fecha;
+    const total = pendientes.length;
+    if (total === 0) { toast.error("No hay planilla cargada en esta fecha"); return; }
+    if (!confirm(`¿Eliminar la planilla del ${f}? Se van a borrar ${total} pendientes de ese día. No se puede deshacer.`)) return;
+    const { eliminarPendientesDia } = await import("@/app/actions/pendientes");
+    const res = await eliminarPendientesDia(f);
+    if (!res.ok) { toast.error("No se pudo eliminar la planilla", { description: res.error }); return; }
+    toast.success(`Planilla del ${f} eliminada (${res.eliminados ?? 0} pendientes)`);
+    await Promise.all([cargar(f), cargarFechas()]);
   }
 
   // Ya no borra ni reemplaza un día: cada fila se fusiona por tracking (ver
@@ -195,6 +206,7 @@ export function PendientesPanel({ puedeEditar }: { puedeEditar: boolean }) {
       soloNoRecibidos={soloNoRecibidos} setSoloNoRecibidos={setSoloNoRecibidos}
       cadeteExpandido={cadeteExpandido} setCadeteExpandido={setCadeteExpandido}
       onArchivo={onArchivo}
+      onEliminarDia={onEliminarDia}
       recargar={() => cargar(fecha)}
       setPendientes={setPendientes}
     />
