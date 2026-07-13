@@ -83,6 +83,21 @@ export async function guardarAnalisisDiario(
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
+// Borra todos los datos de Análisis del Día de una fecha (para deshacer una
+// carga hecha por error, ej: un día que no se trabajó).
+export async function eliminarAnalisisDia(
+  fecha: string
+): Promise<{ ok: boolean; eliminados?: number; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("eliminar_analisis_dia", { p_fecha: fecha });
+    if (error) return { ok: false, error: error.message };
+    revalidatePath("/analisis-diario");
+    return { ok: true, eliminados: (data ?? 0) as number };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
 export async function getTardeDetalleDia(
   fecha: string
 ): Promise<{ ok: boolean; data?: TardeDetalleFila[]; error?: string }> {

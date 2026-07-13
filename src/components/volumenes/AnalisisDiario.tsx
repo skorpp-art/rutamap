@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Upload, FileSpreadsheet, CheckCircle, AlertTriangle, Calendar,
   Search, Package, Users, Clock, RefreshCw, Truck, MapPin, Layers,
-  ChevronDown, ChevronRight, X,
+  ChevronDown, ChevronRight, X, Trash2,
 } from "lucide-react";
 import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid,
@@ -836,6 +836,22 @@ function DiaView({
         <button onClick={onRefrescar} className="text-muted-foreground hover:text-foreground ml-auto">
           <RefreshCw className={cn("h-3.5 w-3.5", cargando && "animate-spin")} />
         </button>
+        {resumen && (
+          <button
+            onClick={async () => {
+              if (!confirm(`¿Eliminar TODOS los datos de Análisis del Día del ${fecha}?\n\nSe borran resumen, estados, clientes y detalle post-21hs de esa fecha. No se puede deshacer.`)) return;
+              const { eliminarAnalisisDia } = await import("@/app/actions/analisis-diario");
+              const res = await eliminarAnalisisDia(fecha);
+              if (!res.ok) { toast.error("No se pudo eliminar el día", { description: res.error }); return; }
+              toast.success(`Datos del ${fecha} eliminados (${res.eliminados ?? 0} registros)`);
+              onRefrescar();
+            }}
+            title={`Eliminar los datos del ${fecha}`}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium border border-red-300 dark:border-red-900 text-red-600 dark:text-red-300 hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors">
+            <Trash2 className="h-3.5 w-3.5" />
+            Eliminar fecha
+          </button>
+        )}
       </div>
 
       {!resumen && !cargando ? (
