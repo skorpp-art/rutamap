@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   X, MapPin, Tag, Calendar, Pencil, Route,
-  Settings2, PowerOff, Power, Check, Copy, Printer, Trash2, Eye,
+  Settings2, PowerOff, Power, Check, Copy, Printer, Trash2, Eye, User,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,8 @@ interface PanelDetalleProps {
   modoEdicion?: ModoEdicion;
   onImprimirRecorrido?: () => void;
   puedeEditar?: boolean;
+  // Conductor asignado hoy a este recorrido (desde Carga del Día).
+  choferHoy?: { chofer: string; turno: string } | null;
 }
 
 function Campo({ label, children }: { label: string; children: React.ReactNode }) {
@@ -153,6 +155,7 @@ export function PanelDetalle({
   modoEdicion = null,
   onImprimirRecorrido,
   puedeEditar = true,
+  choferHoy = null,
 }: PanelDetalleProps) {
   const router = useRouter();
   const [dialogEditarOpen, setDialogEditarOpen] = useState(false);
@@ -295,6 +298,17 @@ export function PanelDetalle({
           <X className="h-3.5 w-3.5" />
         </Button>
       </div>
+
+      {/* Conductor asignado hoy (desde Carga del Día, por código) */}
+      {choferHoy && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-950/40 border-b border-blue-200 dark:border-blue-900">
+          <User className="h-3.5 w-3.5 text-blue-600 dark:text-blue-300 shrink-0" />
+          <span className="text-xs text-blue-800 dark:text-blue-200">
+            Conductor hoy: <b>{choferHoy.chofer}</b>
+            {choferHoy.turno === "preturno" && <span className="text-blue-500 dark:text-blue-400"> · pre-turno</span>}
+          </span>
+        </div>
+      )}
 
       {/* Banner modo edición geometría */}
       {editandoGeometria && (

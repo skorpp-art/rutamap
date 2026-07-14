@@ -18,7 +18,7 @@ export interface PuntoDireccion {
   lat: number;
   lon: number;
   label: string;
-  recorridos: { codigo: string; nombre: string; zona: string; color: string; activo: boolean }[];
+  recorridos: { codigo: string; nombre: string; zona: string; color: string; activo: boolean; chofer: string | null }[];
 }
 
 // Fix íconos de marcadores de Leaflet con webpack/Next.js
@@ -160,11 +160,18 @@ function MarcadorDireccion({ punto }: { punto: PuntoDireccion | null }) {
                 {punto.recorridos.length > 1 ? "Recorridos que la incluyen" : "Recorrido"}
               </p>
               {punto.recorridos.map((r) => (
-                <div key={r.codigo} className="flex items-center gap-1.5 text-[12px]">
-                  <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: r.color }} />
-                  <span className="font-mono font-bold">{r.codigo}</span>
-                  <span className="text-neutral-600 truncate">— {r.nombre}</span>
-                  {!r.activo && <span className="text-[10px] text-amber-600">(inactivo)</span>}
+                <div key={r.codigo} className="space-y-0.5">
+                  <div className="flex items-center gap-1.5 text-[12px]">
+                    <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: r.color }} />
+                    <span className="font-mono font-bold">{r.codigo}</span>
+                    <span className="text-neutral-600 truncate">— {r.nombre}</span>
+                    {!r.activo && <span className="text-[10px] text-amber-600">(inactivo)</span>}
+                  </div>
+                  <p className="text-[11px] pl-4">
+                    {r.chofer
+                      ? <>Conductor hoy: <b>{r.chofer}</b></>
+                      : <span className="text-neutral-400">Sin conductor asignado hoy</span>}
+                  </p>
                 </div>
               ))}
             </div>

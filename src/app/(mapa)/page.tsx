@@ -1,6 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { VistaMapaClient } from "@/components/mapa/VistaMapaClient";
+import { getCargaDia } from "@/app/actions/carga-dia";
+import { hoyAR } from "@/lib/fechas";
 import type { RecorridoGeo } from "@/types/database.types";
+
+export interface ChoferHoy { chofer: string; turno: string; }
 
 export default async function MapaPage() {
   const supabase = await createClient();
@@ -23,9 +27,20 @@ export default async function MapaPage() {
 
   const recorridos: RecorridoGeo[] = (data as unknown as RecorridoGeo[]) ?? [];
 
+  // Conductor asignado hoy a cada recorrido (por código), desde Carga del Día.
+  // Un recorrido aparece una sola vez en la carga del día (el turno según su
+  // tipo), así que un pre-turno trae su chofer de pre-turno automáticamente.
+  const choferesHoy: Record<string, ChoferHoy> = {};
+  const cargaRes = await getCargaDia(hoyAR());
+  if (cargaRes.ok) {
+    for (const f of cargaRes.data ?? []) {
+      if (f.chofer && f.chofer.trim()) choferesHoy[f.codigo] = { chofer: f.chofer.trim(), turno: f.turno };
+    }
+  }
+
   return (
     <div className="h-full w-full overflow-hidden">
-      <VistaMapaClient recorridos={recorridos} puedeEditar={puedeEditar} />
+      <VistaMapaClient recorridos={recorridos} puedeEditar={puedeEditar} choferesHoy={choferesHoy} />
     </div>
   );
 }

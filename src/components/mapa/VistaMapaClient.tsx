@@ -45,6 +45,8 @@ function colorCalor(prom: number | undefined): string {
 interface VistaMapaClientProps {
   recorridos: RecorridoGeo[];
   puedeEditar?: boolean;
+  // Conductor asignado hoy por código de recorrido (desde Carga del Día).
+  choferesHoy?: Record<string, { chofer: string; turno: string }>;
 }
 
 const LABELS_MODO: Record<NonNullable<ModoEdicion>, string> = {
@@ -234,7 +236,7 @@ function computarSolapamientos(recorridos: RecorridoGeo[]): string[] {
   return resultados;
 }
 
-export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaClientProps) {
+export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = {} }: VistaMapaClientProps) {
   const router = useRouter();
   const [recorridoActivoId, setRecorridoActivoId] = useState<string | null>(null);
   const [modoEdicion, setModoEdicion] = useState<ModoEdicion>(null);
@@ -414,7 +416,10 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
         const geom: any = JSON.parse(r.area_geojson);
         const feat = geom.type === "Feature" ? geom : turf.feature(geom);
         if (turf.booleanPointInPolygon(pt, feat)) {
-          contenedores.push({ codigo: r.codigo, nombre: r.nombre, zona: r.zona, color: r.color, activo: r.activo });
+          contenedores.push({
+            codigo: r.codigo, nombre: r.nombre, zona: r.zona, color: r.color, activo: r.activo,
+            chofer: choferesHoy[r.codigo]?.chofer ?? null,
+          });
         }
       } catch { /* geometría problemática — ignorar */ }
     }
@@ -1133,6 +1138,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true }: VistaMapaCli
           modoEdicion={modoEdicion}
           onImprimirRecorrido={handleImprimirRecorrido}
           puedeEditar={puedeEditar}
+          choferHoy={choferesHoy[recorridoActivo.codigo] ?? null}
         />
       )}
     </div>
