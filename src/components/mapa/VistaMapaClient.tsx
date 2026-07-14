@@ -720,6 +720,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
           encuadrarTick={encuadrarTick}
           onDescargaLista={onDescargaLista}
           puntoDireccion={puntoDireccion}
+          modoCalor={mostrarCalor}
         />
 
         {/* Buscador de localidades — solo visible al editar área */}

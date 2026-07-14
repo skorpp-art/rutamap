@@ -48,6 +48,7 @@ interface MapaWrapperProps {
   encuadrarTick?: number;
   onDescargaLista?: (ok: boolean) => void;
   puntoDireccion?: import("./MapaLeaflet").PuntoDireccion | null;
+  modoCalor?: boolean;
 }
 
 export function MapaWrapper(props: MapaWrapperProps) {

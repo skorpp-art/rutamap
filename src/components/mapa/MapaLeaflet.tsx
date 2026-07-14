@@ -1083,6 +1083,8 @@ interface MapaLeafletProps {
   onDescargaLista?: (ok: boolean) => void;
   // Pin de la dirección buscada.
   puntoDireccion?: PuntoDireccion | null;
+  // Modo calor de volumen: refuerza el relleno para que el color se lea.
+  modoCalor?: boolean;
 }
 
 export function MapaLeaflet({
@@ -1111,6 +1113,7 @@ export function MapaLeaflet({
   encuadrarTick,
   onDescargaLista,
   puntoDireccion,
+  modoCalor,
 }: MapaLeafletProps) {
   const editando = modoEdicion !== null;
   // Enfoque activo solo si además hay un recorrido seleccionado.
@@ -1194,14 +1197,15 @@ export function MapaLeaflet({
         }
         return (
           <GeoJSON
-            key={`area-${r.id}-${r.actualizado_en}-${seleccionado}-${r.color}-${enfocando}`}
+            key={`area-${r.id}-${r.actualizado_en}-${seleccionado}-${r.color}-${enfocando}-${modoCalor}`}
             data={geom as GeoJSON.GeoJsonObject}
             style={{
               color: r.color,
               weight: seleccionado ? (enfocando ? 4.5 : 3) : 1.5,
-              opacity: editando ? 0.2 : enfocando ? (seleccionado ? 1 : 0.12) : inactivo ? 0.35 : seleccionado ? 1 : 0.75,
+              opacity: editando ? 0.2 : enfocando ? (seleccionado ? 1 : 0.12) : inactivo ? 0.35 : modoCalor ? 0.9 : seleccionado ? 1 : 0.75,
               fillColor: r.color,
-              fillOpacity: editando ? 0.04 : enfocando ? (seleccionado ? 0.4 : 0.02) : inactivo ? 0.04 : seleccionado ? 0.28 : 0.12,
+              // En modo calor el relleno va fuerte (0.55) para que el color se lea claro.
+              fillOpacity: editando ? 0.04 : modoCalor ? 0.55 : enfocando ? (seleccionado ? 0.4 : 0.02) : inactivo ? 0.04 : seleccionado ? 0.28 : 0.12,
               dashArray: inactivo && !seleccionado ? "4 4" : undefined,
             }}
             eventHandlers={
