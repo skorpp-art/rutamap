@@ -14,8 +14,8 @@ import { DashboardCobertura } from "./DashboardCobertura";
 import type { PuntoDireccion } from "./MapaLeaflet";
 import { Button } from "@/components/ui/button";
 import {
-  Pencil, Scissors, Undo2, Satellite, Map as MapIcon,
-  Layers, BarChart2, ZoomIn, Wand2, Trash2, PenTool, Flame, Check, Crosshair,
+  Pencil, Scissors, Undo2,
+  BarChart2, ZoomIn, Wand2, Trash2, PenTool, Flame, Check, Crosshair,
   Download, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -214,28 +214,6 @@ function simplParaDisplay(geojsonStr: string): string {
   return result;
 }
 
-function computarSolapamientos(recorridos: RecorridoGeo[]): string[] {
-  const conArea = recorridos.filter((r) => r.activo && r.area_geojson);
-  const resultados: string[] = [];
-  for (let i = 0; i < conArea.length; i++) {
-    for (let j = i + 1; j < conArea.length; j++) {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const geomA: any = JSON.parse(conArea[i].area_geojson!);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const geomB: any = JSON.parse(conArea[j].area_geojson!);
-        const featA = geomA.type === "Feature" ? geomA : turf.feature(geomA);
-        const featB = geomB.type === "Feature" ? geomB : turf.feature(geomB);
-        const interseccion = turf.intersect(turf.featureCollection([featA, featB]));
-        if (interseccion) {
-          resultados.push(JSON.stringify(interseccion.geometry));
-        }
-      } catch { /* ignorar pares problemáticos */ }
-    }
-  }
-  return resultados;
-}
-
 export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = {} }: VistaMapaClientProps) {
   const router = useRouter();
   const [recorridoActivoId, setRecorridoActivoId] = useState<string | null>(null);
@@ -254,16 +232,12 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
   const [vaciarTrigger, setVaciarTrigger] = useState(0);
 
   // Nuevos estados — mejoras
-  const [capaSatelite, setCapaSatelite] = useState(false);
   const [modoEnfoque, setModoEnfoque] = useState(false);
   const [encuadrarTick, setEncuadrarTick] = useState(0);
   const [descargandoImg, setDescargandoImg] = useState(false);
   const [puntoDireccion, setPuntoDireccion] = useState<PuntoDireccion | null>(null);
   const [zoomarAZona, setZoomarAZona] = useState<Zona | null>(null);
   const [mostrarZonas, setMostrarZonas] = useState(false);
-  const [mostrarSolapamientos, setMostrarSolapamientos] = useState(false);
-  const [solapamientos, setSolapamientos] = useState<string[]>([]);
-  const [calculandoSolap, setCalculandoSolap] = useState(false);
   const [mostrarDashboard, setMostrarDashboard] = useState(false);
 
   // Calor de volumen (solo logueados — dato operativo privado)
@@ -381,28 +355,6 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
     setVaciarTrigger((v) => v + 1);
     toast.info("Área vaciada. Dibujá o buscá localidades para empezar de nuevo.");
   }
-
-  // ── Solapamientos: calcular cuando se activa ─────────────────────────────────
-  useEffect(() => {
-    if (!mostrarSolapamientos) {
-      setSolapamientos([]);
-      return;
-    }
-    setCalculandoSolap(true);
-    // Diferir para no bloquear el render
-    const t = setTimeout(() => {
-      const result = computarSolapamientos(recorridos);
-      setSolapamientos(result);
-      setCalculandoSolap(false);
-      if (result.length === 0) {
-        toast.success("¡Sin solapamientos detectados entre rutas activas!");
-      } else {
-        toast.warning(`${result.length} zona${result.length > 1 ? "s" : ""} con solapamiento detectada${result.length > 1 ? "s" : ""}`);
-      }
-    }, 50);
-    return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mostrarSolapamientos]);
 
   // Al elegir una dirección buscada: coloca el pin y calcula a qué recorrido(s)
   // pertenece (point-in-polygon sobre las áreas). Resalta el primero que la contiene.
@@ -759,9 +711,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
           onTrazaReemplazada={() => setTrazaReemplazar(null)}
           herramientaActiva={herramientaActiva}
           onHerramientaFin={() => setHerramientaActiva(null)}
-          capaSatelite={capaSatelite}
           zoomarAZona={zoomarAZona}
-          solapamientos={mostrarSolapamientos ? solapamientos : []}
           onClickMapa={() => { setMostrarZonas(false); setMostrarDashboard(false); }}
           modoPluma={modoPluma}
           modoEditarNodos={modoEditarNodos}
@@ -799,21 +749,6 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
             data-no-export
             className="absolute top-3 right-3 z-[900] flex flex-col gap-1.5 items-end"
           >
-            {/* Toggle mapa/satélite */}
-            <Button
-              size="sm"
-              variant="secondary"
-              className={cn(
-                "shadow-md gap-1.5 h-8 text-xs",
-                capaSatelite && "bg-blue-600 text-white hover:bg-blue-700"
-              )}
-              onClick={() => setCapaSatelite((v) => !v)}
-              title={capaSatelite ? "Volver a mapa de calles" : "Ver imagen satelital"}
-            >
-              {capaSatelite ? <MapIcon className="h-3.5 w-3.5" /> : <Satellite className="h-3.5 w-3.5" />}
-              {capaSatelite ? "Mapa" : "Satélite"}
-            </Button>
-
             {/* Enfocar el recorrido seleccionado (atenúa el resto para una
                 imagen limpia al exportar). Solo con un recorrido activo. */}
             {recorridoActivo && (
@@ -878,22 +813,6 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
                 </div>
               )}
             </div>
-
-            {/* Detectar solapamientos */}
-            <Button
-              size="sm"
-              variant="secondary"
-              className={cn(
-                "shadow-md gap-1.5 h-8 text-xs",
-                mostrarSolapamientos && "bg-red-500 text-white hover:bg-red-600"
-              )}
-              onClick={() => setMostrarSolapamientos((v) => !v)}
-              disabled={calculandoSolap}
-              title="Detectar zonas donde se solapan dos recorridos"
-            >
-              <Layers className="h-3.5 w-3.5" />
-              {calculandoSolap ? "Calculando…" : mostrarSolapamientos ? "Ocultar solap." : "Solapamientos"}
-            </Button>
 
             {/* Dashboard de cobertura */}
             <Button
