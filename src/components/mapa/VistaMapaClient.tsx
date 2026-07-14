@@ -15,7 +15,7 @@ import type { PuntoDireccion } from "./MapaLeaflet";
 import { Button } from "@/components/ui/button";
 import {
   Pencil, Scissors, Undo2,
-  BarChart2, ZoomIn, Wand2, Trash2, PenTool, Flame, Check, Crosshair,
+  BarChart2, Wand2, Trash2, PenTool, Flame, Check, Crosshair,
   Download, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,7 +24,6 @@ import { getCalorRecorridos, type CalorRecorrido } from "@/app/actions/volumenes
 import { PALETA } from "@/lib/estados";
 import type { ModoEdicion } from "./MapaLeaflet";
 import type { RecorridoGeo, Zona } from "@/types/database.types";
-import { ZONAS } from "@/types/database.types";
 import { hoyAR } from "@/lib/fechas";
 
 // ── Calor de volumen: color por promedio de paquetes del recorrido ──────────
@@ -236,8 +235,6 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
   const [encuadrarTick, setEncuadrarTick] = useState(0);
   const [descargandoImg, setDescargandoImg] = useState(false);
   const [puntoDireccion, setPuntoDireccion] = useState<PuntoDireccion | null>(null);
-  const [zoomarAZona, setZoomarAZona] = useState<Zona | null>(null);
-  const [mostrarZonas, setMostrarZonas] = useState(false);
   const [mostrarDashboard, setMostrarDashboard] = useState(false);
 
   // Calor de volumen (solo logueados — dato operativo privado)
@@ -617,13 +614,6 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
     }
   }
 
-  function handleZoomarAZona(zona: Zona) {
-    setMostrarZonas(false);
-    // Trigger zoom — si ya era la misma zona, setear null primero para re-triggerear
-    setZoomarAZona(null);
-    setTimeout(() => setZoomarAZona(zona), 10);
-  }
-
   const toggleVisible = useCallback((id: string) => {
     setVisibles((prev) => {
       const next = new Set(prev);
@@ -711,8 +701,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
           onTrazaReemplazada={() => setTrazaReemplazar(null)}
           herramientaActiva={herramientaActiva}
           onHerramientaFin={() => setHerramientaActiva(null)}
-          zoomarAZona={zoomarAZona}
-          onClickMapa={() => { setMostrarZonas(false); setMostrarDashboard(false); }}
+          onClickMapa={() => { setMostrarDashboard(false); }}
           modoPluma={modoPluma}
           modoEditarNodos={modoEditarNodos}
           vaciarTrigger={vaciarTrigger}
@@ -784,36 +773,6 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
                 {descargandoImg ? "Generando…" : "Descargar recorrido"}
               </Button>
             )}
-
-            {/* Zoom por zona */}
-            <div className="relative">
-              <Button
-                size="sm"
-                variant="secondary"
-                className={cn(
-                  "shadow-md gap-1.5 h-8 text-xs",
-                  mostrarZonas && "bg-slate-700 text-white hover:bg-slate-800"
-                )}
-                onClick={() => setMostrarZonas((v) => !v)}
-                title="Ir a una zona"
-              >
-                <ZoomIn className="h-3.5 w-3.5" />
-                Zona
-              </Button>
-              {mostrarZonas && (
-                <div className="absolute right-0 top-9 z-50 bg-background border rounded-lg shadow-md py-1 min-w-[100px]">
-                  {ZONAS.map((zona) => (
-                    <button
-                      key={zona}
-                      onClick={() => handleZoomarAZona(zona)}
-                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors"
-                    >
-                      {zona}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
 
             {/* Dashboard de cobertura */}
             <Button
