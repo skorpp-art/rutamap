@@ -522,25 +522,39 @@ export function VolumenesPanel() {
                               </tr>
                             </thead>
                             <tbody className="divide-y">
-                              {proyeccionZonas.filter(z => z.esperado > 0).map(z => (
-                                <tr key={z.zona} className="hover:bg-accent/20">
+                              {proyeccionZonas.map(z => {
+                                const sinDatos = z.esperado <= 0;
+                                return (
+                                <tr key={z.zona} className={cn("hover:bg-accent/20", sinDatos && "opacity-60")}>
                                   <td className="px-3 py-1.5 font-semibold">{z.zona}</td>
-                                  <td className="px-2 py-1.5 text-right tabular-nums font-bold text-blue-700 dark:text-blue-300">{z.esperado.toLocaleString("es-AR")}</td>
-                                  <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">{z.minimo}–{z.maximo}</td>
-                                  <td className="px-3 py-1.5 text-right tabular-nums font-bold">
-                                    {z.choferes_esp}
-                                    <span className="text-[10px] text-muted-foreground font-normal"> ({z.choferes_min}–{z.choferes_max})</span>
-                                  </td>
+                                  {sinDatos ? (
+                                    <>
+                                      <td colSpan={3} className="px-2 py-1.5 text-center text-[11px] text-muted-foreground italic">
+                                        Sin historial para este día todavía
+                                      </td>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <td className="px-2 py-1.5 text-right tabular-nums font-bold text-blue-700 dark:text-blue-300">{z.esperado.toLocaleString("es-AR")}</td>
+                                      <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">{z.minimo}–{z.maximo}</td>
+                                      <td className="px-3 py-1.5 text-right tabular-nums font-bold">
+                                        {z.choferes_esp}
+                                        <span className="text-[10px] text-muted-foreground font-normal"> ({z.choferes_min}–{z.choferes_max})</span>
+                                      </td>
+                                    </>
+                                  )}
                                   <td className="px-2 py-1.5 text-center">
                                     <span className={cn("text-[9px] font-semibold px-1.5 py-0.5 rounded-full",
+                                      sinDatos ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500" :
                                       z.confianza === "alta" ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300" :
                                       z.confianza === "media" ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300" :
                                       "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300")}>
-                                      {z.confianza}
+                                      {sinDatos ? "s/d" : z.confianza}
                                     </span>
                                   </td>
                                 </tr>
-                              ))}
+                                );
+                              })}
                             </tbody>
                             <tfoot className="border-t bg-muted/20 font-semibold">
                               <tr>
