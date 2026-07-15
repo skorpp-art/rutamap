@@ -11,12 +11,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle, ArrowLeft, TrendingUp, Settings2, BarChart3, Wrench,
-  CalendarDays, CalendarOff, LineChart, ClipboardList, FileText, Lightbulb,
+  CalendarDays, CalendarOff, LineChart, ClipboardList, FileText, Lightbulb, Layers,
 } from "lucide-react";
 import {
   getDashboardSemanalV2, getResumenSemanalV2,
   getTopClientes,
-  getProyeccionDiaV2, getBandasControl,
+  getProyeccionDiaV2, getProyeccionZonas, getBandasControl,
   getCalidadDatos,
   getRecorridosBase,
   getPlantillasSemanales,
@@ -31,7 +31,7 @@ import { HistorialDias } from "./HistorialDias";
 import { InformeMensual } from "./InformeMensual";
 import type {
   DashboardDiaV2, ResumenSemanalV2, ClienteDia,
-  ProyeccionDiaV2, BandaControl, CalidadDatos,
+  ProyeccionDiaV2, ProyeccionZona, BandaControl, CalidadDatos,
   PlantillaCelda,
 } from "@/app/actions/volumenes";
 import { PALETA, ESTADO, clasificarRiesgo } from "@/lib/estados";
@@ -140,6 +140,7 @@ export function VolumenesPanel() {
 
   const [fechaProyeccion, setFechaProyeccion] = useState(addDias(hoy(), 1));
   const [proyeccion, setProyeccion] = useState<ProyeccionDiaV2 | null>(null);
+  const [proyeccionZonas, setProyeccionZonas] = useState<ProyeccionZona[]>([]);
   const [calculando, setCalculando] = useState(false);
   const [recomendaciones, setRecomendaciones] = useState<import("@/app/actions/operaciones-diarias").Recomendacion[]>([]);
   const [calcPaquetes, setCalcPaquetes] = useState<number>(0);
@@ -257,7 +258,11 @@ export function VolumenesPanel() {
   async function calcularProyeccion() {
     setCalculando(true);
     try {
-      const resProy = await getProyeccionDiaV2(fechaProyeccion, targetPkg, rutasFijasCount);
+      const [resProy, resZonas] = await Promise.all([
+        getProyeccionDiaV2(fechaProyeccion, targetPkg, rutasFijasCount),
+        getProyeccionZonas(fechaProyeccion, targetPkg),
+      ]);
+      setProyeccionZonas(resZonas.ok ? (resZonas.data ?? []) : []);
       if (!resProy.ok || !resProy.data) {
         toast.error("Error al calcular proyección", { description: resProy.error });
       } else {
@@ -497,6 +502,66 @@ export function VolumenesPanel() {
                           );
                         })}
                       </div>
+                      {/* ── Proyección por zona (dónde poner la gente) ── */}
+                      {proyeccionZonas.some(z => z.esperado > 0) && (
+                        <div className="border rounded-lg overflow-hidden">
+                          <div className="px-3 py-2 bg-blue-50 dark:bg-blue-950/40 border-b border-blue-200 dark:border-blue-900 flex items-center justify-between">
+                            <span className="text-xs font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                              <Layers className="h-3.5 w-3.5" /> Proyección por zona — choferes sugeridos
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">objetivo {targetPkg} pkg/chofer</span>
+                          </div>
+                          <table className="w-full text-xs">
+                            <thead className="bg-muted/30 text-muted-foreground">
+                              <tr>
+                                <th className="text-left px-3 py-1.5 font-medium">Zona</th>
+                                <th className="text-right px-2 py-1.5 font-medium">Paq. esperados</th>
+                                <th className="text-right px-2 py-1.5 font-medium">Rango</th>
+                                <th className="text-right px-3 py-1.5 font-medium">Choferes</th>
+                                <th className="text-center px-2 py-1.5 font-medium">Conf.</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {proyeccionZonas.filter(z => z.esperado > 0).map(z => (
+                                <tr key={z.zona} className="hover:bg-accent/20">
+                                  <td className="px-3 py-1.5 font-semibold">{z.zona}</td>
+                                  <td className="px-2 py-1.5 text-right tabular-nums font-bold text-blue-700 dark:text-blue-300">{z.esperado.toLocaleString("es-AR")}</td>
+                                  <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">{z.minimo}–{z.maximo}</td>
+                                  <td className="px-3 py-1.5 text-right tabular-nums font-bold">
+                                    {z.choferes_esp}
+                                    <span className="text-[10px] text-muted-foreground font-normal"> ({z.choferes_min}–{z.choferes_max})</span>
+                                  </td>
+                                  <td className="px-2 py-1.5 text-center">
+                                    <span className={cn("text-[9px] font-semibold px-1.5 py-0.5 rounded-full",
+                                      z.confianza === "alta" ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300" :
+                                      z.confianza === "media" ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300" :
+                                      "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300")}>
+                                      {z.confianza}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot className="border-t bg-muted/20 font-semibold">
+                              <tr>
+                                <td className="px-3 py-1.5">Total</td>
+                                <td className="px-2 py-1.5 text-right tabular-nums text-blue-700 dark:text-blue-300">
+                                  {proyeccionZonas.reduce((s, z) => s + z.esperado, 0).toLocaleString("es-AR")}
+                                </td>
+                                <td />
+                                <td className="px-3 py-1.5 text-right tabular-nums">
+                                  {proyeccionZonas.reduce((s, z) => s + z.choferes_esp, 0)}
+                                </td>
+                                <td />
+                              </tr>
+                            </tfoot>
+                          </table>
+                          <p className="text-[10px] text-muted-foreground px-3 py-1.5 border-t">
+                            Basado en el histórico de Carga del Día del mismo día de la semana. La confianza sube a medida que se acumulan semanas.
+                          </p>
+                        </div>
+                      )}
+
                       {recomendaciones.length > 0 && (
                         <div className="border rounded-lg overflow-hidden">
                           <div className="px-3 py-2 bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-900">

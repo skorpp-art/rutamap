@@ -290,6 +290,36 @@ export async function getProyeccionDiaV2(
   }
 }
 
+// Proyección de paquetes y choferes por ZONA (histórico de Carga del Día).
+export interface ProyeccionZona {
+  zona: string;
+  registros: number;
+  esperado: number;
+  minimo: number;
+  maximo: number;
+  std_dev: number;
+  confianza: "alta" | "media" | "baja";
+  choferes_min: number;
+  choferes_esp: number;
+  choferes_max: number;
+}
+
+export async function getProyeccionZonas(
+  fecha: string, target = 30
+): Promise<{ ok: boolean; data?: ProyeccionZona[]; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("get_proyeccion_zonas", {
+      p_fecha: fecha, p_target: target,
+    });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, data: (data ?? []) as ProyeccionZona[] };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
 export interface HistorialDiaDetalle {
   fecha: string;
   dia_nombre: string;
