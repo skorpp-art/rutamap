@@ -533,12 +533,21 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
     });
   }, [filasVisibles]);
 
+  // Filas que alimentan las tarjetas de resumen. En "Todas" es el día completo
+  // (tarde + pre-turno); si hay una zona elegida, esa zona; si es el pre-turno,
+  // solo el pre-turno. Así el "Gran total" incluye los pre-turnos.
+  const filasParaTotal = useMemo(() => {
+    if (filtro === null) return filas;              // todo el día, ambos turnos
+    if (filtro === "preturno") return filasPre;
+    return filasTarde.filter(f => f.zona === filtro); // una zona de la tarde
+  }, [filtro, filas, filasPre, filasTarde]);
+
   const granTotal = useMemo(() => ({
-    sistema: filasVisibles.reduce((s, f) => s + f.sistema, 0),
-    xFuera: filasVisibles.reduce((s, f) => s + f.x_fuera, 0),
-    total: filasVisibles.reduce((s, f) => s + f.sistema + f.x_fuera, 0),
-    especiales: filasVisibles.reduce((s, f) => s + (especialesCount[f.recorrido_id] ?? 0), 0),
-  }), [filasVisibles, especialesCount]);
+    sistema: filasParaTotal.reduce((s, f) => s + f.sistema, 0),
+    xFuera: filasParaTotal.reduce((s, f) => s + f.x_fuera, 0),
+    total: filasParaTotal.reduce((s, f) => s + f.sistema + f.x_fuera, 0),
+    especiales: filasParaTotal.reduce((s, f) => s + (especialesCount[f.recorrido_id] ?? 0), 0),
+  }), [filasParaTotal, especialesCount]);
 
   // Recorridos del día que todavía no están en la carga del turno actual (para el selector)
   const rutasDisponibles = useMemo(() => {
@@ -577,7 +586,9 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
           <StatCard icon={Boxes} tono="slate" label="Sistema" valor={granTotal.sistema} />
           <StatCard icon={PackagePlus} tono="slate" label="X fuera" valor={granTotal.xFuera} />
           <StatCard icon={Sigma} tono="blue" label="Gran total" valor={granTotal.total}
-            sub={`${filasVisibles.length} recorridos`} />
+            sub={filtro === null
+              ? `${filasParaTotal.length} recorridos (día completo)`
+              : `${filasParaTotal.length} recorridos`} />
           <StatCard icon={Package} tono="amber" label="Especiales" valor={granTotal.especiales} />
           <StatCard icon={FileSpreadsheet} tono="blue" label="Paq. por cliente" valor={totalPaquetesCliente}
             sub={totalPaquetesCliente > 0 ? "Excel importado" : "sin importar"} />
