@@ -64,8 +64,15 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  // El middleware SOLO corre en las rutas que necesitan resolver sesión
+  // (protegidas + auth). Todo lo demás —mapa público, /sw.js, estáticos,
+  // payloads RSC— no lo invoca: menos ejecuciones y menos exposición a
+  // fallas de provisioning del edge runtime.
   matcher: [
-    // Excluir archivos estáticos y _next
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/volumenes/:path*",
+    "/usuarios/:path*",
+    "/pendientes/:path*",
+    "/login/:path*",
+    "/registro/:path*",
   ],
 };
