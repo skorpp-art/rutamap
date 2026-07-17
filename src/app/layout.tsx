@@ -12,6 +12,10 @@ export const metadata: Metadata = {
   description:
     "Visualizá, dibujá y exportá zonas de reparto para Mercado Envíos Flex — Logística Hogareño",
   applicationName: "RutaMap",
+  // La app ya está en español: desactivar la traducción automática del
+  // navegador (Google Translate), que al mutar el DOM rompe React con una
+  // "excepción del lado del cliente" al re-renderizar listas (ej: Pendientes).
+  other: { google: "notranslate" },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -36,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className="h-full" suppressHydrationWarning>
+    <html lang="es" translate="no" className="notranslate h-full" suppressHydrationWarning>
       <body className={`${inter.className} h-full antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
           {children}
