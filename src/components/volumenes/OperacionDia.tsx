@@ -377,6 +377,22 @@ export function OperacionDia({
   const capacidadMax35 = nActivas * 35;                          // límite aceptable
   const margenHasta35  = pkgTotal > 0 ? Math.max(0, capacidadMax35 - pkgTotal) : 0;
 
+  // ── Desglose por zona: choferes activos y paquetes que soporta cada zona ────
+  // choferes = rutas activas de la zona · capacidad = choferes × 40 (máx antes
+  // de sobrecarga). Los pre-turnos van como una fila aparte.
+  const ZONAS_RESUMEN = ["Oeste", "Norte", "Sur", "CABA"] as const;
+  const zonasResumen = [
+    ...ZONAS_RESUMEN.map(z => {
+      const rutas = activas.filter(r => r.zona === z && r.tipo !== "pre_turno");
+      return { zona: z as string, choferes: rutas.length, capacidad: rutas.length * 40 };
+    }),
+    (() => {
+      const rutas = activas.filter(r => r.tipo === "pre_turno");
+      return { zona: "Pre-Turno", choferes: rutas.length, capacidad: rutas.length * 40 };
+    })(),
+  ].filter(z => z.choferes > 0);
+  const capacidadTotalZonas = zonasResumen.reduce((s, z) => s + z.capacidad, 0);
+
   // Autoguardado: lee siempre el estado VIGENTE (refs), guarda, y al éxito
   // limpia solo lo efectivamente guardado. Los toggles hechos mientras se
   // guardaba quedan pendientes y disparan una nueva pasada automáticamente.
@@ -925,6 +941,43 @@ export function OperacionDia({
                           ? "⚠ Superado"
                           : `cap. ${capacidadMax40.toLocaleString("es-AR")} · ${pctBuffer}% libre`}
                       </p>
+                    </div>
+                  )}
+
+                  {/* Choferes y capacidad por zona */}
+                  {zonasResumen.length > 0 && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-1.5">Choferes y capacidad por zona</p>
+                      <div className="border rounded-lg overflow-hidden">
+                        <table className="w-full text-xs">
+                          <thead className="bg-muted/30 text-muted-foreground">
+                            <tr>
+                              <th className="text-left px-3 py-1.5 font-medium">Zona</th>
+                              <th className="text-right px-2 py-1.5 font-medium">Choferes</th>
+                              <th className="text-right px-3 py-1.5 font-medium">Soporta</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            {zonasResumen.map(z => (
+                              <tr key={z.zona}>
+                                <td className="px-3 py-1.5 font-semibold">{z.zona}</td>
+                                <td className="px-2 py-1.5 text-right tabular-nums">{z.choferes}</td>
+                                <td className="px-3 py-1.5 text-right tabular-nums font-semibold text-blue-700 dark:text-blue-300">
+                                  {z.capacidad.toLocaleString("es-AR")} <span className="text-[10px] text-muted-foreground font-normal">paq</span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot className="border-t bg-muted/20 font-semibold">
+                            <tr>
+                              <td className="px-3 py-1.5">Total</td>
+                              <td className="px-2 py-1.5 text-right tabular-nums">{zonasResumen.reduce((s, z) => s + z.choferes, 0)}</td>
+                              <td className="px-3 py-1.5 text-right tabular-nums text-blue-700 dark:text-blue-300">{capacidadTotalZonas.toLocaleString("es-AR")} <span className="text-[10px] text-muted-foreground font-normal">paq</span></td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1">Capacidad = choferes × 40 paq (máximo antes de sobrecarga).</p>
                     </div>
                   )}
 
