@@ -79,11 +79,15 @@ export function PendientesUI({
   // Contadores según la zona elegida
   const vTotal = visibles.length;
   const vRecibidos = visibles.filter(p => p.estado_recepcion === "recibido").length;
+  const vEntregados = visibles.filter(p => p.estado_recepcion === "entregado").length;
   const vNoRecibidos = visibles.filter(p => p.estado_recepcion === "no_recibido").length;
-  const vFaltan = vTotal - vRecibidos;
+  const vResueltos = vRecibidos + vEntregados;               // recibido + entregado = OK
+  const vFaltan = vTotal - vResueltos;                       // todo lo que no está resuelto
+  const esResuelto = (e: string) => e === "recibido" || e === "entregado";
   const vUrgentes = visibles.filter(p => p.urgencia === "urgente").length;
-  const vUrgentesFaltan = visibles.filter(p => p.urgencia === "urgente" && p.estado_recepcion !== "recibido").length;
-  const pctRecibido = vTotal > 0 ? Math.round(vRecibidos / vTotal * 100) : 0;
+  const vUrgentesFaltan = visibles.filter(p => p.urgencia === "urgente" && !esResuelto(p.estado_recepcion)).length;
+  const pctResuelto = vTotal > 0 ? Math.round(vResueltos / vTotal * 100) : 0;
+  const pctNoRecibido = vTotal > 0 ? Math.round(vNoRecibidos / vTotal * 100) : 0;
 
   // Agrupación: por conductor o por cliente
   const [agrupar, setAgrupar] = useState<"conductor" | "cliente">("conductor");
@@ -93,18 +97,19 @@ export function PendientesUI({
 
   // Grupos (según agrupación) de la zona/cliente elegido
   const grupos = useMemo(() => {
-    const m = new Map<string, { total: number; recibidos: number; noRecibidos: number; urgentes: number }>();
+    const m = new Map<string, { total: number; recibidos: number; entregados: number; resueltos: number; noRecibidos: number; urgentes: number }>();
     for (const p of visibles) {
       const k = keyOf(p);
-      const g = m.get(k) ?? { total: 0, recibidos: 0, noRecibidos: 0, urgentes: 0 };
+      const g = m.get(k) ?? { total: 0, recibidos: 0, entregados: 0, resueltos: 0, noRecibidos: 0, urgentes: 0 };
       g.total++;
-      if (p.estado_recepcion === "recibido") g.recibidos++;
+      if (p.estado_recepcion === "recibido") { g.recibidos++; g.resueltos++; }
+      if (p.estado_recepcion === "entregado") { g.entregados++; g.resueltos++; }
       if (p.estado_recepcion === "no_recibido") g.noRecibidos++;
       if (p.urgencia === "urgente") g.urgentes++;
       m.set(k, g);
     }
     return [...m.entries()].map(([nombre, v]) => ({ nombre, ...v }))
-      .sort((a, b) => (b.total - b.recibidos) - (a.total - a.recibidos) || b.total - a.total);
+      .sort((a, b) => (b.total - b.resueltos) - (a.total - a.resueltos) || b.total - a.total);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibles, agrupar]);
 
@@ -162,9 +167,9 @@ export function PendientesUI({
     const q = norm(busqueda);
     const buscaGrupo = q !== "" && norm(nombre).includes(q);
     return visibles.filter(p => keyOf(p) === nombre)
-      .filter(p => !soloNoRecibidos || p.estado_recepcion !== "recibido")
+      .filter(p => !soloNoRecibidos || !esResuelto(p.estado_recepcion))
       .filter(p => !q || buscaGrupo || [p.cliente, p.cadete, p.direccion, p.tracking, p.zona].some(v => v != null && norm(v).includes(q)))
-      .sort((a, b) => (a.estado_recepcion === b.estado_recepcion ? 0 : a.estado_recepcion === "recibido" ? 1 : b.estado_recepcion === "recibido" ? -1 : 0)
+      .sort((a, b) => (Number(esResuelto(a.estado_recepcion)) - Number(esResuelto(b.estado_recepcion)))
         || (a.urgencia === "urgente" ? -1 : b.urgencia === "urgente" ? 1 : 0));
   };
 
@@ -259,10 +264,11 @@ export function PendientesUI({
                   className={cn("border rounded-xl p-3 text-left transition-all",
                     filtroZona === null ? "border-blue-500 ring-2 ring-blue-400/40 bg-blue-50/40 dark:bg-blue-950/30" : "bg-card hover:border-blue-300")}>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">TODAS</span>
-                  <p className="text-lg font-bold tabular-nums mt-1">{stats.recibidos}<span className="text-xs text-muted-foreground font-normal">/{stats.total}</span></p>
+                  <p className="text-lg font-bold tabular-nums mt-1">{stats.resueltos}<span className="text-xs text-muted-foreground font-normal">/{stats.total}</span></p>
                 </button>
                 {stats.zonas.map(z => {
-                  const faltan = z.total - z.recibidos;
+                  const resueltos = z.recibidos + z.entregados;
+                  const faltan = z.total - resueltos;
                   const sel = filtroZona === z.zona;
                   return (
                     <button key={z.zona} onClick={() => setFiltroZona(sel ? null : z.zona)}
@@ -274,12 +280,16 @@ export function PendientesUI({
                           ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                           : <span className="text-[11px] font-bold text-red-600 dark:text-red-300 tabular-nums">{faltan}</span>}
                       </div>
-                      <p className="text-lg font-bold tabular-nums">{z.recibidos}<span className="text-xs text-muted-foreground font-normal">/{z.total}</span></p>
-                      {z.noRecibidos > 0 && (
-                        <p className="text-[10px] text-red-600 dark:text-red-300 font-medium">{z.noRecibidos} no recibido{z.noRecibidos > 1 ? "s" : ""}</p>
+                      <p className="text-lg font-bold tabular-nums">{resueltos}<span className="text-xs text-muted-foreground font-normal">/{z.total}</span></p>
+                      {(z.entregados > 0 || z.noRecibidos > 0) && (
+                        <p className="text-[10px] font-medium flex gap-1.5">
+                          {z.entregados > 0 && <span className="text-blue-600 dark:text-blue-300">{z.entregados} entreg.</span>}
+                          {z.noRecibidos > 0 && <span className="text-red-600 dark:text-red-300">{z.noRecibidos} no rec.</span>}
+                        </p>
                       )}
                       <div className="h-1 w-full rounded-full bg-muted overflow-hidden mt-1 flex">
                         <div className="h-full bg-emerald-500" style={{ width: `${z.total > 0 ? z.recibidos / z.total * 100 : 0}%` }} />
+                        <div className="h-full bg-blue-500" style={{ width: `${z.total > 0 ? z.entregados / z.total * 100 : 0}%` }} />
                         <div className="h-full bg-red-500" style={{ width: `${z.total > 0 ? z.noRecibidos / z.total * 100 : 0}%` }} />
                       </div>
                     </button>
@@ -289,7 +299,7 @@ export function PendientesUI({
             </div>
 
             {/* ── Contadores (de la zona elegida) ── */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
               <div className="border rounded-xl p-4 bg-card">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
                   {filtroZona ? `Pendientes ${filtroZona}` : "Total pendientes"}
@@ -299,13 +309,19 @@ export function PendientesUI({
               <div className="border rounded-xl p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/50">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Recibidos</p>
                 <p className="text-2xl font-bold tabular-nums mt-1 text-emerald-700 dark:text-emerald-300">{vRecibidos}</p>
-                <p className="text-[11px] text-muted-foreground">{pctRecibido}% del total</p>
+                <p className="text-[11px] text-muted-foreground">{vTotal > 0 ? Math.round(vRecibidos / vTotal * 100) : 0}% del total</p>
+              </div>
+              <div className={cn("border rounded-xl p-4",
+                vEntregados > 0 ? "bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/60 dark:border-blue-900/50" : "bg-card")}>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Entregados</p>
+                <p className={cn("text-2xl font-bold tabular-nums mt-1", vEntregados > 0 && "text-blue-700 dark:text-blue-300")}>{vEntregados}</p>
+                <p className="text-[11px] text-muted-foreground">cuenta como resuelto</p>
               </div>
               <div className={cn("border rounded-xl p-4",
                 vNoRecibidos > 0 ? "bg-red-50/50 dark:bg-red-950/20 border-red-200/60 dark:border-red-900/50" : "bg-card")}>
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">No recibidos</p>
                 <p className={cn("text-2xl font-bold tabular-nums mt-1", vNoRecibidos > 0 && "text-red-600 dark:text-red-300")}>{vNoRecibidos}</p>
-                <p className="text-[11px] text-muted-foreground">{vTotal > 0 ? Math.round(vNoRecibidos / vTotal * 100) : 0}% del total</p>
+                <p className="text-[11px] text-muted-foreground">{pctNoRecibido}% del total</p>
               </div>
               <div className={cn("border rounded-xl p-4",
                 vFaltan > 0 ? "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/50" : "bg-card")}>
@@ -313,17 +329,24 @@ export function PendientesUI({
                 <p className={cn("text-2xl font-bold tabular-nums mt-1", vFaltan > 0 && "text-amber-700 dark:text-amber-300")}>{vFaltan}</p>
               </div>
               <div className="border rounded-xl p-4 bg-card">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Urgentes sin recibir</p>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Urgentes sin resolver</p>
                 <p className={cn("text-2xl font-bold tabular-nums mt-1", vUrgentesFaltan > 0 && "text-amber-700 dark:text-amber-300")}>
                   {vUrgentesFaltan}<span className="text-sm text-muted-foreground font-normal"> / {vUrgentes}</span>
                 </p>
               </div>
             </div>
 
-            {/* Barra de progreso */}
+            {/* Barra de progreso: verde recibido · azul entregado · rojo no recibido */}
             <div className="h-2 w-full rounded-full bg-muted overflow-hidden flex">
-              <div className="h-full bg-emerald-500 transition-all" style={{ width: `${pctRecibido}%` }} />
+              <div className="h-full bg-emerald-500 transition-all" style={{ width: `${vTotal > 0 ? vRecibidos / vTotal * 100 : 0}%` }} />
+              <div className="h-full bg-blue-500 transition-all" style={{ width: `${vTotal > 0 ? vEntregados / vTotal * 100 : 0}%` }} />
               <div className="h-full bg-red-500 transition-all" style={{ width: `${vTotal > 0 ? vNoRecibidos / vTotal * 100 : 0}%` }} />
+            </div>
+            <div className="flex items-center gap-3 -mt-1 text-[10px] text-muted-foreground flex-wrap">
+              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Recibido</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-500" /> Entregado</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500" /> No recibido</span>
+              <span className="ml-auto font-medium">{pctResuelto}% resuelto</span>
             </div>
 
             {/* ── Filtros ── */}
@@ -369,7 +392,7 @@ export function PendientesUI({
               </div>
               <div className="divide-y">
                 {gruposFiltrados.map(c => {
-                  const faltan = c.total - c.recibidos;
+                  const faltan = c.total - c.resueltos;
                   // Con búsqueda o filtro de cliente activo, abrir automáticamente
                   // los grupos que tengan coincidencias (sin tener que clickear).
                   const autoExpand = (busqueda.trim() !== "" || filtroCliente !== "");
@@ -388,6 +411,11 @@ export function PendientesUI({
                             {c.urgentes} urg.
                           </span>
                         )}
+                        {c.entregados > 0 && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-300 shrink-0">
+                            {c.entregados} entreg.
+                          </span>
+                        )}
                         {c.noRecibidos > 0 && (
                           <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-600 dark:text-red-300 shrink-0">
                             {c.noRecibidos} no rec.
@@ -395,10 +423,11 @@ export function PendientesUI({
                         )}
                         <div className="w-20 h-1.5 rounded-full bg-muted overflow-hidden shrink-0 hidden sm:flex">
                           <div className="h-full bg-emerald-500" style={{ width: `${c.total > 0 ? c.recibidos / c.total * 100 : 0}%` }} />
+                          <div className="h-full bg-blue-500" style={{ width: `${c.total > 0 ? c.entregados / c.total * 100 : 0}%` }} />
                           <div className="h-full bg-red-500" style={{ width: `${c.total > 0 ? c.noRecibidos / c.total * 100 : 0}%` }} />
                         </div>
                         <span className="text-sm tabular-nums shrink-0 w-14 text-right">
-                          <span className="font-bold">{c.recibidos}</span>
+                          <span className="font-bold">{c.resueltos}</span>
                           <span className="text-muted-foreground">/{c.total}</span>
                         </span>
                         {faltan === 0
@@ -418,12 +447,17 @@ export function PendientesUI({
                           {detalle.map(p => (
                             <div key={p.id}
                               className={cn("flex items-start gap-2.5 pl-11 pr-4 py-2.5 text-xs",
-                                p.estado_recepcion === "recibido" && "opacity-60")}>
+                                esResuelto(p.estado_recepcion) && "opacity-60")}>
                               <div className="flex items-center gap-1 shrink-0 mt-0.5">
-                                <button disabled={!puedeEditar} title="Marcar recibido"
+                                <button disabled={!puedeEditar} title="Recibido (volvió al depósito)"
                                   onClick={e => { e.stopPropagation(); marcar(p, p.estado_recepcion === "recibido" ? "pendiente" : "recibido"); }}
                                   className={cn("rounded-full", puedeEditar && "cursor-pointer")}>
                                   <CheckCircle2 className={cn("h-4 w-4", p.estado_recepcion === "recibido" ? "text-emerald-500" : "text-muted-foreground/30 hover:text-emerald-500/70")} />
+                                </button>
+                                <button disabled={!puedeEditar} title="Entregado al cliente (cuenta como resuelto)"
+                                  onClick={e => { e.stopPropagation(); marcar(p, p.estado_recepcion === "entregado" ? "pendiente" : "entregado"); }}
+                                  className={cn("rounded-full", puedeEditar && "cursor-pointer")}>
+                                  <Truck className={cn("h-4 w-4", p.estado_recepcion === "entregado" ? "text-blue-500" : "text-muted-foreground/30 hover:text-blue-500/70")} />
                                 </button>
                                 <button disabled={!puedeEditar} title="Marcar no recibido (con motivo)"
                                   onClick={e => { e.stopPropagation(); p.estado_recepcion === "no_recibido" ? marcar(p, "pendiente") : abrirModalNoRecibido(p); }}
@@ -440,7 +474,7 @@ export function PendientesUI({
                                     {agrupar === "conductor" ? (p.cliente ?? "—") : (p.cadete ?? "Sin asignar")}
                                   </span>
                                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{p.estado ?? "—"}</span>
-                                  {p.reincidencia && p.estado_recepcion !== "recibido" && (
+                                  {p.reincidencia && !esResuelto(p.estado_recepcion) && (
                                     <span title={`Volvió a aparecer sin poder entregarse — ${p.nro_ciclo}° vez`}
                                       className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-700 dark:text-violet-300 inline-flex items-center gap-0.5">
                                       <RotateCcw className="h-2.5 w-2.5" /> volvió a salir · {p.nro_ciclo}°

@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export type EstadoRecepcion = "pendiente" | "recibido" | "no_recibido";
+export type EstadoRecepcion = "pendiente" | "recibido" | "entregado" | "no_recibido";
 
 export interface PendienteFila {
   fecha_hogareno: string | null;
