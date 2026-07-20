@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   Map, Package, BarChart3, PackageCheck, Users, Lock, Truck, ClipboardList,
   MonitorSmartphone, LogOut, LogIn, ChevronsUpDown, PanelLeftClose, PanelLeftOpen,
+  Route as RouteIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { tieneSolapa } from "@/lib/permisos";
@@ -53,6 +54,7 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
     { href: "/volumenes", label: "Volúmenes", icon: Package, visible: esInvitado || tieneSolapa(perfil, "volumenes"), bloqueado: esInvitado },
     { href: "/analisis-diario", label: "Análisis del Día", icon: BarChart3, visible: esInvitado || tieneSolapa(perfil, "analisis"), bloqueado: esInvitado },
     { href: "/pendientes", label: "Pendientes", icon: PackageCheck, visible: !esInvitado && tieneSolapa(perfil, "pendientes") },
+    { href: "/ruta", label: "Mi ruta", icon: RouteIcon, visible: !esInvitado },
     { href: "/usuarios", label: "Usuarios", icon: Users, visible: perfil?.rol === "maestro" },
     { href: "/descargar", label: "Instalar app", icon: MonitorSmartphone, visible: !esInvitado },
   ];
