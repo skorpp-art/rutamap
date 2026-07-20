@@ -87,6 +87,8 @@ export function PendientesUI({
   const vUrgentes = visibles.filter(p => p.urgencia === "urgente").length;
   const vUrgentesFaltan = visibles.filter(p => p.urgencia === "urgente" && !esResuelto(p.estado_recepcion)).length;
   const pctResuelto = vTotal > 0 ? Math.round(vResueltos / vTotal * 100) : 0;
+  const pctRecibido = vTotal > 0 ? Math.round(vRecibidos / vTotal * 100) : 0;
+  const pctEntregado = vTotal > 0 ? Math.round(vEntregados / vTotal * 100) : 0;
   const pctNoRecibido = vTotal > 0 ? Math.round(vNoRecibidos / vTotal * 100) : 0;
 
   // Agrupación: por conductor o por cliente
@@ -342,10 +344,10 @@ export function PendientesUI({
               <div className="h-full bg-blue-500 transition-all" style={{ width: `${vTotal > 0 ? vEntregados / vTotal * 100 : 0}%` }} />
               <div className="h-full bg-red-500 transition-all" style={{ width: `${vTotal > 0 ? vNoRecibidos / vTotal * 100 : 0}%` }} />
             </div>
-            <div className="flex items-center gap-3 -mt-1 text-[10px] text-muted-foreground flex-wrap">
-              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Recibido</span>
-              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-500" /> Entregado</span>
-              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500" /> No recibido</span>
+            <div className="flex items-center gap-3 -mt-1 text-[11px] text-muted-foreground flex-wrap">
+              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Recibido <b className="text-emerald-700 dark:text-emerald-300">{pctRecibido}%</b></span>
+              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-500" /> Entregado <b className="text-blue-700 dark:text-blue-300">{pctEntregado}%</b></span>
+              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500" /> No recibido <b className="text-red-600 dark:text-red-300">{pctNoRecibido}%</b></span>
               <span className="ml-auto font-medium">{pctResuelto}% resuelto</span>
             </div>
 
