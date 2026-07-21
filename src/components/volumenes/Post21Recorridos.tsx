@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { Clock, RefreshCw, AlertTriangle } from "lucide-react";
+import { Clock, RefreshCw, AlertTriangle, Calendar, X } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   getPost21Recorridos, getPost21Clientes,
@@ -19,23 +19,24 @@ const ZONA_COLOR: Record<string, string> = {
 export function Post21Recorridos() {
   const [dias, setDias] = useState(30);
   const [cliente, setCliente] = useState<string>("");
+  const [fecha, setFecha] = useState<string>(""); // día específico; vacío = usar período
   const [clientes, setClientes] = useState<Post21Cliente[]>([]);
   const [data, setData] = useState<Post21Recorrido[]>([]);
   const [cargando, setCargando] = useState(false);
 
-  const cargar = useCallback(async (d: number, cli: string) => {
+  const cargar = useCallback(async (d: number, cli: string, f: string) => {
     setCargando(true);
     try {
-      const res = await getPost21Recorridos(d, cli || null);
+      const res = await getPost21Recorridos(d, cli || null, f || null);
       setData(res.ok ? (res.data ?? []) : []);
     } finally { setCargando(false); }
   }, []);
 
-  useEffect(() => { cargar(dias, cliente); }, [dias, cliente, cargar]);
-  // Lista de clientes para el desplegable (depende del período)
+  useEffect(() => { cargar(dias, cliente, fecha); }, [dias, cliente, fecha, cargar]);
+  // Lista de clientes para el desplegable (según período o día elegido)
   useEffect(() => {
-    getPost21Clientes(dias).then(r => { if (r.ok) setClientes(r.data ?? []); });
-  }, [dias]);
+    getPost21Clientes(dias, fecha || null).then(r => { if (r.ok) setClientes(r.data ?? []); });
+  }, [dias, fecha]);
 
   const totalGeneral = data.reduce((s, r) => s + r.total_post21, 0);
   const maxTotal = Math.max(1, ...data.map(r => r.total_post21));
@@ -43,16 +44,28 @@ export function Post21Recorridos() {
   return (
     <div className="p-5 space-y-4">
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex gap-1">
+        <div className={cn("flex gap-1", fecha && "opacity-40")}>
           {[14, 30, 60].map(d => (
-            <button key={d} onClick={() => setDias(d)}
+            <button key={d} onClick={() => { setFecha(""); setDias(d); }}
               className={cn("text-[11px] px-2.5 py-1 rounded border transition-colors",
-                dias === d ? "bg-slate-700 text-white border-slate-700" : "border-border text-muted-foreground hover:bg-muted")}>
+                !fecha && dias === d ? "bg-slate-700 text-white border-slate-700" : "border-border text-muted-foreground hover:bg-muted")}>
               {d} días
             </button>
           ))}
         </div>
-        <button onClick={() => cargar(dias, cliente)} disabled={cargando}
+        {/* Día específico (calendario) */}
+        <div className="flex items-center gap-1 border rounded-lg px-2 py-1 bg-background">
+          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+          <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
+            className="text-xs bg-transparent outline-none" title="Ver un día puntual" />
+          {fecha && (
+            <button onClick={() => setFecha("")} title="Volver al período"
+              className="text-muted-foreground hover:text-foreground">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+        <button onClick={() => cargar(dias, cliente, fecha)} disabled={cargando}
           className="p-1.5 rounded-lg border hover:bg-muted/40 transition-colors" title="Actualizar">
           <RefreshCw className={cn("h-3.5 w-3.5 text-muted-foreground", cargando && "animate-spin")} />
         </button>
@@ -72,13 +85,18 @@ export function Post21Recorridos() {
       <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
         <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
         <span>
-          {cliente ? (
-            <>Filtrado por <b>{cliente}</b>: qué recorridos le dejan más paquetes post-21hs (últimos {dias} días).
-              El % de éxito no se puede desglosar por cliente, por eso va "—".</>
-          ) : (
-            <>Paquetes que quedaron para después de las 21hs por recorrido (últimos {dias} días), con cuántos se
-              entregaron y el % de éxito. Ordenado por volumen post-21hs.</>
-          )}
+          {(() => {
+            const periodo = fecha
+              ? <>el <b>{fecha}</b></>
+              : <>los últimos {dias} días</>;
+            return cliente ? (
+              <>Filtrado por <b>{cliente}</b>: qué recorridos le dejan más paquetes post-21hs en {periodo}.
+                El % de éxito no se puede desglosar por cliente, por eso va "—".</>
+            ) : (
+              <>Paquetes que quedaron para después de las 21hs por recorrido en {periodo}, con cuántos se
+                entregaron y el % de éxito. Ordenado por volumen post-21hs.</>
+            );
+          })()}
           {" "}El código sale de cruzar el chofer con Carga del Día; si no coincide, aparece "—".
         </span>
       </p>

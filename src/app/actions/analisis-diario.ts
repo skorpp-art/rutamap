@@ -125,13 +125,13 @@ export interface Post21Recorrido {
 }
 
 export async function getPost21Recorridos(
-  dias = 30, cliente?: string | null
+  dias = 30, cliente?: string | null, fecha?: string | null
 ): Promise<{ ok: boolean; data?: Post21Recorrido[]; error?: string }> {
   try {
     const supabase = await createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any).rpc("get_post21_recorridos", {
-      p_dias: dias, p_cliente: cliente ?? null,
+      p_dias: dias, p_cliente: cliente ?? null, p_fecha: fecha ?? null,
     });
     if (error) return { ok: false, error: error.message };
     return { ok: true, data: (data ?? []) as Post21Recorrido[] };
@@ -141,12 +141,12 @@ export async function getPost21Recorridos(
 export interface Post21Cliente { cliente: string; total: number; }
 
 export async function getPost21Clientes(
-  dias = 30
+  dias = 30, fecha?: string | null
 ): Promise<{ ok: boolean; data?: Post21Cliente[]; error?: string }> {
   try {
     const supabase = await createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any).rpc("get_post21_clientes", { p_dias: dias });
+    const { data, error } = await (supabase as any).rpc("get_post21_clientes", { p_dias: dias, p_fecha: fecha ?? null });
     if (error) return { ok: false, error: error.message };
     return { ok: true, data: (data ?? []) as Post21Cliente[] };
   } catch (e) { return { ok: false, error: String(e) }; }
