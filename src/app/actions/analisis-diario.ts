@@ -116,6 +116,8 @@ export interface Post21Recorrido {
   chofer: string;
   zona: string;
   total_post21: number;
+  entregados: number | null;
+  pct_exito: number | null;
   dias: number;
   prom_x_dia: number;
   ultimo_dia: string;

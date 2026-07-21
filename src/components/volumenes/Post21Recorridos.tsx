@@ -72,8 +72,13 @@ export function Post21Recorridos() {
       <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
         <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
         <span>
-          Paquetes sin entregar después de las 21hs, acumulados por recorrido en los últimos {dias} días, de mayor a menor.
-          {cliente ? <> Filtrado por <b>{cliente}</b>: qué recorridos le dejan más post-21hs.</> : null}
+          {cliente ? (
+            <>Filtrado por <b>{cliente}</b>: qué recorridos le dejan más paquetes post-21hs (últimos {dias} días).
+              El % de éxito no se puede desglosar por cliente, por eso va "—".</>
+          ) : (
+            <>Paquetes que quedaron para después de las 21hs por recorrido (últimos {dias} días), con cuántos se
+              entregaron y el % de éxito. Ordenado por volumen post-21hs.</>
+          )}
           {" "}El código sale de cruzar el chofer con Carga del Día; si no coincide, aparece "—".
         </span>
       </p>
@@ -91,6 +96,8 @@ export function Post21Recorridos() {
                 <th className="text-left px-3 py-2 font-medium">Chofer</th>
                 <th className="text-left px-2 py-2 font-medium">Zona</th>
                 <th className="text-right px-3 py-2 font-medium">Post-21hs</th>
+                <th className="text-right px-2 py-2 font-medium">Entregados</th>
+                <th className="text-right px-2 py-2 font-medium">% éxito</th>
                 <th className="text-right px-2 py-2 font-medium">Días</th>
                 <th className="text-right px-2 py-2 font-medium">Prom/día</th>
                 <th className="text-right px-2 py-2 font-medium">Pico</th>
@@ -115,6 +122,18 @@ export function Post21Recorridos() {
                       </div>
                       <span className="font-bold tabular-nums text-amber-700 dark:text-amber-300 w-10">{r.total_post21.toLocaleString("es-AR")}</span>
                     </div>
+                  </td>
+                  <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">
+                    {r.entregados != null ? r.entregados.toLocaleString("es-AR") : "—"}
+                  </td>
+                  <td className="px-2 py-2 text-right tabular-nums font-semibold">
+                    {r.pct_exito != null ? (
+                      <span className={cn(
+                        r.pct_exito >= 95 ? "text-emerald-600 dark:text-emerald-300" :
+                        r.pct_exito >= 85 ? "text-amber-600 dark:text-amber-300" : "text-red-600 dark:text-red-300")}>
+                        {r.pct_exito}%
+                      </span>
+                    ) : <span className="text-muted-foreground">—</span>}
                   </td>
                   <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">{r.dias}</td>
                   <td className="px-2 py-2 text-right tabular-nums">{r.prom_x_dia}</td>
