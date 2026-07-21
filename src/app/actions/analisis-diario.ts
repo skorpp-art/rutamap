@@ -110,8 +110,9 @@ export async function getTardeDetalleDia(
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
-// Ranking de recorridos (chofer/zona) por paquetes post-21hs acumulados.
+// Ranking de recorridos (código + chofer/zona) por paquetes post-21hs acumulados.
 export interface Post21Recorrido {
+  codigo: string;
   chofer: string;
   zona: string;
   total_post21: number;
@@ -122,14 +123,30 @@ export interface Post21Recorrido {
 }
 
 export async function getPost21Recorridos(
-  dias = 30
+  dias = 30, cliente?: string | null
 ): Promise<{ ok: boolean; data?: Post21Recorrido[]; error?: string }> {
   try {
     const supabase = await createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any).rpc("get_post21_recorridos", { p_dias: dias });
+    const { data, error } = await (supabase as any).rpc("get_post21_recorridos", {
+      p_dias: dias, p_cliente: cliente ?? null,
+    });
     if (error) return { ok: false, error: error.message };
     return { ok: true, data: (data ?? []) as Post21Recorrido[] };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
+export interface Post21Cliente { cliente: string; total: number; }
+
+export async function getPost21Clientes(
+  dias = 30
+): Promise<{ ok: boolean; data?: Post21Cliente[]; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("get_post21_clientes", { p_dias: dias });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, data: (data ?? []) as Post21Cliente[] };
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
