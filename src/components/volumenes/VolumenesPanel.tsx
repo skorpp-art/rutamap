@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle, ArrowLeft, TrendingUp, Settings2, BarChart3, Wrench,
-  CalendarDays, CalendarOff, LineChart, ClipboardList, FileText, Lightbulb, Layers,
+  CalendarDays, CalendarOff, LineChart, ClipboardList, FileText, Lightbulb, Layers, Clock,
 } from "lucide-react";
 import {
   getDashboardSemanalV2, getResumenSemanalV2,
@@ -29,6 +29,7 @@ import { Feriados } from "./Feriados";
 import { KpisMonitoreo } from "./KpisMonitoreo";
 import { HistorialDias } from "./HistorialDias";
 import { InformeMensual } from "./InformeMensual";
+import { Post21Recorridos } from "./Post21Recorridos";
 import type {
   DashboardDiaV2, ResumenSemanalV2, ClienteDia,
   ProyeccionDiaV2, ProyeccionZona, BandaControl, CalidadDatos,
@@ -122,7 +123,7 @@ function CalidadDatosCard({ calidad }: { calidad: CalidadDatos[] }) {
 export function VolumenesPanel() {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<"proyeccion" | "operacion" | "analisis" | "herramientas">("proyeccion");
-  const [herramientaActiva, setHerramientaActiva] = useState<"plantillas" | "feriados" | "kpis" | "historial" | "informe" | null>(null);
+  const [herramientaActiva, setHerramientaActiva] = useState<"plantillas" | "feriados" | "kpis" | "historial" | "informe" | "post21" | null>(null);
 
   // Permite saltar directo a una pestaña desde la paleta de comandos (?tab=…)
   useEffect(() => {
@@ -702,6 +703,7 @@ export function VolumenesPanel() {
             { id: "kpis", Icono: LineChart, titulo: "Monitoreo de KPIs", sub: "Indicadores de performance a largo plazo" },
             { id: "historial", Icono: ClipboardList, titulo: "Historial de días", sub: "Registro completo de operaciones pasadas" },
             { id: "informe", Icono: FileText, titulo: "Informe del mes", sub: "Resumen mensual de paquetes y rutas, exportable a PDF" },
+            { id: "post21", Icono: Clock, titulo: "Recorridos post-21hs", sub: "Qué recorridos tienen paquetes después de las 21hs y quién acumula más" },
           ] as const;
           const activa = HERRAMIENTAS.find(h => h.id === herramientaActiva);
 
@@ -740,6 +742,7 @@ export function VolumenesPanel() {
               {activa.id === "kpis" && <KpisMonitoreo />}
               {activa.id === "historial" && <HistorialDias />}
               {activa.id === "informe" && <InformeMensual />}
+              {activa.id === "post21" && <Post21Recorridos />}
             </div>
           );
         })()}
