@@ -1350,8 +1350,20 @@ function HistoricoView({
       {!clienteSel ? (
         <div className="space-y-5">
           {/* KPIs globales del período */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <KpiCard icon={Package} label="Total paquetes del período" valor={totalesPeriodo.total.toLocaleString("es-AR")} tono="blue" />
+            {(() => {
+              const exitosos = Math.max(0, totalesPeriodo.total - totalesPeriodo.enCamino);
+              const pctExitoPeriodo = totalesPeriodo.total > 0 ? round2(exitosos / totalesPeriodo.total * 100) : 0;
+              const exitoBajoUmbral = totalesPeriodo.total > 0 && pctExitoPeriodo < UMBRAL_EXITO_PCT;
+              return (
+                <KpiCard icon={exitoBajoUmbral ? AlertTriangle : CheckCircle} label="% éxito del período" valor={`${pctExitoPeriodo.toFixed(2)}%`}
+                  sub={exitoBajoUmbral
+                    ? `⚠ Debajo del objetivo (${UMBRAL_EXITO_PCT}%) — ${exitosos.toLocaleString("es-AR")} entregados`
+                    : `${exitosos.toLocaleString("es-AR")} entregados`}
+                  tono={exitoBajoUmbral ? "red" : "emerald"} />
+              );
+            })()}
             <KpiCard icon={Clock} label="Total post-21hs" valor={totalesPeriodo.post21.toLocaleString("es-AR")}
               sub={totalesPeriodo.total > 0 ? `${round2(totalesPeriodo.post21 / totalesPeriodo.total * 100).toFixed(2)}% del total` : undefined}
               tono="amber" />
