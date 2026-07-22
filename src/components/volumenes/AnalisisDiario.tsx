@@ -594,7 +594,7 @@ export function AnalisisDiario() {
         <div>
           <h2 className="text-base font-bold flex items-center gap-2">
             <Package className="h-5 w-5 text-blue-600 dark:text-blue-300" />
-            Resultados del día
+            Resultados
           </h2>
           <p className="text-xs text-muted-foreground">
             Entregas post-21hs, estados del día y demorados (todo lo post-21hs sin entregar) por cliente.

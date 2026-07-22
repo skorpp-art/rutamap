@@ -317,7 +317,7 @@ export function VolumenesPanel() {
       <div className="border-b px-3 sm:px-5 flex gap-0.5 overflow-x-auto no-scrollbar">
         {([
           ["proyeccion",   "Proyección",        TrendingUp],
-          ["operacion",    "Operación del Día", Settings2],
+          ["operacion",    "Operación",         Settings2],
           ["analisis",     "Rendimiento de recorridos", BarChart3],
           ["herramientas", "Herramientas",      Wrench],
         ] as const).map(([t, lbl, Icon]) => (
