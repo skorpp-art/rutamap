@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import {
   Upload, FileSpreadsheet, CheckCircle, AlertTriangle, Calendar,
   Search, Package, Users, Clock, RefreshCw, Truck, MapPin, Layers,
-  ChevronDown, ChevronRight, X, Trash2,
+  ChevronDown, ChevronRight, X, Trash2, FileDown, Loader2,
 } from "lucide-react";
+import { crearDocumento, dibujarCards, dibujarTitulo, dibujarNota, dibujarBanner, dibujarTabla, pieDePagina } from "@/lib/pdfInforme";
 import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend, ReferenceLine,
@@ -798,6 +799,7 @@ function DiaView({
   const [verDetallePost21, setVerDetallePost21] = useState(false);
   const [detallePost21, setDetallePost21] = useState<TardeDetalleFila[]>([]);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
+  const [descargando, setDescargando] = useState(false);
 
   const clientesOrdenados = [...clientes].sort((a, b) => b.cantidad - a.cantidad || b.en_camino_destinatario - a.en_camino_destinatario);
   const maxPctDia = Math.max(1, ...clientes.map(c => c.pct_del_dia));
@@ -824,6 +826,55 @@ function DiaView({
     setVerDetallePost21(false);
   }, [fecha]);
 
+  // Informe PDF prolijo del día — de todo el día, o acotado al cliente
+  // seleccionado si hay uno (pensado para mandar/presentar a un cliente).
+  async function descargarInforme() {
+    if (!resumen) return;
+    setDescargando(true);
+    try {
+      const fechaLarga = new Date(fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
+      if (sel) {
+        const { doc, y: y0 } = await crearDocumento("Informe de cliente", sel.cliente, fechaLarga);
+        let y = dibujarCards(doc, y0, [
+          { label: "PAQUETES DEL DÍA", valor: sel.cantidad.toLocaleString("es-AR"), sub: `${sel.pct_del_dia.toFixed(2)}% del total del día`, r: 37, g: 99, b: 235 },
+          { label: "EN CAMINO AL DESTINATARIO", valor: sel.en_camino_destinatario.toLocaleString("es-AR"), sub: `${sel.en_camino_destinatario_pct.toFixed(2)}% de lo suyo`, r: 220, g: 38, b: 38 },
+        ]);
+        y = dibujarNota(doc, y, `Datos del ${fechaLarga}. No incluye paquetes post-21hs sin entregar (no vienen discriminados por cliente en el reporte de origen).`);
+        pieDePagina(doc, `Cliente: ${sel.cliente} · Día: ${fecha}`);
+        doc.pdf.save(`informe-${sel.cliente.toLowerCase().replace(/\s+/g, "-")}-${fecha}.pdf`);
+      } else {
+        const noEntregados = Math.max(0, resumen.total_paquetes - resumen.entregados);
+        const post21Sin = Math.max(0, resumen.post21_total - resumen.post21_entregados);
+        const { doc, y: y0 } = await crearDocumento("Informe del día", fechaLinda, fechaLarga);
+        let y = dibujarCards(doc, y0, [
+          { label: "TOTAL PAQUETES", valor: resumen.total_paquetes.toLocaleString("es-AR"), r: 37, g: 99, b: 235 },
+          { label: "% ÉXITO DEL DÍA", valor: `${resumen.pct_exito.toFixed(2)}%`, sub: `${resumen.entregados.toLocaleString("es-AR")} entregados`, r: 22, g: 163, b: 74 },
+          { label: "NO ENTREGADOS", valor: noEntregados.toLocaleString("es-AR"), sub: `${resumen.total_paquetes > 0 ? (noEntregados / resumen.total_paquetes * 100).toFixed(2) : "0"}% del total`, r: 220, g: 38, b: 38 },
+          { label: "POST-21HS", valor: `${resumen.post21_total.toLocaleString("es-AR")}`, sub: `${post21Sin} sin entregar · ${resumen.post21_pct_exito.toFixed(1)}% éxito tardío`, r: 217, g: 119, b: 6 },
+        ]);
+        if (resumen.pct_exito < UMBRAL_EXITO_PCT) {
+          y = dibujarBanner(doc, y, `⚠ % de éxito debajo del objetivo (${UMBRAL_EXITO_PCT}%)`, "amber");
+        }
+        y = dibujarTitulo(doc, y, "Resolución del día por estado");
+        y = dibujarTabla(doc, y,
+          [{ label: "ESTADO", w: 100 }, { label: "CANTIDAD", w: 40, align: "right" }, { label: "%", w: 30, align: "right" }],
+          estados.map(e => [e.estado, e.cantidad.toLocaleString("es-AR"), `${e.pct.toFixed(1)}%`]));
+        y += 4;
+        if (y > doc.PH - 40) { doc.pdf.addPage(); y = 20; }
+        y = dibujarTitulo(doc, y, `Clientes del día (top ${Math.min(20, clientesOrdenados.length)})`);
+        y = dibujarTabla(doc, y,
+          [{ label: "CLIENTE", w: 78 }, { label: "PAQUETES", w: 34, align: "right" }, { label: "% DÍA", w: 24, align: "right" }, { label: "EN CAMINO", w: 34, align: "right" }],
+          clientesOrdenados.slice(0, 20).map(c => [
+            c.cliente, c.cantidad.toLocaleString("es-AR"), `${c.pct_del_dia.toFixed(1)}%`,
+            c.en_camino_destinatario > 0 ? `${c.en_camino_destinatario} (${c.en_camino_destinatario_pct.toFixed(0)}%)` : "—",
+          ]));
+        y = dibujarNota(doc, y, "\"Clientes del día\" no incluye los paquetes post-21hs sin entregar (no vienen discriminados por cliente en el reporte de origen).");
+        pieDePagina(doc, `Día: ${fecha}`);
+        doc.pdf.save(`informe-analisis-${fecha}.pdf`);
+      }
+    } finally { setDescargando(false); }
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-2 flex-wrap">
@@ -836,6 +887,14 @@ function DiaView({
         <button onClick={onRefrescar} className="text-muted-foreground hover:text-foreground ml-auto">
           <RefreshCw className={cn("h-3.5 w-3.5", cargando && "animate-spin")} />
         </button>
+        {resumen && (
+          <button onClick={descargarInforme} disabled={descargando}
+            title={sel ? `Descargar informe de ${sel.cliente}` : "Descargar informe prolijo del día"}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium border border-blue-300 dark:border-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-colors disabled:opacity-60">
+            {descargando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+            {sel ? `Informe de ${sel.cliente}` : "Descargar informe"}
+          </button>
+        )}
         {resumen && (
           <button
             onClick={async () => {
@@ -1183,6 +1242,84 @@ function HistoricoView({
   // Demorados totales: "total" = en camino + post-21hs sin entregar · "encamino" = solo en camino
   const [demoradosModo, setDemoradosModo] = useState<"total" | "encamino">("total");
   const [diaExpandido, setDiaExpandido] = useState<string | null>(null);
+  const [descargando, setDescargando] = useState(false);
+
+  const rangoLindo = `${new Date(desde + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })} — ${new Date(hasta + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}`;
+
+  // Informe PDF prolijo del período — general, o acotado al cliente elegido
+  // (pensado para mandar/presentar a un cliente puntual).
+  async function descargarInforme() {
+    setDescargando(true);
+    try {
+      if (clienteSel) {
+        const post21PorDia = new Map<string, TardeDetalleFila[]>();
+        for (const p of tardeDetalleCliente) {
+          if (sinAcentos(p.estado ?? "").startsWith("entregado")) continue;
+          if (!p.fecha) continue;
+          const arr = post21PorDia.get(p.fecha) ?? [];
+          arr.push(p);
+          post21PorDia.set(p.fecha, arr);
+        }
+        const totalPost21 = [...post21PorDia.values()].reduce((s, a) => s + a.length, 0);
+        const totalPaq = historicoCliente.reduce((s, d) => s + d.cantidad, 0);
+        const totalEnCamino = historicoCliente.reduce((s, d) => s + d.en_camino_destinatario, 0);
+        const totalDem = totalEnCamino + totalPost21;
+        const pctExito = totalPaq > 0 ? round2(100 - (totalDem / totalPaq * 100)) : 0;
+
+        const { doc, y: y0 } = await crearDocumento("Informe de cliente", clienteSel, rangoLindo);
+        let y = dibujarCards(doc, y0, [
+          { label: "PAQUETES DEL PERÍODO", valor: totalPaq.toLocaleString("es-AR"), sub: `${historicoCliente.length} día(s) con envíos`, r: 37, g: 99, b: 235 },
+          { label: "% SIN DEMORAS", valor: `${pctExito.toFixed(2)}%`, r: 22, g: 163, b: 74 },
+          { label: "PAQUETES DEMORADOS", valor: totalDem.toLocaleString("es-AR"), sub: `${totalEnCamino} en camino + ${totalPost21} post-21hs sin entregar`, r: 220, g: 38, b: 38 },
+          { label: "PERÍODO", valor: rangoLindo, r: 100, g: 116, b: 139 },
+        ]);
+        y = dibujarTitulo(doc, y, "Evolución diaria");
+        y = dibujarTabla(doc, y,
+          [{ label: "FECHA", w: 40 }, { label: "PAQUETES", w: 34, align: "right" }, { label: "EN CAMINO", w: 34, align: "right" }, { label: "POST-21HS S/ENT.", w: 34, align: "right" }, { label: "% CUMPLIM.", w: 26, align: "right" }],
+          historicoCliente.map(d => {
+            const detalleDia = post21PorDia.get(d.fecha) ?? [];
+            const demDia = d.en_camino_destinatario + detalleDia.length;
+            const pctCump = d.cantidad > 0 ? round2(100 - (demDia / d.cantidad * 100)) : 0;
+            return [d.fecha, d.cantidad.toLocaleString("es-AR"), d.en_camino_destinatario.toLocaleString("es-AR"), detalleDia.length.toString(), `${pctCump.toFixed(1)}%`];
+          }));
+        pieDePagina(doc, `Cliente: ${clienteSel} · Período: ${desde} a ${hasta}`);
+        doc.pdf.save(`informe-${clienteSel.toLowerCase().replace(/\s+/g, "-")}-${desde}-a-${hasta}.pdf`);
+      } else {
+        const exitosos = Math.max(0, totalesPeriodo.total - totalesPeriodo.enCamino);
+        const pctExitoPeriodo = totalesPeriodo.total > 0 ? round2(exitosos / totalesPeriodo.total * 100) : 0;
+        const { doc, y: y0 } = await crearDocumento("Informe de período", rangoLindo, `${desde} a ${hasta}`);
+        let y = dibujarCards(doc, y0, [
+          { label: "TOTAL PAQUETES DEL PERÍODO", valor: totalesPeriodo.total.toLocaleString("es-AR"), r: 37, g: 99, b: 235 },
+          { label: "% ÉXITO DEL PERÍODO", valor: `${pctExitoPeriodo.toFixed(2)}%`, sub: `${exitosos.toLocaleString("es-AR")} entregados`, r: 22, g: 163, b: 74 },
+          { label: "DEMORADOS TOTALES", valor: totalesPeriodo.enCamino.toLocaleString("es-AR"), sub: `incl. ${totalesPeriodo.post21SinEntregar.toLocaleString("es-AR")} post-21hs sin entregar`, r: 220, g: 38, b: 38 },
+          { label: "TOTAL POST-21HS", valor: totalesPeriodo.post21.toLocaleString("es-AR"), sub: totalesPeriodo.total > 0 ? `${round2(totalesPeriodo.post21 / totalesPeriodo.total * 100).toFixed(2)}% del total` : undefined, r: 217, g: 119, b: 6 },
+        ]);
+        y = dibujarTitulo(doc, y, "Evolución diaria");
+        y = dibujarTabla(doc, y,
+          [{ label: "FECHA", w: 40 }, { label: "TOTAL", w: 34, align: "right" }, { label: "ENTREGADOS", w: 34, align: "right" }, { label: "POST-21HS S/ENT.", w: 34, align: "right" }, { label: "% ÉXITO", w: 26, align: "right" }],
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          chartGeneral.map((d: any) => [
+            d.fechaCompleta, d.total.toLocaleString("es-AR"), d.exitosos.toLocaleString("es-AR"),
+            d.post21SinEntregar.toLocaleString("es-AR"), `${Number(d.pctExito).toFixed(1)}%`,
+          ]));
+        y += 4;
+        if (y > doc.PH - 50) { doc.pdf.addPage(); y = 20; }
+        y = dibujarTitulo(doc, y, "Estados del período");
+        y = dibujarTabla(doc, y,
+          [{ label: "ESTADO", w: 100 }, { label: "CANTIDAD", w: 40, align: "right" }, { label: "%", w: 30, align: "right" }],
+          estadosTotales.map(e => [e.estado, e.cantidad.toLocaleString("es-AR"), `${e.pct.toFixed(1)}%`]));
+        y += 4;
+        if (y > doc.PH - 50) { doc.pdf.addPage(); y = 20; }
+        y = dibujarTitulo(doc, y, `Top clientes del período (${chartClientesTotales.length})`);
+        y = dibujarTabla(doc, y,
+          [{ label: "CLIENTE", w: 78 }, { label: "TOTAL", w: 34, align: "right" }, { label: "EN CAMINO", w: 34, align: "right" }, { label: "% EN CAMINO", w: 24, align: "right" }],
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          chartClientesTotales.map((c: any) => [c.clienteCompleto, c.total.toLocaleString("es-AR"), c.enCamino.toLocaleString("es-AR"), `${Number(c.pctEnCamino).toFixed(1)}%`]));
+        pieDePagina(doc, `Período: ${desde} a ${hasta}`);
+        doc.pdf.save(`informe-analisis-${desde}-a-${hasta}.pdf`);
+      }
+    } finally { setDescargando(false); }
+  }
 
   return (
     <div className="space-y-5">
@@ -1202,6 +1339,12 @@ function HistoricoView({
           </select>
         </div>
         {cargando && <RefreshCw className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+        <button onClick={descargarInforme} disabled={descargando}
+          title={clienteSel ? `Descargar informe de ${clienteSel}` : "Descargar informe prolijo del período"}
+          className="ml-auto inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium border border-blue-300 dark:border-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-colors disabled:opacity-60 bg-background">
+          {descargando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+          {clienteSel ? `Informe de ${clienteSel}` : "Descargar informe"}
+        </button>
       </div>
 
       {!clienteSel ? (
