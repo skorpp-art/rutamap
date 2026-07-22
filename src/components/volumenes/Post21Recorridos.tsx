@@ -103,7 +103,7 @@ export function Post21Recorridos() {
 
       {data.length === 0 && !cargando ? (
         <EmptyState icon={Clock} title="Sin datos de post-21hs"
-          description="Cargá los reportes de Análisis del Día (Análisis Tarde) para ver este ranking." />
+          description="Cargá los reportes de Resultados del día (Análisis Tarde) para ver este ranking." />
       ) : (
         <div className="border rounded-xl overflow-hidden">
           <table className="w-full text-xs">

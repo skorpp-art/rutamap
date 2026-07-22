@@ -594,7 +594,7 @@ export function AnalisisDiario() {
         <div>
           <h2 className="text-base font-bold flex items-center gap-2">
             <Package className="h-5 w-5 text-blue-600 dark:text-blue-300" />
-            Análisis del Día
+            Resultados del día
           </h2>
           <p className="text-xs text-muted-foreground">
             Entregas post-21hs, estados del día y demorados (todo lo post-21hs sin entregar) por cliente.
@@ -898,7 +898,7 @@ function DiaView({
         {resumen && (
           <button
             onClick={async () => {
-              if (!confirm(`¿Eliminar TODOS los datos de Análisis del Día del ${fecha}?\n\nSe borran resumen, estados, clientes y detalle post-21hs de esa fecha. No se puede deshacer.`)) return;
+              if (!confirm(`¿Eliminar TODOS los resultados del día del ${fecha}?\n\nSe borran resumen, estados, clientes y detalle post-21hs de esa fecha. No se puede deshacer.`)) return;
               const { eliminarAnalisisDia } = await import("@/app/actions/analisis-diario");
               const res = await eliminarAnalisisDia(fecha);
               if (!res.ok) { toast.error("No se pudo eliminar el día", { description: res.error }); return; }

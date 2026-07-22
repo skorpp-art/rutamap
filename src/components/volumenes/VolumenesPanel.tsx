@@ -318,7 +318,7 @@ export function VolumenesPanel() {
         {([
           ["proyeccion",   "Proyección",        TrendingUp],
           ["operacion",    "Operación del Día", Settings2],
-          ["analisis",     "Análisis",          BarChart3],
+          ["analisis",     "Rendimiento de recorridos", BarChart3],
           ["herramientas", "Herramientas",      Wrench],
         ] as const).map(([t, lbl, Icon]) => (
           <button key={t} onClick={() => setTab(t)}
