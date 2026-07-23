@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle, ArrowLeft, TrendingUp, Settings2, BarChart3, Wrench,
-  CalendarDays, CalendarOff, LineChart, ClipboardList, FileText, Lightbulb, Layers, Clock,
+  CalendarDays, CalendarOff, LineChart, ClipboardList, FileText, Lightbulb, Layers,
 } from "lucide-react";
 import {
   getDashboardSemanalV2, getResumenSemanalV2,
@@ -29,7 +29,6 @@ import { Feriados } from "./Feriados";
 import { KpisMonitoreo } from "./KpisMonitoreo";
 import { HistorialDias } from "./HistorialDias";
 import { InformeMensual } from "./InformeMensual";
-import { Post21Recorridos } from "./Post21Recorridos";
 import type {
   DashboardDiaV2, ResumenSemanalV2, ClienteDia,
   ProyeccionDiaV2, ProyeccionZona, BandaControl, CalidadDatos,
@@ -123,7 +122,7 @@ function CalidadDatosCard({ calidad }: { calidad: CalidadDatos[] }) {
 export function VolumenesPanel() {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<"proyeccion" | "operacion" | "analisis" | "herramientas">("proyeccion");
-  const [herramientaActiva, setHerramientaActiva] = useState<"plantillas" | "feriados" | "kpis" | "historial" | "informe" | "post21" | null>(null);
+  const [herramientaActiva, setHerramientaActiva] = useState<"plantillas" | "feriados" | "kpis" | "historial" | "informe" | null>(null);
 
   // Permite saltar directo a una pestaña desde la paleta de comandos (?tab=…)
   useEffect(() => {
@@ -698,24 +697,31 @@ export function VolumenesPanel() {
 
         {tab === "herramientas" && (() => {
           const HERRAMIENTAS = [
-            { id: "plantillas", Icono: CalendarDays, titulo: "Plantillas semanales", sub: "Valores de referencia por semana del mes y día de la semana" },
-            { id: "feriados", Icono: CalendarOff, titulo: "Feriados", sub: "Días sin operación y ajuste de proyección posterior" },
-            { id: "kpis", Icono: LineChart, titulo: "Monitoreo de KPIs", sub: "Indicadores de performance a largo plazo" },
-            { id: "historial", Icono: ClipboardList, titulo: "Historial de días", sub: "Registro completo de operaciones pasadas" },
-            { id: "informe", Icono: FileText, titulo: "Informe del mes", sub: "Resumen mensual de paquetes y rutas, exportable a PDF" },
-            { id: "post21", Icono: Clock, titulo: "Recorridos post-21hs", sub: "Qué recorridos tienen paquetes después de las 21hs y quién acumula más" },
+            { id: "kpis", grupo: "Reportes y consultas", Icono: LineChart, titulo: "Monitoreo de KPIs", sub: "Indicadores de performance a largo plazo" },
+            { id: "historial", grupo: "Reportes y consultas", Icono: ClipboardList, titulo: "Historial de días", sub: "Registro completo de operaciones pasadas" },
+            { id: "informe", grupo: "Reportes y consultas", Icono: FileText, titulo: "Informe del mes", sub: "Resumen mensual de paquetes y rutas, exportable a PDF" },
+            { id: "plantillas", grupo: "Configuración", Icono: CalendarDays, titulo: "Plantillas semanales", sub: "Valores de referencia por semana del mes y día de la semana" },
+            { id: "feriados", grupo: "Configuración", Icono: CalendarOff, titulo: "Feriados", sub: "Días sin operación y ajuste de proyección posterior" },
           ] as const;
           const activa = HERRAMIENTAS.find(h => h.id === herramientaActiva);
 
           if (!activa) {
+            const grupos = ["Reportes y consultas", "Configuración"] as const;
             return (
-              <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {HERRAMIENTAS.map(h => (
-                  <button key={h.id} onClick={() => setHerramientaActiva(h.id)}
-                    className="text-left border rounded-xl p-4 bg-background hover:border-blue-400 hover:shadow-md transition-all hover-lift">
-                    <p className="text-sm font-bold flex items-center gap-2"><h.Icono className="h-4 w-4 text-blue-600 dark:text-blue-300" /> {h.titulo}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{h.sub}</p>
-                  </button>
+              <div className="p-5 space-y-5">
+                {grupos.map(g => (
+                  <div key={g}>
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">{g}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {HERRAMIENTAS.filter(h => h.grupo === g).map(h => (
+                        <button key={h.id} onClick={() => setHerramientaActiva(h.id)}
+                          className="text-left border rounded-xl p-4 bg-background hover:border-blue-400 hover:shadow-md transition-all hover-lift">
+                          <p className="text-sm font-bold flex items-center gap-2"><h.Icono className="h-4 w-4 text-blue-600 dark:text-blue-300" /> {h.titulo}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{h.sub}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             );
@@ -742,7 +748,6 @@ export function VolumenesPanel() {
               {activa.id === "kpis" && <KpisMonitoreo />}
               {activa.id === "historial" && <HistorialDias />}
               {activa.id === "informe" && <InformeMensual />}
-              {activa.id === "post21" && <Post21Recorridos />}
             </div>
           );
         })()}

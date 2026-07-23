@@ -25,16 +25,18 @@ confunden.
 
 ---
 
-## Etapa 2 — Mover la información al lugar donde se la busca
+## Etapa 2 — Mover la información al lugar donde se la busca ✅ hecho
 **Problema:** hay cosas potentes escondidas y config mezclada con análisis.
 
-**Cambios:**
-- Mover **"Recorridos post-21hs"** de Volúmenes → Herramientas hacia **Análisis
-  del Día** (mismo dominio de datos).
-- Sacar **Feriados** y **Plantillas semanales** de "Herramientas" (son
-  configuración, no herramientas) hacia un futuro grupo de Ajustes.
-- Dejar "Herramientas" solo con lo que realmente es reporte/consulta (o
-  disolverla, ver Etapa 3).
+**Cambios aplicados:**
+- **"Recorridos post-21hs"** salió de Volúmenes → Herramientas y ahora es una
+  tercera vista dentro de **Resultados** (Día · Histórico · Recorridos post-21hs),
+  que es su mismo dominio de datos.
+- En "Herramientas" (Volúmenes) las tarjetas quedaron agrupadas en dos bloques:
+  **Reportes y consultas** (KPIs · Historial · Informe del mes) y
+  **Configuración** (Plantillas semanales · Feriados), para separar el análisis
+  de la parametrización. En Etapa 3 la Configuración migra a un grupo de Ajustes
+  en el menú lateral.
 
 **Riesgo:** bajo-medio (se reubican componentes, no se reescriben).
 **Checkpoint:** ¿cada cosa quedó donde uno la iría a buscar?

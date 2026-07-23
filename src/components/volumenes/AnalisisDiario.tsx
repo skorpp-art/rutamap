@@ -28,6 +28,7 @@ import type {
 } from "@/app/actions/analisis-diario";
 import { useChartTheme } from "@/hooks/useChartTheme";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Post21Recorridos } from "./Post21Recorridos";
 import { hoyAR, addDiasAR } from "@/lib/fechas";
 
 // ── Helpers de parseo de los Excel ──────────────────────────────────────────
@@ -336,7 +337,7 @@ function construirPayload(tardeRaw: TardeRaw | null, resumenRaw: ResumenRaw | nu
 }
 
 // ── Componente ───────────────────────────────────────────────────────────────
-type Vista = "dia" | "historico";
+type Vista = "dia" | "historico" | "recorridos";
 
 export function AnalisisDiario() {
   const [vista, setVista] = useState<Vista>("dia");
@@ -612,6 +613,11 @@ export function AnalisisDiario() {
                 vista === "historico" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}>
               Histórico
             </button>
+            <button onClick={() => setVista("recorridos")}
+              className={cn("text-xs px-3 py-1.5 rounded-md font-medium transition-colors",
+                vista === "recorridos" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+              Recorridos post-21hs
+            </button>
           </div>
           <input ref={fileTardeRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileTarde} />
           <input ref={fileResumenRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileResumen} />
@@ -744,7 +750,9 @@ export function AnalisisDiario() {
         </div>
       )}
 
-      {vista === "dia" ? (
+      {vista === "recorridos" ? (
+        <Post21Recorridos />
+      ) : vista === "dia" ? (
         <DiaView
           fecha={fecha} setFecha={setFecha} cargando={cargando}
           resumen={resumen} estados={estados} clientes={clientes}
