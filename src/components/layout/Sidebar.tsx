@@ -41,6 +41,7 @@ const LS_GROUPS = "rm-sidebar-grupos-colapsados";
 interface GrupoNav {
   key: string;
   label: string;
+  desc: string;
   items: ItemNav[];
 }
 
@@ -69,21 +70,21 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
   }
 
   const grupos: GrupoNav[] = [
-    { key: "operacion", label: "Operación diaria", items: [
+    { key: "operacion", label: "Operación diaria", desc: "Cargar, planificar y controlar el día", items: [
       { href: "/carga", label: "Carga del Día", icon: ClipboardList, visible: !esInvitado && tieneSolapa(perfil, "carga") },
       { href: "/volumenes", label: "Planificación", icon: Package, visible: esInvitado || tieneSolapa(perfil, "volumenes"), bloqueado: esInvitado },
       { href: "/pendientes", label: "Pendientes", icon: PackageCheck, visible: !esInvitado && tieneSolapa(perfil, "pendientes") },
     ] },
-    { key: "analisis", label: "Análisis", items: [
+    { key: "analisis", label: "Análisis", desc: "Resultados y desempeño del reparto", items: [
       { href: "/analisis-diario", label: "Resultados", icon: BarChart3, visible: esInvitado || tieneSolapa(perfil, "analisis"), bloqueado: esInvitado },
     ] },
-    { key: "mapa", label: "Mapa", items: [
+    { key: "mapa", label: "Mapa", desc: "Zonas y recorridos en el mapa", items: [
       { href: "/", label: "Mapa", icon: Map, visible: tieneSolapa(perfil, "mapa") || esInvitado },
     ] },
-    { key: "campo", label: "Campo", items: [
+    { key: "campo", label: "Campo", desc: "Herramienta para el chofer en la calle", items: [
       { href: "/ruta", label: "Mi ruta", icon: RouteIcon, visible: !esInvitado },
     ] },
-    { key: "ajustes", label: "Ajustes", items: [
+    { key: "ajustes", label: "Ajustes", desc: "Usuarios y configuración de la app", items: [
       { href: "/usuarios", label: "Usuarios", icon: Users, visible: perfil?.rol === "maestro" },
       { href: "/descargar", label: "Instalar app", icon: MonitorSmartphone, visible: !esInvitado },
     ] },
@@ -173,12 +174,17 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
             const cerrado = !!gruposCol[g.key];
             return (
               <div key={g.key} className="mb-0.5">
-                <button onClick={() => toggleGrupo(g.key)}
+                <button onClick={() => toggleGrupo(g.key)} title={g.desc}
                   className="w-full flex items-center gap-1 px-2 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/30 hover:text-white/60 transition-colors">
                   {cerrado ? <ChevronRight className="h-3 w-3 shrink-0" /> : <ChevronDown className="h-3 w-3 shrink-0" />}
                   <span className="truncate">{g.label}</span>
                 </button>
-                {!cerrado && <div className="flex flex-col gap-0.5">{vis.map(renderItem)}</div>}
+                {!cerrado && (
+                  <>
+                    <p className="px-2 pl-6 pb-1.5 text-[10px] leading-tight text-white/25">{g.desc}</p>
+                    <div className="flex flex-col gap-0.5">{vis.map(renderItem)}</div>
+                  </>
+                )}
               </div>
             );
           })}

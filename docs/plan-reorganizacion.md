@@ -71,14 +71,19 @@ al grupo Ajustes del menú; si más adelante se quiere, se pueden promover.
 
 ---
 
-## Etapa 4 — Hacerla autoexplicativa (onboarding y consistencia)
+## Etapa 4 — Hacerla autoexplicativa (onboarding y consistencia) 🔄 en curso
 **Problema:** hoy hay que saber cómo funciona el negocio para navegarla.
 
 **Cambios:**
-- Descripción corta / subtítulo en cada sección y sub-solapa (qué es y para qué).
-- Mejores estados vacíos con una pista de qué hacer.
+- ✅ **Subtítulo en cada sección del menú** (qué es y para qué): debajo de cada
+  encabezado del sidebar (Operación diaria, Análisis, Mapa, Campo, Ajustes)
+  aparece una línea corta que la explica. Las sub-solapas de Planificación y las
+  tarjetas de Herramientas ya tenían su descripción.
+- Estados vacíos: la mayoría ya trae una pista de qué hacer; repasar los pocos
+  que quedaron sin descripción.
 - Pasada de consistencia de íconos y textos.
-- (Opcional) una mini guía del flujo diario para usuarios nuevos.
+- (Opcional) una mini guía del flujo diario (Carga del Día → Planificación →
+  Resultados) para usuarios nuevos.
 
 **Riesgo:** mínimo. **Checkpoint:** ¿un usuario nuevo entiende sin que le expliquen?
 
