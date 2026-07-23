@@ -43,21 +43,30 @@ confunden.
 
 ---
 
-## Etapa 3 — Reagrupar el menú principal por función
+## Etapa 3 — Reagrupar el menú principal por función ✅ hecho (opción B)
 **Problema:** "Volúmenes" mete 4 apps distintas adentro; "Mi ruta" (rol
 conductor) convive con herramientas de gestión.
 
-**Cambios (propuesta a validar en su momento):**
-- Reagrupar el menú lateral en secciones lógicas:
-  - **Operación diaria:** Carga del Día · Operación del Día
-  - **Análisis / Reportes:** Análisis del Día (+ post-21hs) · Historial · Informe mensual · KPIs
-  - **Planificación:** Proyección
-  - **Mapa:** Mapa · Pendientes
-  - **Campo (conductor):** Mi ruta (separada visualmente, es otro rol)
-  - **Ajustes:** Usuarios · Feriados · Plantillas · Instalar app
-- Renombrar "Volúmenes" a algo que comunique (ej: "Planificación").
+**Decisión tomada:** opción B (renombrar, no disolver) + secciones colapsables.
 
-**Riesgo:** medio (toca el sidebar y el ruteo). **Reversible:** sí, con cuidado.
+**Cambios aplicados:**
+- **"Volúmenes" pasó a llamarse "Planificación"** en todos lados (menú, header,
+  permisos, paleta de comandos). La ruta y las sub-solapas internas quedan igual.
+- El menú lateral ahora está **agrupado en secciones colapsables** (se recuerdan
+  abiertas/cerradas entre sesiones):
+  - **Operación diaria:** Carga del Día · Planificación
+  - **Análisis:** Resultados
+  - **Mapa:** Mapa · Pendientes
+  - **Campo:** Mi ruta (separada, es otro rol)
+  - **Ajustes:** Usuarios · Instalar app
+- En modo barra colapsada / pantallas chicas se muestra la lista plana de íconos
+  (sin encabezados), como antes.
+
+**Nota:** Feriados y Plantillas quedan por ahora dentro de Planificación →
+Herramientas → Configuración (Etapa 2). Como no se disolvió Volúmenes, no subieron
+al grupo Ajustes del menú; si más adelante se quiere, se pueden promover.
+
+**Riesgo:** medio (tocó el sidebar). **Reversible:** sí.
 **Checkpoint:** ¿el menú se entiende de una sola pasada, sin conocer el negocio?
 
 ---

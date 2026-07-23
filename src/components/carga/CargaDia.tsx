@@ -394,7 +394,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
       const res = await publicarCargaDia(fecha);
       if (!res.ok) { toast.error("No se pudo enviar al análisis", { description: res.error }); return; }
       toast.success(`Día enviado al análisis: ${res.publicados} recorridos publicados`, {
-        description: "Los datos ya están disponibles en Volúmenes → Análisis por recorrido.",
+        description: "Los datos ya están disponibles en Planificación → Rendimiento de recorridos.",
       });
     } finally { setPublicando(false); }
   }

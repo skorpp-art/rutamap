@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   Map, Package, BarChart3, PackageCheck, Users, Lock, Truck, ClipboardList,
   MonitorSmartphone, LogOut, LogIn, ChevronsUpDown, PanelLeftClose, PanelLeftOpen,
-  Route as RouteIcon,
+  Route as RouteIcon, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { tieneSolapa } from "@/lib/permisos";
@@ -36,6 +36,13 @@ function iniciales(nombre: string): string {
 }
 
 const LS_KEY = "rm-sidebar-colapsado";
+const LS_GROUPS = "rm-sidebar-grupos-colapsados";
+
+interface GrupoNav {
+  key: string;
+  label: string;
+  items: ItemNav[];
+}
 
 export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
   const router = useRouter();
@@ -48,16 +55,42 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
     setColapsado(c => { const n = !c; localStorage.setItem(LS_KEY, n ? "1" : "0"); return n; });
   }
 
-  const items: ItemNav[] = [
-    { href: "/carga", label: "Carga del Día", icon: ClipboardList, visible: !esInvitado && tieneSolapa(perfil, "carga") },
-    { href: "/", label: "Mapa", icon: Map, visible: tieneSolapa(perfil, "mapa") || esInvitado },
-    { href: "/volumenes", label: "Volúmenes", icon: Package, visible: esInvitado || tieneSolapa(perfil, "volumenes"), bloqueado: esInvitado },
-    { href: "/analisis-diario", label: "Resultados", icon: BarChart3, visible: esInvitado || tieneSolapa(perfil, "analisis"), bloqueado: esInvitado },
-    { href: "/pendientes", label: "Pendientes", icon: PackageCheck, visible: !esInvitado && tieneSolapa(perfil, "pendientes") },
-    { href: "/ruta", label: "Mi ruta", icon: RouteIcon, visible: !esInvitado },
-    { href: "/usuarios", label: "Usuarios", icon: Users, visible: perfil?.rol === "maestro" },
-    { href: "/descargar", label: "Instalar app", icon: MonitorSmartphone, visible: !esInvitado },
+  // Grupos colapsables (persisten). Solo aplica en la barra expandida (md+).
+  const [gruposCol, setGruposCol] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    try { setGruposCol(JSON.parse(localStorage.getItem(LS_GROUPS) ?? "{}")); } catch { /* ignorar */ }
+  }, []);
+  function toggleGrupo(k: string) {
+    setGruposCol(prev => {
+      const n = { ...prev, [k]: !prev[k] };
+      localStorage.setItem(LS_GROUPS, JSON.stringify(n));
+      return n;
+    });
+  }
+
+  const grupos: GrupoNav[] = [
+    { key: "operacion", label: "Operación diaria", items: [
+      { href: "/carga", label: "Carga del Día", icon: ClipboardList, visible: !esInvitado && tieneSolapa(perfil, "carga") },
+      { href: "/volumenes", label: "Planificación", icon: Package, visible: esInvitado || tieneSolapa(perfil, "volumenes"), bloqueado: esInvitado },
+    ] },
+    { key: "analisis", label: "Análisis", items: [
+      { href: "/analisis-diario", label: "Resultados", icon: BarChart3, visible: esInvitado || tieneSolapa(perfil, "analisis"), bloqueado: esInvitado },
+    ] },
+    { key: "mapa", label: "Mapa", items: [
+      { href: "/", label: "Mapa", icon: Map, visible: tieneSolapa(perfil, "mapa") || esInvitado },
+      { href: "/pendientes", label: "Pendientes", icon: PackageCheck, visible: !esInvitado && tieneSolapa(perfil, "pendientes") },
+    ] },
+    { key: "campo", label: "Campo", items: [
+      { href: "/ruta", label: "Mi ruta", icon: RouteIcon, visible: !esInvitado },
+    ] },
+    { key: "ajustes", label: "Ajustes", items: [
+      { href: "/usuarios", label: "Usuarios", icon: Users, visible: perfil?.rol === "maestro" },
+      { href: "/descargar", label: "Instalar app", icon: MonitorSmartphone, visible: !esInvitado },
+    ] },
   ];
+
+  // Lista plana (para el modo íconos, sin encabezados de grupo)
+  const itemsPlanos = grupos.flatMap(g => g.items).filter(i => i.visible);
 
   async function handleLogout() {
     const supabase = createClient();
@@ -66,11 +99,36 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
     router.refresh();
   }
 
-  const visibles = items.filter(i => i.visible);
-  const activeIndex = visibles.findIndex(i => i.href === "/" ? pathname === "/" : pathname.startsWith(i.href));
-
   // Etiqueta visible solo cuando está expandido (y en md+)
   const lblCls = colapsado ? "hidden" : "hidden md:block";
+
+  // Botón de navegación reutilizado por la vista agrupada y la de íconos.
+  function renderItem(item: ItemNav) {
+    const activo = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+    const Icon = item.icon;
+    return (
+      <button
+        key={item.href}
+        onClick={() => router.push(item.href)}
+        title={item.bloqueado ? `${item.label} (requiere iniciar sesión)` : item.label}
+        className={cn(
+          "group relative z-10 flex items-center gap-3 h-10 rounded-lg px-2.5 md:px-3 transition-colors duration-150",
+          activo ? "bg-brand-blue text-white shadow-sm" : "text-white/60 hover:bg-white/10 hover:text-white"
+        )}
+      >
+        <Icon className={cn("h-[18px] w-[18px] shrink-0", colapsado ? "mx-auto" : "mx-auto md:mx-0")} />
+        <span className={cn("text-sm font-medium truncate", lblCls)}>{item.label}</span>
+        {item.bloqueado && (
+          <Lock className={cn("h-2.5 w-2.5 text-white/40", colapsado ? "absolute bottom-1 left-7" : "absolute bottom-1 left-7 md:static md:ml-auto")} />
+        )}
+        {/* Tooltip cuando está colapsado */}
+        <span className={cn("pointer-events-none absolute left-full ml-2 px-2 py-1 rounded-md bg-black/90 text-white text-[11px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg",
+          colapsado ? "block" : "md:hidden")}>
+          {item.label}
+        </span>
+      </button>
+    );
+  }
 
   return (
     <aside className={cn(
@@ -106,39 +164,30 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
       </div>
 
       {/* Navegación */}
-      <nav className="relative flex-1 flex flex-col gap-0.5 px-2 overflow-y-auto scrollbar-thin">
-        {/* Indicador azul que se desliza entre secciones (h-10=40px + gap 2px = 42px) */}
-        {activeIndex >= 0 && (
-          <span aria-hidden
-            className="absolute top-0 left-2 right-2 h-10 rounded-lg bg-brand-blue shadow-sm z-0 transition-transform duration-300 ease-out"
-            style={{ transform: `translateY(${activeIndex * 42}px)` }} />
-        )}
-        {visibles.map(item => {
-          const activo = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.href}
-              onClick={() => router.push(item.href)}
-              title={item.bloqueado ? `${item.label} (requiere iniciar sesión)` : item.label}
-              className={cn(
-                "group relative z-10 flex items-center gap-3 h-10 rounded-lg px-2.5 md:px-3 transition-colors duration-150",
-                activo ? "text-white" : "text-white/60 hover:bg-white/10 hover:text-white"
-              )}
-            >
-              <Icon className={cn("h-[18px] w-[18px] shrink-0", colapsado ? "mx-auto" : "mx-auto md:mx-0")} />
-              <span className={cn("text-sm font-medium truncate", lblCls)}>{item.label}</span>
-              {item.bloqueado && (
-                <Lock className={cn("h-2.5 w-2.5 text-white/40", colapsado ? "absolute bottom-1 left-7" : "absolute bottom-1 left-7 md:static md:ml-auto")} />
-              )}
-              {/* Tooltip cuando está colapsado */}
-              <span className={cn("pointer-events-none absolute left-full ml-2 px-2 py-1 rounded-md bg-black/90 text-white text-[11px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg",
-                colapsado ? "block" : "md:hidden")}>
-                {item.label}
-              </span>
-            </button>
-          );
-        })}
+      <nav className="relative flex-1 px-2 overflow-y-auto scrollbar-thin">
+        {/* Vista agrupada con secciones colapsables (barra expandida, md+) */}
+        <div className={cn("flex-col", colapsado ? "hidden" : "hidden md:flex")}>
+          {grupos.map(g => {
+            const vis = g.items.filter(i => i.visible);
+            if (!vis.length) return null;
+            const cerrado = !!gruposCol[g.key];
+            return (
+              <div key={g.key} className="mb-0.5">
+                <button onClick={() => toggleGrupo(g.key)}
+                  className="w-full flex items-center gap-1 px-2 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/30 hover:text-white/60 transition-colors">
+                  {cerrado ? <ChevronRight className="h-3 w-3 shrink-0" /> : <ChevronDown className="h-3 w-3 shrink-0" />}
+                  <span className="truncate">{g.label}</span>
+                </button>
+                {!cerrado && <div className="flex flex-col gap-0.5">{vis.map(renderItem)}</div>}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Vista de íconos (barra colapsada o pantallas chicas): lista plana */}
+        <div className={cn("flex flex-col gap-0.5", colapsado ? "flex" : "md:hidden")}>
+          {itemsPlanos.map(renderItem)}
+        </div>
       </nav>
 
       {/* Pie: tema + perfil */}

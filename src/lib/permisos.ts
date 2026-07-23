@@ -5,7 +5,7 @@
 
 export const SOLAPAS = [
   { key: "mapa", label: "Mapa", href: "/" },
-  { key: "volumenes", label: "Volúmenes", href: "/volumenes" },
+  { key: "volumenes", label: "Planificación", href: "/volumenes" },
   { key: "analisis", label: "Resultados", href: "/analisis-diario" },
   { key: "carga", label: "Carga del Día", href: "/carga" },
   { key: "pendientes", label: "Pendientes", href: "/pendientes" },

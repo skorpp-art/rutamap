@@ -30,7 +30,7 @@ const ZONAS: { valor: Zona | "todas"; etiqueta: string }[] = [
 const TITULOS: { match: (p: string) => boolean; titulo: string }[] = [
   { match: p => p === "/", titulo: "Mapa de Recorridos" },
   { match: p => p.startsWith("/carga"), titulo: "Carga del Día" },
-  { match: p => p.startsWith("/volumenes"), titulo: "Volúmenes" },
+  { match: p => p.startsWith("/volumenes"), titulo: "Planificación" },
   { match: p => p.startsWith("/analisis-diario"), titulo: "Resultados" },
   { match: p => p.startsWith("/pendientes"), titulo: "Pendientes" },
   { match: p => p.startsWith("/usuarios"), titulo: "Usuarios" },

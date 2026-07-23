@@ -60,11 +60,11 @@ export function CommandPalette({ esInvitado = false }: { esInvitado?: boolean })
     ];
     if (!esInvitado) {
       base.push(
-        { id: "vol", titulo: "Ir a Volúmenes", grupo: "Navegación", keywords: "volumenes paquetes choferes", icon: Package, accion: () => cerrarYNavegar("/volumenes") },
-        { id: "proyeccion", titulo: "Proyección", grupo: "Volúmenes", keywords: "proyeccion calculadora choferes estimar", icon: Calculator, accion: () => cerrarYNavegar("/volumenes?tab=proyeccion") },
-        { id: "operacion", titulo: "Operación del Día", grupo: "Volúmenes", keywords: "operacion dia recorridos cortes preturnos armar", icon: Settings2, accion: () => cerrarYNavegar("/volumenes?tab=operacion") },
-        { id: "analisis", titulo: "Análisis", grupo: "Volúmenes", keywords: "analisis importar excel clientes recorridos historico", icon: BarChart3, accion: () => cerrarYNavegar("/volumenes?tab=analisis") },
-        { id: "herramientas", titulo: "Herramientas", grupo: "Volúmenes", keywords: "herramientas plantillas kpis historial", icon: CalendarRange, accion: () => cerrarYNavegar("/volumenes?tab=herramientas") },
+        { id: "vol", titulo: "Ir a Planificación", grupo: "Navegación", keywords: "planificacion volumenes paquetes choferes", icon: Package, accion: () => cerrarYNavegar("/volumenes") },
+        { id: "proyeccion", titulo: "Proyección", grupo: "Planificación", keywords: "proyeccion calculadora choferes estimar", icon: Calculator, accion: () => cerrarYNavegar("/volumenes?tab=proyeccion") },
+        { id: "operacion", titulo: "Operación", grupo: "Planificación", keywords: "operacion dia recorridos cortes preturnos armar", icon: Settings2, accion: () => cerrarYNavegar("/volumenes?tab=operacion") },
+        { id: "analisis", titulo: "Rendimiento de recorridos", grupo: "Planificación", keywords: "rendimiento analisis recorridos clientes historico operaciones", icon: BarChart3, accion: () => cerrarYNavegar("/volumenes?tab=analisis") },
+        { id: "herramientas", titulo: "Herramientas", grupo: "Planificación", keywords: "herramientas plantillas kpis historial informe feriados", icon: CalendarRange, accion: () => cerrarYNavegar("/volumenes?tab=herramientas") },
       );
     }
     const esOscuro = resolvedTheme === "dark";
