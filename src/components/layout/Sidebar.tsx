@@ -72,13 +72,13 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
     { key: "operacion", label: "Operación diaria", items: [
       { href: "/carga", label: "Carga del Día", icon: ClipboardList, visible: !esInvitado && tieneSolapa(perfil, "carga") },
       { href: "/volumenes", label: "Planificación", icon: Package, visible: esInvitado || tieneSolapa(perfil, "volumenes"), bloqueado: esInvitado },
+      { href: "/pendientes", label: "Pendientes", icon: PackageCheck, visible: !esInvitado && tieneSolapa(perfil, "pendientes") },
     ] },
     { key: "analisis", label: "Análisis", items: [
       { href: "/analisis-diario", label: "Resultados", icon: BarChart3, visible: esInvitado || tieneSolapa(perfil, "analisis"), bloqueado: esInvitado },
     ] },
     { key: "mapa", label: "Mapa", items: [
       { href: "/", label: "Mapa", icon: Map, visible: tieneSolapa(perfil, "mapa") || esInvitado },
-      { href: "/pendientes", label: "Pendientes", icon: PackageCheck, visible: !esInvitado && tieneSolapa(perfil, "pendientes") },
     ] },
     { key: "campo", label: "Campo", items: [
       { href: "/ruta", label: "Mi ruta", icon: RouteIcon, visible: !esInvitado },
