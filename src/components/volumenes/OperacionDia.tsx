@@ -7,15 +7,15 @@ import { Button } from "@/components/ui/button";
 import {
   Save, RefreshCw, ChevronLeft, ChevronRight,
   FileDown, AlertTriangle, CheckCircle, Users, Clock,
-  Plus, Pencil, X, Lightbulb, Scissors, Sunrise, Trash2, Gauge, Search, Wand2,
+  Plus, Pencil, X, Lightbulb, Scissors, Sunrise, Trash2, Gauge, Search,
   FileSpreadsheet,
 } from "lucide-react";
 import {
   getOperacionDia, inicializarOperacionDia,
-  guardarOperacionBulk, getTotalPaquetesFecha, getSugerenciaOperacion,
+  guardarOperacionBulk, getTotalPaquetesFecha,
   aplicarPlantillaOperacion,
 } from "@/app/actions/operacion";
-import type { SugerenciaRuta, TipoDiaPlantilla } from "@/app/actions/operacion";
+import type { TipoDiaPlantilla } from "@/app/actions/operacion";
 import { getAnalisisRecorridos, getCoactivacionesHistoricas } from "@/app/actions/operaciones-diarias";
 import type { AnalisisRecorrido } from "@/app/actions/operaciones-diarias";
 import { crearRecorrido, actualizarCamposRecorrido, getSiguienteCodigo, eliminarRecorrido } from "@/app/actions/recorridos";
@@ -88,10 +88,6 @@ export function OperacionDia({
   const [historicoActivaciones, setHistoricoActivaciones] = useState<Record<string, Set<string>>>({});
   // Panel lateral derecho (estilo Drive): "resumen" | "sugerencias" | null
   const [panelAbierto, setPanelAbierto] = useState<"resumen" | "sugerencias" | null>(null);
-  // Pre-armado automático: modal de sugerencia
-  const [mostrarPreArmado, setMostrarPreArmado] = useState(false);
-  const [cargandoSugerencia, setCargandoSugerencia] = useState(false);
-  const [sugerencia, setSugerencia] = useState<SugerenciaRuta[]>([]);
   const reportRef = useRef<HTMLDivElement>(null);
   // Debounce para autoguardado al cambiar rutas ON/OFF
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -520,46 +516,6 @@ export function OperacionDia({
       toast.success(`Piso "${LABEL_PISO[tipoDia]}" aplicado — ${res.afectados ?? 0} recorridos ajustados`);
       await cargar(fecha);
     } finally { setGuardando(false); }
-  }
-
-  // ── Pre-armado automático según historial ──────────────────────────────────
-  async function abrirPreArmado() {
-    setCargandoSugerencia(true);
-    setMostrarPreArmado(true);
-    try {
-      const res = await getSugerenciaOperacion(fecha);
-      if (!res.ok || !res.data) {
-        toast.error("No se pudo calcular la sugerencia", { description: res.error });
-        setMostrarPreArmado(false);
-        return;
-      }
-      setSugerencia(res.data);
-    } finally { setCargandoSugerencia(false); }
-  }
-
-  // Aplica la sugerencia: marca activo=sugerido en cada ruta (queda pendiente de guardar)
-  function aplicarPreArmado() {
-    const porId = new Map(sugerencia.map(s => [s.recorrido_id, s.sugerido]));
-    setEditados(prev => {
-      const next = { ...prev };
-      for (const r of rutas) {
-        const sug = porId.get(r.recorrido_id);
-        if (sug === undefined) continue;
-        if (r.activo !== sug) {
-          next[r.recorrido_id] = { ...next[r.recorrido_id], activo: sug };
-        } else if (next[r.recorrido_id]?.activo !== undefined) {
-          // coincide con lo ya guardado: descartar el cambio pendiente de activo
-          const { activo: _omit, ...resto } = next[r.recorrido_id];
-          if (Object.keys(resto).length === 0) delete next[r.recorrido_id];
-          else next[r.recorrido_id] = resto;
-        }
-      }
-      return next;
-    });
-    const nOn = sugerencia.filter(s => s.sugerido).length;
-    setMostrarPreArmado(false);
-    toast.success(`Pre-armado aplicado: ${nOn} recorridos sugeridos. Revisá y guardá.`, { duration: 6000 });
-    programarAutosave(1500);
   }
 
   // Manejar clic exportar: mostrar alerta si fuera de rango
@@ -1115,12 +1071,6 @@ export function OperacionDia({
             </button>
           ))}
         </div>
-        <button onClick={abrirPreArmado} disabled={guardando || cargandoSugerencia}
-          className="text-[10px] px-2 py-0.5 rounded border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors flex items-center gap-1 disabled:opacity-50"
-          title="Sugerir qué recorridos activar según el historial de este día de la semana">
-          <Wand2 className="h-3 w-3" />
-          Pre-armar día
-        </button>
         <button onClick={limpiarRecorridos} disabled={guardando}
           className="text-[10px] px-2 py-0.5 rounded border border-red-200 dark:border-red-900 text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors flex items-center gap-1 disabled:opacity-50"
           title="Deshabilitar todos los recorridos de todas las zonas">
@@ -1382,65 +1332,6 @@ export function OperacionDia({
                 <Trash2 className="h-3.5 w-3.5" /> Eliminar recorrido
               </Button>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Modal alerta inteligente ── */}
-      {mostrarPreArmado && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-background border rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col">
-            <div className="flex items-start gap-3 p-5 border-b">
-              <Wand2 className="h-6 w-6 text-blue-600 dark:text-blue-300 shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-base">Pre-armar la operación del día</p>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Sugerencia según cuántas veces se activó cada recorrido en los{" "}
-                  {(() => { const d = new Date(fecha + "T12:00:00").toLocaleDateString("es-AR", { weekday: "long" }); return d + "s"; })()}{" "}
-                  anteriores. Los fijos van siempre; el resto si se usó en más de la mitad.
-                </p>
-              </div>
-              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setMostrarPreArmado(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {cargandoSugerencia ? (
-              <div className="p-8 text-center text-sm text-muted-foreground animate-pulse">Calculando sugerencia…</div>
-            ) : (() => {
-              const on = sugerencia.filter(s => s.sugerido);
-              const variablesOn = on.filter(s => s.tipo !== "fijo");
-              const sinDatos = sugerencia[0]?.total_dias_dow === 0;
-              return (
-                <>
-                  <div className="px-5 py-3 border-b bg-muted/20 flex items-center gap-4 text-sm">
-                    <span><span className="font-bold text-lg tabular-nums">{on.length}</span> a activar</span>
-                    <span className="text-muted-foreground">{on.filter(s => s.tipo === "fijo").length} fijos + {variablesOn.length} variables</span>
-                    {sinDatos && <span className="text-amber-600 dark:text-amber-300 text-xs ml-auto">⚠ Sin historial de este día — solo fijos</span>}
-                  </div>
-                  <div className="flex-1 overflow-y-auto p-4 space-y-1">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-1">Recorridos variables sugeridos</p>
-                    {variablesOn.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">Ninguno supera el umbral — solo se activarán los fijos.</p>
-                    ) : variablesOn.map(s => (
-                      <div key={s.recorrido_id} className="flex items-center gap-2 text-xs py-1 border-b border-border/50 last:border-0">
-                        <span className="font-mono font-semibold w-16 shrink-0">{s.codigo}</span>
-                        <span className="truncate flex-1 text-muted-foreground">{s.nombre}</span>
-                        <span className="tabular-nums text-[11px] shrink-0 px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-700 dark:text-blue-300">
-                          {s.freq_pct}% ({s.veces_activo}/{s.total_dias_dow})
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="p-4 border-t flex gap-2">
-                    <Button variant="outline" className="flex-1" onClick={() => setMostrarPreArmado(false)}>Cancelar</Button>
-                    <Button className="flex-1 gap-1.5" onClick={aplicarPreArmado}>
-                      <Wand2 className="h-4 w-4" />Aplicar ({on.length})
-                    </Button>
-                  </div>
-                </>
-              );
-            })()}
           </div>
         </div>
       )}
