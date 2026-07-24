@@ -28,6 +28,25 @@ export async function inicializarOperacionDia(
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
+export type TipoDiaPlantilla = "lun_feriado" | "mar_vie" | "sabado";
+
+// Aplica el "piso" de recorridos de un tipo de día a la fecha: activa los que
+// están en la plantilla y desactiva el resto (preserva paquetes y notas).
+export async function aplicarPlantillaOperacion(
+  fecha: string, tipoDia: TipoDiaPlantilla
+): Promise<{ ok: boolean; afectados?: number; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("aplicar_plantilla_operacion", {
+      p_fecha: fecha, p_tipo_dia: tipoDia,
+    });
+    if (error) return { ok: false, error: error.message };
+    revalidatePath("/volumenes");
+    return { ok: true, afectados: data as number };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
 // Obtener operación del día
 export async function getOperacionDia(
   fecha: string

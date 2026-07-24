@@ -13,8 +13,9 @@ import {
 import {
   getOperacionDia, inicializarOperacionDia,
   guardarOperacionBulk, getTotalPaquetesFecha, getSugerenciaOperacion,
+  aplicarPlantillaOperacion,
 } from "@/app/actions/operacion";
-import type { SugerenciaRuta } from "@/app/actions/operacion";
+import type { SugerenciaRuta, TipoDiaPlantilla } from "@/app/actions/operacion";
 import { getAnalisisRecorridos, getCoactivacionesHistoricas } from "@/app/actions/operaciones-diarias";
 import type { AnalisisRecorrido } from "@/app/actions/operaciones-diarias";
 import { crearRecorrido, actualizarCamposRecorrido, getSiguienteCodigo, eliminarRecorrido } from "@/app/actions/recorridos";
@@ -499,6 +500,24 @@ export function OperacionDia({
       if (!res.ok) { toast.error("Error al limpiar recorridos", { description: res.error }); return; }
       setEditados({});
       toast.success("Todos los recorridos fueron deshabilitados");
+      await cargar(fecha);
+    } finally { setGuardando(false); }
+  }
+
+  // ── Piso por tipo de día (plantilla fija del esquema) ──────────────────────
+  // Activa de una todos los recorridos "piso" del tipo de día y desactiva el
+  // resto. Después el coordinador ajusta los pocos que agrega/quita.
+  const LABEL_PISO: Record<TipoDiaPlantilla, string> = {
+    lun_feriado: "Lunes / Feriado", mar_vie: "Martes a Viernes", sabado: "Sábado",
+  };
+  async function aplicarPiso(tipoDia: TipoDiaPlantilla) {
+    if (!confirm(`¿Aplicar el piso de "${LABEL_PISO[tipoDia]}"? Se activan los recorridos base de ese día y se desactiva el resto. Los ajustes que hayas hecho a mano se reemplazan.`)) return;
+    setGuardando(true);
+    try {
+      const res = await aplicarPlantillaOperacion(fecha, tipoDia);
+      if (!res.ok) { toast.error("No se pudo aplicar el piso", { description: res.error }); return; }
+      setEditados({});
+      toast.success(`Piso "${LABEL_PISO[tipoDia]}" aplicado — ${res.afectados ?? 0} recorridos ajustados`);
       await cargar(fecha);
     } finally { setGuardando(false); }
   }
@@ -1081,6 +1100,21 @@ export function OperacionDia({
             soloActivos ? "bg-blue-600 text-white border-blue-600" : "border-border text-muted-foreground")}>
           Solo activos
         </button>
+        {/* Piso por tipo de día: activa la plantilla fija del esquema de una */}
+        <div className="flex items-center gap-1 pl-1 border-l border-border ml-1">
+          <span className="text-[10px] text-muted-foreground">Piso:</span>
+          {([
+            ["lun_feriado", "Lun/Fer."],
+            ["mar_vie", "Mar-Vie"],
+            ["sabado", "Sáb"],
+          ] as [TipoDiaPlantilla, string][]).map(([tipo, lbl]) => (
+            <button key={tipo} onClick={() => aplicarPiso(tipo)} disabled={guardando}
+              className="text-[10px] px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors disabled:opacity-50"
+              title={`Aplicar el piso de recorridos de ${LABEL_PISO[tipo]}${tipo === "lun_feriado" ? " (usalo también si el día es feriado)" : ""}`}>
+              {lbl}
+            </button>
+          ))}
+        </div>
         <button onClick={abrirPreArmado} disabled={guardando || cargandoSugerencia}
           className="text-[10px] px-2 py-0.5 rounded border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors flex items-center gap-1 disabled:opacity-50"
           title="Sugerir qué recorridos activar según el historial de este día de la semana">
