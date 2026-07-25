@@ -139,10 +139,7 @@ export function RutaConductor({ recorridos }: { recorridos: RecorridoGeo[] }) {
 
   return (
     <div className="max-w-3xl mx-auto p-5 space-y-4">
-      <PageHeader titulo="Mi ruta" />
-      <p className="text-sm text-muted-foreground -mt-1">
-        Cargá tus direcciones y abrí la ruta en Google Maps.
-      </p>
+      <PageHeader titulo="Mi ruta" desc="Cargá tus direcciones y abrí la ruta en Google Maps." />
 
       {/* Recorrido propio (para chequear dentro/fuera) */}
       <div className="flex items-center gap-2 flex-wrap">

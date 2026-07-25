@@ -518,6 +518,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
         {/* ── Encabezado ── */}
         <PageHeader
           titulo="Carga del Día"
+          desc="Los coordinadores cargan chofer y paquetes (sistema / por fuera) por recorrido. Al cierre, enviá el día al análisis."
           meta={
             <span className="inline-flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 border rounded-md px-2.5 py-1.5">
@@ -532,10 +533,6 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
             </span>
           }
         />
-        <p className="text-sm text-muted-foreground max-w-3xl -mt-1">
-          Los coordinadores cargan chofer y paquetes (sistema / por fuera) por recorrido. Al cierre, enviá el día al análisis.
-        </p>
-
         {/* ── Resumen del día ── */}
         <StatRow
           labelsUpper

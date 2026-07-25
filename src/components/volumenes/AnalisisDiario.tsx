@@ -594,14 +594,10 @@ export function AnalisisDiario() {
       {/* Header */}
       <PageHeader
         titulo="Resultados"
+        desc="Entregas post-21hs, estados del día y demorados (todo lo post-21hs sin entregar) por cliente."
         meta={vista === "dia" ? "Vista por día" : vista === "historico" ? "Vista histórica" : "Recorridos post-21hs"}
       />
       <div className="flex items-start gap-3 flex-wrap -mt-1">
-        <div>
-          <p className="text-sm text-muted-foreground max-w-3xl">
-            Entregas post-21hs, estados del día y demorados (todo lo post-21hs sin entregar) por cliente.
-          </p>
-        </div>
         <div className="ml-auto flex items-center gap-2">
           <div className="flex gap-1 bg-muted/40 rounded-lg p-1">
             <button onClick={() => setVista("dia")}

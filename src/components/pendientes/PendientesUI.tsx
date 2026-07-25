@@ -187,14 +187,10 @@ export function PendientesUI({
         {/* ── Encabezado ── */}
         <PageHeader
           titulo="Pendientes"
+          desc="Control de recepción: marcá qué volvió al depósito, por conductor y por zona."
           meta={vista === "dia" ? "Control del día" : "Histórico mensual"}
         />
         <div className="flex items-start gap-3 flex-wrap -mt-1">
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-muted-foreground max-w-3xl">
-              Control de recepción: marcá qué volvió al depósito, por conductor y por zona.
-            </p>
-          </div>
           <div className="flex gap-1 bg-muted/40 rounded-lg p-1">
             <button onClick={() => setVista("dia")}
               className={cn("text-xs px-3 py-1.5 rounded-md font-medium transition-colors",

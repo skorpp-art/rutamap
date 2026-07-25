@@ -148,6 +148,7 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
     <div className="max-w-6xl mx-auto p-5 space-y-4">
       <PageHeader
         titulo="Usuarios"
+        desc="Creá cuentas y elegí, por persona, qué solapas ve y si puede editar."
         meta={
           <button onClick={cargar} disabled={cargando}
             className="p-2 rounded-md border hover:bg-muted/40 transition-colors" title="Actualizar">
@@ -155,9 +156,6 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
           </button>
         }
       />
-      <p className="text-sm text-muted-foreground max-w-3xl -mt-1">
-        Creá cuentas y elegí, por persona, qué solapas ve y si puede editar.
-      </p>
 
       {/* Crear cuenta directamente (recomendado para uso interno) */}
       <form onSubmit={onCrear} className="border rounded-xl p-4 bg-card space-y-3">

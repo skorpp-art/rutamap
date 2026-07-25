@@ -75,9 +75,9 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
 
   return (
     <header className="h-14 bg-card border-b border-border flex items-center px-4 gap-3 shrink-0">
-      {/* Título de sección — se omite si la pantalla ya trae el suyo grande */}
+      {/* Título de sección — mismo porte que el PageHeader del resto de la app */}
       {!repiteTitulo && (
-        <h1 className="text-base font-bold tracking-tight shrink-0">{titulo}</h1>
+        <h1 className="text-2xl font-black tracking-tight leading-none shrink-0">{titulo}</h1>
       )}
 
       {/* Selector de zona — solo en el mapa */}
