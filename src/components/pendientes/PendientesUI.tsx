@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   marcarPendiente, marcarPendientesLote,
   type Pendiente, type FechaPendiente, type EstadoRecepcion,
@@ -184,13 +185,13 @@ export function PendientesUI({
     <div className="h-full overflow-y-auto">
       <div className="max-w-5xl mx-auto p-5 space-y-5">
         {/* ── Encabezado ── */}
-        <div className="flex items-start gap-3 flex-wrap">
-          <span className="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-blue-500/15 text-blue-700 dark:text-blue-300">
-            <Package className="h-5 w-5" />
-          </span>
+        <PageHeader
+          titulo="Pendientes"
+          meta={vista === "dia" ? "Control del día" : "Histórico mensual"}
+        />
+        <div className="flex items-start gap-3 flex-wrap -mt-1">
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold">Pendientes</h1>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground max-w-3xl">
               Control de recepción: marcá qué volvió al depósito, por conductor y por zona.
             </p>
           </div>

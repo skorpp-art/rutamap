@@ -30,7 +30,7 @@ export function MetricCard({
 }) {
   return (
     <div
-      className={cn("border rounded-xl p-4 bg-background animate-fade-up flex flex-col gap-1", className)}
+      className={cn("border rounded-lg px-4 py-3.5 bg-card animate-fade-up flex flex-col gap-1.5", className)}
       style={{
         animationDelay: `${index * 70}ms`,
         borderColor: accent ? accent + "55" : undefined,
@@ -39,7 +39,7 @@ export function MetricCard({
       {/* Encabezado: ícono opcional + etiqueta */}
       <div className="flex items-center gap-1.5">
         {icon && <span style={{ color: accent }} className={cn(!accent && "text-muted-foreground")}>{icon}</span>}
-        <span className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold truncate">
+        <span className="text-[11px] uppercase tracking-widest text-muted-foreground font-bold truncate">
           {label}
         </span>
       </div>
@@ -47,7 +47,7 @@ export function MetricCard({
       {/* Valor + tendencia */}
       <div className="flex items-end gap-2">
         <p
-          className={cn("text-3xl font-bold tabular-nums leading-none", valueClassName ?? "text-foreground")}
+          className={cn("text-3xl font-black tabular-nums leading-none", valueClassName ?? "text-foreground")}
           style={accent ? { color: accent } : undefined}
         >
           {value}

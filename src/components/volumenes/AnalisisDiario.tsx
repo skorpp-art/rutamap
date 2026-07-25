@@ -28,6 +28,7 @@ import type {
 } from "@/app/actions/analisis-diario";
 import { useChartTheme } from "@/hooks/useChartTheme";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
 import { Post21Recorridos } from "./Post21Recorridos";
 import { hoyAR, addDiasAR } from "@/lib/fechas";
 
@@ -591,13 +592,13 @@ export function AnalisisDiario() {
   return (
     <div className="h-full overflow-y-auto p-6 space-y-5">
       {/* Header */}
-      <div className="flex items-start gap-3 flex-wrap">
+      <PageHeader
+        titulo="Resultados"
+        meta={vista === "dia" ? "Vista por día" : vista === "historico" ? "Vista histórica" : "Recorridos post-21hs"}
+      />
+      <div className="flex items-start gap-3 flex-wrap -mt-1">
         <div>
-          <h2 className="text-base font-bold flex items-center gap-2">
-            <Package className="h-5 w-5 text-blue-600 dark:text-blue-300" />
-            Resultados
-          </h2>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground max-w-3xl">
             Entregas post-21hs, estados del día y demorados (todo lo post-21hs sin entregar) por cliente.
           </p>
         </div>
@@ -1180,25 +1181,23 @@ function KpiCard({ icon: Icon, label, valor, sub, tono, delta, onClick, hint }: 
   const deltaBueno = delta ? (delta.invertido ? delta.valor < 0 : delta.valor > 0) : false;
   return (
     <div onClick={onClick} title={hint}
-      className={cn("rounded-xl p-4 border bg-gradient-to-br shadow-sm", t.card,
-        onClick && "cursor-pointer hover:brightness-95 dark:hover:brightness-110 transition-[filter]")}>
-      <div className="flex items-center gap-2">
-        <span className={cn("inline-flex items-center justify-center h-7 w-7 rounded-lg", t.chip)}>
-          <Icon className="h-4 w-4" />
-        </span>
-        <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium leading-tight">{label}</span>
+      className={cn("rounded-lg px-4 py-3.5 border bg-card",
+        onClick && "cursor-pointer hover:bg-muted/40 transition-colors")}>
+      <div className="flex items-center gap-1.5">
+        <Icon className={cn("h-3.5 w-3.5 shrink-0", t.text)} />
+        <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground leading-tight">{label}</span>
       </div>
-      <div className="flex items-end gap-2 mt-2">
-        <p className={cn("text-2xl font-bold tabular-nums", t.text)}>{valor}</p>
+      <div className="flex items-end gap-2 mt-1.5">
+        <p className={cn("text-3xl font-black tabular-nums leading-none", t.text)}>{valor}</p>
         {delta && delta.valor !== 0 && (
-          <span className={cn("text-[11px] font-semibold tabular-nums mb-0.5 shrink-0",
+          <span className={cn("text-[11px] font-semibold tabular-nums shrink-0",
             deltaBueno ? "text-emerald-600 dark:text-emerald-300" : "text-red-600 dark:text-red-300")}
             title={`vs ${delta.ref}`}>
             {delta.valor > 0 ? "▲" : "▼"} {Math.abs(delta.valor).toLocaleString("es-AR", { maximumFractionDigits: 1 })}{delta.unidad ?? ""}
           </span>
         )}
       </div>
-      {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+      {sub && <p className="text-[11px] text-muted-foreground mt-1.5">{sub}</p>}
     </div>
   );
 }

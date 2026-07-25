@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
 import { hoyAR } from "@/lib/fechas";
 import {
   getRuta, agregarParada, eliminarParada, limpiarRuta,
@@ -138,15 +139,10 @@ export function RutaConductor({ recorridos }: { recorridos: RecorridoGeo[] }) {
 
   return (
     <div className="max-w-2xl mx-auto p-5 space-y-5">
-      <div className="flex items-center gap-3">
-        <span className="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-blue-500/15 text-blue-700 dark:text-blue-300">
-          <RouteIcon className="h-5 w-5" />
-        </span>
-        <div className="flex-1">
-          <h1 className="text-xl font-bold">Mi ruta</h1>
-          <p className="text-xs text-muted-foreground">Cargá tus direcciones y abrí la ruta en Google Maps.</p>
-        </div>
-      </div>
+      <PageHeader titulo="Mi ruta" />
+      <p className="text-sm text-muted-foreground -mt-1">
+        Cargá tus direcciones y abrí la ruta en Google Maps.
+      </p>
 
       {/* Recorrido propio (para chequear dentro/fuera) */}
       <div className="flex items-center gap-2 flex-wrap">
