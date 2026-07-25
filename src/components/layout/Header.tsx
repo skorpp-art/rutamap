@@ -39,6 +39,10 @@ const TITULOS: { match: (p: string) => boolean; titulo: string }[] = [
   { match: p => p.startsWith("/descargar"), titulo: "Instalar app" },
 ];
 
+// Pantallas que ya muestran su propio título grande (PageHeader): acá la barra
+// superior no lo repite, para no leer "Pendientes" dos veces seguidas.
+const CON_TITULO_PROPIO = ["/carga", "/pendientes", "/analisis-diario", "/usuarios", "/ruta"];
+
 // Solapas de Planificación, mostradas en la barra superior
 const TABS_VOLUMENES = [
   ["proyeccion", "Proyección", TrendingUp],
@@ -58,6 +62,7 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
 
   const esMapa = pathname === "/";
   const titulo = TITULOS.find(t => t.match(pathname))?.titulo ?? "RutaMap";
+  const repiteTitulo = CON_TITULO_PROPIO.some(p => pathname.startsWith(p));
 
   function handleZonaChange(valor: string) {
     setFiltroZona(valor === "todas" ? null : (valor as Zona));
@@ -65,8 +70,10 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
 
   return (
     <header className="h-14 bg-card border-b border-border flex items-center px-4 gap-3 shrink-0">
-      {/* Título de sección */}
-      <h1 className="text-base font-bold tracking-tight shrink-0">{titulo}</h1>
+      {/* Título de sección — se omite si la pantalla ya trae el suyo grande */}
+      {!repiteTitulo && (
+        <h1 className="text-base font-bold tracking-tight shrink-0">{titulo}</h1>
+      )}
 
       {/* Selector de zona — solo en el mapa */}
       {esMapa && (
