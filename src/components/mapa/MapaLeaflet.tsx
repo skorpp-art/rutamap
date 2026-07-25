@@ -151,9 +151,9 @@ function MarcadorDireccion({ punto }: { punto: PuntoDireccion | null }) {
     <Marker position={[punto.lat, punto.lon]}>
       <Popup autoPan minWidth={220}>
         <div className="space-y-1.5">
-          <p className="font-semibold text-[13px] leading-snug">{punto.label}</p>
+          <p className="font-semibold text-xs leading-snug">{punto.label}</p>
           {punto.recorridos.length === 0 ? (
-            <p className="text-[12px] text-red-600">No pertenece a ningún recorrido con área cargada.</p>
+            <p className="text-xs text-red-600">No pertenece a ningún recorrido con área cargada.</p>
           ) : (
             <div className="space-y-1">
               <p className="text-xs text-neutral-500 uppercase tracking-wide font-medium">
@@ -161,7 +161,7 @@ function MarcadorDireccion({ punto }: { punto: PuntoDireccion | null }) {
               </p>
               {punto.recorridos.map((r) => (
                 <div key={r.codigo} className="space-y-0.5">
-                  <div className="flex items-center gap-1.5 text-[12px]">
+                  <div className="flex items-center gap-1.5 text-xs">
                     <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: r.color }} />
                     <span className="font-mono font-bold">{r.codigo}</span>
                     <span className="text-neutral-600 truncate">— {r.nombre}</span>

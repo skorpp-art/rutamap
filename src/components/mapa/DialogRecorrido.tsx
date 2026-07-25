@@ -52,7 +52,7 @@ export function DialogRecorrido({
           {/* Cabecera */}
           <div className="flex items-start justify-between mb-4">
             <div>
-              <Dialog.Title className="text-base font-semibold">{titulo}</Dialog.Title>
+              <Dialog.Title className="text-sm font-semibold">{titulo}</Dialog.Title>
               <Dialog.Description className="text-xs text-muted-foreground mt-0.5">
                 {subtitulo}
               </Dialog.Description>

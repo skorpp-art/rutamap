@@ -85,7 +85,7 @@ export function DescargarApp({ esMaestro }: { esMaestro: boolean }) {
             <MonitorSmartphone className="h-5 w-5" />
           </span>
           <div>
-            <h1 className="text-xl font-bold">Instalar RutaMap</h1>
+            <h1 className="text-2xl font-bold">Instalar RutaMap</h1>
             <p className="text-xs text-muted-foreground">
               Usala como app en tablets y celulares: ícono propio, pantalla completa y arranque directo en Carga del Día.
             </p>
@@ -112,7 +112,7 @@ export function DescargarApp({ esMaestro }: { esMaestro: boolean }) {
               <p className="text-xs text-muted-foreground">
                 Un toque y queda instalada con su ícono en la pantalla principal. Se actualiza sola con cada mejora — nunca hay que reinstalar.
               </p>
-              <Button onClick={instalar} size="lg" className="w-full h-12 text-base gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+              <Button onClick={instalar} size="lg" className="w-full h-12 text-sm gap-2 bg-blue-600 hover:bg-blue-700 text-white">
                 <Download className="h-5 w-5" /> Instalar RutaMap
               </Button>
             </>
@@ -159,7 +159,7 @@ export function DescargarApp({ esMaestro }: { esMaestro: boolean }) {
                 Descargá el instalador y abrilo en la tablet o el celular. Puede que Android pida permitir
                 "instalar apps de origen desconocido" — es normal para apps fuera de Play Store.
               </p>
-              <Button asChild size="lg" className="w-full h-12 text-base gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Button asChild size="lg" className="w-full h-12 text-sm gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
                 <a href={apkUrl} download="rutamap.apk">
                   <Download className="h-5 w-5" /> Descargar APK
                 </a>

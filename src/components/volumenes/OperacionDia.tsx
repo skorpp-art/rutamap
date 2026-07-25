@@ -914,7 +914,7 @@ export function OperacionDia({
                     ].map(({ label, valor, sub, hl }) => (
                       <div key={label} className="border rounded-lg p-3 text-center bg-background">
                         <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">{label}</p>
-                        <p className={cn("text-xl font-bold tabular-nums leading-tight mt-0.5", hl ? "text-blue-700 dark:text-blue-300" : "text-foreground")}>{valor}</p>
+                        <p className={cn("text-2xl font-bold tabular-nums leading-tight mt-0.5", hl ? "text-blue-700 dark:text-blue-300" : "text-foreground")}>{valor}</p>
                         <p className="text-xs text-muted-foreground">{sub}</p>
                       </div>
                     ))}
@@ -931,7 +931,7 @@ export function OperacionDia({
                       <p className="text-xs uppercase tracking-wide font-semibold text-muted-foreground">
                         Margen hasta 40P
                       </p>
-                      <p className={cn("text-xl font-bold tabular-nums",
+                      <p className={cn("text-2xl font-bold tabular-nums",
                         margenHasta40 < 0 ? "text-red-600 dark:text-red-300" :
                         margenHasta35 < 200 ? "text-amber-600 dark:text-amber-300" :
                         "text-emerald-600 dark:text-emerald-300")}>
@@ -1231,7 +1231,7 @@ export function OperacionDia({
         <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-background border rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 space-y-4">
             <div className="flex items-center justify-between">
-              <p className="font-bold text-base">
+              <p className="font-bold text-sm">
                 {modalRuta.modo === "nuevo" ? "Agregar recorrido" : "Editar recorrido"}
               </p>
               <button onClick={() => { setModalRuta(null); setDraftsNuevos([]); }} className="text-muted-foreground hover:text-foreground">
@@ -1366,7 +1366,7 @@ export function OperacionDia({
                 : <AlertTriangle className="h-6 w-6 text-amber-500 shrink-0 mt-0.5" />
               }
               <div>
-                <p className="font-bold text-base">
+                <p className="font-bold text-sm">
                   {promedio >= targetPkg - 5 && promedio <= targetPkg + 5
                     ? "Operación balanceada — lista para exportar"
                     : "Promedio fuera del rango objetivo"}
@@ -1383,17 +1383,17 @@ export function OperacionDia({
             <div className="grid grid-cols-3 gap-3 text-center border rounded-lg p-3 bg-slate-50 dark:bg-slate-800/40">
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Rutas</p>
-                <p className="text-xl font-bold">{nActivas}</p>
+                <p className="text-2xl font-bold">{nActivas}</p>
                 <p className="text-xs text-muted-foreground">{nFijos}F · {nPreT}PT · {nCortes}C</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Prom/ruta</p>
-                <p className={`text-xl font-bold ${estadoColor}`}>{promedio > 0 ? promedio.toFixed(1) : "—"}</p>
+                <p className={`text-2xl font-bold ${estadoColor}`}>{promedio > 0 ? promedio.toFixed(1) : "—"}</p>
                 <p className="text-xs text-muted-foreground">target {targetPkg}±5</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Choferes</p>
-                <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{choferes}</p>
+                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{choferes}</p>
                 <p className="text-xs text-muted-foreground">@{targetPkg} pkg</p>
               </div>
             </div>

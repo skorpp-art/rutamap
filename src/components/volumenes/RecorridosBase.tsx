@@ -113,7 +113,7 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="border rounded-lg p-4 bg-blue-50/50 dark:bg-blue-950/40 col-span-2 lg:col-span-1">
           <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Piso operativo (RF)</p>
-          <p className="text-4xl font-bold text-blue-700 dark:text-blue-300 tabular-nums mt-1">{pisoOperativo}</p>
+          <p className="text-3xl font-bold text-blue-700 dark:text-blue-300 tabular-nums mt-1">{pisoOperativo}</p>
           <p className="text-xs text-muted-foreground mt-1">recorridos fijos activos</p>
         </div>
         {(["Oeste","Norte","Sur","CABA"] as const).map(zona => {

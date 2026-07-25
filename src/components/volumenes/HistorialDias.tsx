@@ -229,13 +229,13 @@ export function HistorialDias() {
             {filtroDia}s en los últimos {dias} días
           </span>
           <span className="text-xs text-muted-foreground">
-            <span className="font-bold text-foreground tabular-nums text-base">{resumen.diasConPaq}</span> {resumen.diasConPaq === 1 ? "día" : "días"} con datos
+            <span className="font-bold text-foreground tabular-nums text-sm">{resumen.diasConPaq}</span> {resumen.diasConPaq === 1 ? "día" : "días"} con datos
           </span>
           <span className="text-xs text-muted-foreground">
-            Promedio paquetes: <span className="font-bold text-blue-700 dark:text-blue-300 tabular-nums text-base">{resumen.promPaquetes.toLocaleString("es-AR")}</span>
+            Promedio paquetes: <span className="font-bold text-blue-700 dark:text-blue-300 tabular-nums text-sm">{resumen.promPaquetes.toLocaleString("es-AR")}</span>
           </span>
           <span className="text-xs text-muted-foreground">
-            Promedio recorridos: <span className="font-bold text-blue-700 dark:text-blue-300 tabular-nums text-base">{resumen.promRutas}</span>
+            Promedio recorridos: <span className="font-bold text-blue-700 dark:text-blue-300 tabular-nums text-sm">{resumen.promRutas}</span>
           </span>
           <span className="text-xs text-muted-foreground">
             Promedio pkg/ruta: <span className="font-bold tabular-nums">{resumen.promPorRuta}</span>

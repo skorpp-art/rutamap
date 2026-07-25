@@ -24,7 +24,7 @@ export function EmptyState({
           <Icon className="h-8 w-8 text-primary/80" strokeWidth={1.75} />
         </div>
       </div>
-      <p className="text-base font-semibold tracking-tight">{title}</p>
+      <p className="text-sm font-semibold tracking-tight">{title}</p>
       {description && (
         <p className="text-sm text-muted-foreground mt-1.5 max-w-sm leading-relaxed">{description}</p>
       )}

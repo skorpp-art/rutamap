@@ -355,7 +355,7 @@ export function VolumenesPanel() {
                         <input type="number" min={0} max={9999} value={calcPaquetes || ""}
                           placeholder="ej: 2700"
                           onChange={e => setCalcPaquetes(parseInt(e.target.value) || 0)}
-                          className="flex-1 border rounded-lg px-3 py-2 text-lg font-bold h-11 bg-background focus:outline-none focus:ring-2 focus:ring-blue-400"
+                          className="flex-1 border rounded-lg px-3 py-2 text-2xl font-bold h-11 bg-background focus:outline-none focus:ring-2 focus:ring-blue-400"
                         />
                         {proyeccion && ((proyeccion.esperado_ajust || proyeccion.esperado_base) ?? 0) > 0 && (
                           <Button variant="outline" size="sm" className="h-11 text-xs whitespace-nowrap"
@@ -391,7 +391,7 @@ export function VolumenesPanel() {
                           <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCalcRutas(v => Math.max(1, v - 1))}>−</Button>
                           <input type="number" min={1} max={200} value={calcRutas}
                             onChange={e => setCalcRutas(parseInt(e.target.value) || 1)}
-                            className="w-16 text-center border rounded-lg px-2 py-2 text-base font-bold h-9 bg-background focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            className="w-16 text-center border rounded-lg px-2 py-2 text-sm font-bold h-9 bg-background focus:outline-none focus:ring-2 focus:ring-blue-400"
                           />
                           <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCalcRutas(v => v + 1)}>+</Button>
                         </div>
@@ -401,7 +401,7 @@ export function VolumenesPanel() {
                         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Obj. pkg/chofer</label>
                         <div className="flex items-center gap-2 mt-1.5">
                           <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setTargetPkg(v => Math.max(10, v - 1))}>−</Button>
-                          <span className="text-xl font-bold tabular-nums w-10 text-center">{targetPkg}</span>
+                          <span className="text-2xl font-bold tabular-nums w-10 text-center">{targetPkg}</span>
                           <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setTargetPkg(v => Math.min(100, v + 1))}>+</Button>
                         </div>
                         <div className="flex gap-1 mt-1">
@@ -416,7 +416,7 @@ export function VolumenesPanel() {
                     <div className="border rounded-lg overflow-hidden bg-background">
                       <div className="px-5 py-4 bg-blue-600 text-white text-center">
                         <p className="text-xs uppercase tracking-widest opacity-80 font-semibold">Choferes necesarios</p>
-                        <p className="text-6xl font-black tabular-nums mt-1"><NumeroAnimado value={choferesCalc} /></p>
+                        <p className="text-3xl font-black tabular-nums mt-1"><NumeroAnimado value={choferesCalc} /></p>
                         <p className="text-sm opacity-90 mt-1">{calcPaquetes.toLocaleString("es-AR")} paq ÷ {targetPkg} pkg/chofer</p>
                       </div>
                       <div className="grid grid-cols-3 divide-x border-b">
@@ -427,14 +427,14 @@ export function VolumenesPanel() {
                         ].map(({ l, v, hl }) => (
                           <div key={l} className={cn("p-3 text-center", hl && "bg-blue-50/50 dark:bg-blue-950/40")}>
                             <p className="text-xs text-muted-foreground">{l}</p>
-                            <p className={cn("text-xl font-bold tabular-nums", hl ? "text-blue-700 dark:text-blue-300" : "")}>{v}</p>
+                            <p className={cn("text-2xl font-bold tabular-nums", hl ? "text-blue-700 dark:text-blue-300" : "")}>{v}</p>
                           </div>
                         ))}
                       </div>
                       <div className="px-5 py-4 space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-medium">Promedio por ruta ({calcRutas} rutas)</span>
-                          <span className="text-lg font-bold tabular-nums" style={{ color: ESTADO[zonaCalc].hex }}>{promPorRuta.toFixed(1)} pkg/ruta</span>
+                          <span className="text-2xl font-bold tabular-nums" style={{ color: ESTADO[zonaCalc].hex }}>{promPorRuta.toFixed(1)} pkg/ruta</span>
                         </div>
                         <div className="relative h-5 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
                           <div className="absolute inset-0 flex">
@@ -499,7 +499,7 @@ export function VolumenesPanel() {
                                 valOk ? "hover-lift hover:border-blue-400 cursor-pointer" : "opacity-50 cursor-not-allowed",
                                 sel ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 ring-2 ring-blue-400" : hl ? "border-blue-300 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/40" : "")}>
                               <p className="text-xs text-muted-foreground font-medium">{l}</p>
-                              <p className={cn("text-xl font-bold tabular-nums mt-0.5", sel || hl ? "text-blue-700 dark:text-blue-300" : "")}>{valOk ? v.toLocaleString("es-AR") : "—"}</p>
+                              <p className={cn("text-2xl font-bold tabular-nums mt-0.5", sel || hl ? "text-blue-700 dark:text-blue-300" : "")}>{valOk ? v.toLocaleString("es-AR") : "—"}</p>
                               <p className="text-xs font-semibold text-blue-600 dark:text-blue-300 mt-0.5">{c > 0 ? `${c} choferes` : "—"}</p>
                               {sel && <p className="text-xs text-emerald-600 dark:text-emerald-300 font-bold mt-0.5">✓ Seleccionado</p>}
                             </button>
@@ -548,7 +548,7 @@ export function VolumenesPanel() {
                                     </>
                                   )}
                                   <td className="px-2 py-1.5 text-center">
-                                    <span className={cn("text-[9px] font-semibold px-1.5 py-0.5 rounded-full",
+                                    <span className={cn("text-xs font-semibold px-1.5 py-0.5 rounded-full",
                                       sinDatos ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500" :
                                       z.confianza === "alta" ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300" :
                                       z.confianza === "media" ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300" :

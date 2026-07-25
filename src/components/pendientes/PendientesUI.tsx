@@ -263,7 +263,7 @@ export function PendientesUI({
                   className={cn("border rounded-lg p-3 text-left transition-all",
                     filtroZona === null ? "border-blue-500 ring-2 ring-blue-400/40 bg-blue-50/40 dark:bg-blue-950/30" : "bg-card hover:border-blue-300")}>
                   <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">TODAS</span>
-                  <p className="text-lg font-bold tabular-nums mt-1">{stats.resueltos}<span className="text-xs text-muted-foreground font-normal">/{stats.total}</span></p>
+                  <p className="text-2xl font-bold tabular-nums mt-1">{stats.resueltos}<span className="text-xs text-muted-foreground font-normal">/{stats.total}</span></p>
                 </button>
                 {stats.zonas.map(z => {
                   const resueltos = z.recibidos + z.entregados;
@@ -279,7 +279,7 @@ export function PendientesUI({
                           ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                           : <span className="text-xs font-bold text-red-600 dark:text-red-300 tabular-nums">{faltan}</span>}
                       </div>
-                      <p className="text-lg font-bold tabular-nums">{resueltos}<span className="text-xs text-muted-foreground font-normal">/{z.total}</span></p>
+                      <p className="text-2xl font-bold tabular-nums">{resueltos}<span className="text-xs text-muted-foreground font-normal">/{z.total}</span></p>
                       {(z.entregados > 0 || z.noRecibidos > 0) && (
                         <p className="text-xs font-medium flex gap-1.5">
                           {z.entregados > 0 && <span className="text-blue-600 dark:text-blue-300">{z.entregados} entreg.</span>}

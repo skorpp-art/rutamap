@@ -46,13 +46,13 @@ export function StatRow({
             "text-muted-foreground",
             labelsUpper
               ? "text-xs font-bold uppercase tracking-widest"
-              : compact ? "text-xs truncate" : "text-xs sm:text-sm truncate"
+              : "text-xs truncate"
           )}>
             {s.label}
           </p>
           <p className={cn(
             "font-black tabular-nums leading-none",
-            compact ? "text-2xl mt-1" : "text-3xl sm:text-4xl mt-1.5",
+            compact ? "text-2xl mt-1" : "text-3xl mt-1.5",
             s.valorClassName
           )}>
             {s.valor}

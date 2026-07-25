@@ -147,7 +147,7 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
           >
             <Truck className="h-4 w-4 text-white" />
           </button>
-          <span className={cn("font-bold text-white text-lg tracking-tight leading-none", lblCls)}>
+          <span className={cn("font-bold text-white text-2xl tracking-tight leading-none", lblCls)}>
             Ruta<span className="text-blue-300">Map</span>
           </span>
           <button onClick={toggleColapsar} title="Colapsar barra"

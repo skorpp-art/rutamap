@@ -564,7 +564,7 @@ function Kpi({ label, valor, sub, color }: { label: string; valor: string; sub: 
   return (
     <div className="border rounded-lg p-3 bg-background">
       <p className="text-xs uppercase tracking-widest text-muted-foreground">{label}</p>
-      <p className={cn("text-lg font-bold tabular-nums mt-0.5", color)}>{valor}</p>
+      <p className={cn("text-2xl font-bold tabular-nums mt-0.5", color)}>{valor}</p>
       <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>
     </div>
   );
