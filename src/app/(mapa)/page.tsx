@@ -30,11 +30,15 @@ export default async function MapaPage() {
   // Conductor asignado hoy a cada recorrido (por código), desde Carga del Día.
   // Un recorrido aparece una sola vez en la carga del día (el turno según su
   // tipo), así que un pre-turno trae su chofer de pre-turno automáticamente.
+  // Solo para usuarios con sesión: quién maneja cada recorrido es información
+  // interna y el invitado no tiene acceso a la Carga del Día.
   const choferesHoy: Record<string, ChoferHoy> = {};
-  const cargaRes = await getCargaDia(hoyAR());
-  if (cargaRes.ok) {
-    for (const f of cargaRes.data ?? []) {
-      if (f.chofer && f.chofer.trim()) choferesHoy[f.codigo] = { chofer: f.chofer.trim(), turno: f.turno };
+  if (user) {
+    const cargaRes = await getCargaDia(hoyAR());
+    if (cargaRes.ok) {
+      for (const f of cargaRes.data ?? []) {
+        if (f.chofer && f.chofer.trim()) choferesHoy[f.codigo] = { chofer: f.chofer.trim(), turno: f.turno };
+      }
     }
   }
 
