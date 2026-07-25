@@ -121,7 +121,10 @@ function CalidadDatosCard({ calidad }: { calidad: CalidadDatos[] }) {
 
 export function VolumenesPanel() {
   const searchParams = useSearchParams();
-  const [tab, setTab] = useState<"proyeccion" | "operacion" | "analisis" | "herramientas">("proyeccion");
+  // La solapa activa vive en el store: la barra de solapas se muestra arriba,
+  // en el header global, para dejarle todo el alto al contenido.
+  const tab = useVolumenesStore(s => s.tab);
+  const setTab = useVolumenesStore(s => s.setTab);
   const [herramientaActiva, setHerramientaActiva] = useState<"plantillas" | "feriados" | "kpis" | "historial" | "informe" | null>(null);
 
   // Permite saltar directo a una pestaña desde la paleta de comandos (?tab=…)
@@ -313,16 +316,17 @@ export function VolumenesPanel() {
   return (
     <div className="flex flex-col h-full bg-background">
 
-      <div className="border-b px-3 sm:px-5 flex gap-0.5 overflow-x-auto no-scrollbar">
+      {/* Solapas visibles solo en pantallas chicas: en md+ están en el header */}
+      <div className="md:hidden border-b px-3 flex gap-0.5 overflow-x-auto no-scrollbar">
         {([
           ["proyeccion",   "Proyección",        TrendingUp],
           ["operacion",    "Operación",         Settings2],
-          ["analisis",     "Rendimiento de recorridos", BarChart3],
+          ["analisis",     "Rendimiento",       BarChart3],
           ["herramientas", "Herramientas",      Wrench],
         ] as const).map(([t, lbl, Icon]) => (
           <button key={t} onClick={() => setTab(t)}
             className={cn(
-              "inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0",
+              "inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0",
               tab === t ? "border-blue-600 text-blue-600 dark:text-blue-300" : "border-transparent text-muted-foreground hover:text-foreground"
             )}>
             <Icon className="h-3.5 w-3.5" />

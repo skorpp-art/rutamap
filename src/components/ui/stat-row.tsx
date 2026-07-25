@@ -18,11 +18,14 @@ export interface Stat {
 export function StatRow({
   stats,
   labelsUpper = false,
+  compact = false,
   className,
 }: {
   stats: Stat[];
   /** Etiquetas en mayúscula y con tracking (look de tablero). */
   labelsUpper?: boolean;
+  /** Menos alto: para pantallas donde el listado necesita el espacio. */
+  compact?: boolean;
   className?: string;
 }) {
   if (!stats.length) return null;
@@ -38,19 +41,27 @@ export function StatRow({
       )}
     >
       {stats.map(s => (
-        <div key={s.label} className="px-4 py-3.5 min-w-0">
+        <div key={s.label} className={cn("min-w-0", compact ? "px-3.5 py-2.5" : "px-4 py-3.5")}>
           <p className={cn(
             "text-muted-foreground",
             labelsUpper
-              ? "text-[11px] font-bold uppercase tracking-widest"
-              : "text-xs sm:text-sm truncate"
+              ? "text-[10px] font-bold uppercase tracking-widest"
+              : compact ? "text-xs truncate" : "text-xs sm:text-sm truncate"
           )}>
             {s.label}
           </p>
-          <p className={cn("text-3xl sm:text-4xl font-black tabular-nums leading-none mt-1.5", s.valorClassName)}>
+          <p className={cn(
+            "font-black tabular-nums leading-none",
+            compact ? "text-2xl mt-1" : "text-3xl sm:text-4xl mt-1.5",
+            s.valorClassName
+          )}>
             {s.valor}
           </p>
-          {s.sub && <p className="text-[11px] text-muted-foreground mt-1.5">{s.sub}</p>}
+          {s.sub && (
+            <p className={cn("text-[10px] text-muted-foreground truncate", compact ? "mt-1" : "text-[11px] mt-1.5")}>
+              {s.sub}
+            </p>
+          )}
         </div>
       ))}
     </div>

@@ -1,8 +1,10 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { MapPin, User, Search, RefreshCw, TrendingUp, TrendingDown, Minus, LogIn } from "lucide-react";
+import {
+  MapPin, User, Search, RefreshCw, LogIn,
+  TrendingUp, Settings2, BarChart3, Wrench,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,12 +39,22 @@ const TITULOS: { match: (p: string) => boolean; titulo: string }[] = [
   { match: p => p.startsWith("/descargar"), titulo: "Instalar app" },
 ];
 
+// Solapas de Planificación, mostradas en la barra superior
+const TABS_VOLUMENES = [
+  ["proyeccion", "Proyección", TrendingUp],
+  ["operacion", "Operación", Settings2],
+  ["analisis", "Rendimiento de recorridos", BarChart3],
+  ["herramientas", "Herramientas", Wrench],
+] as const;
+
 export function Header({ perfil, esInvitado = false }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { filtros, setFiltroZona } = useMapStore();
   const kpis = useVolumenesStore((s) => s.kpis);
   const onRefrescar = useVolumenesStore((s) => s.onRefrescar);
+  const tab = useVolumenesStore((s) => s.tab);
+  const setTab = useVolumenesStore((s) => s.setTab);
 
   const esMapa = pathname === "/";
   const titulo = TITULOS.find(t => t.match(pathname))?.titulo ?? "RutaMap";
@@ -76,45 +88,33 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
         </>
       )}
 
-      {/* KPIs de Volúmenes (solo en /volumenes) */}
-      {pathname === "/volumenes" && kpis && (
-        <div className="hidden md:flex items-center gap-3.5 ml-1 overflow-x-auto no-scrollbar">
-          <KpiItem label="Hoy" valor={kpis.hoyTotal ? kpis.hoyTotal.toLocaleString("es-AR") : "—"}
-            sub={kpis.choferesHoy > 0 ? `${kpis.choferesHoy} chof.` : "sin datos"} color="text-blue-600 dark:text-blue-300" />
-          <Sep />
-          <KpiItem label="Semana" valor={kpis.semanaTotal ? kpis.semanaTotal.toLocaleString("es-AR") : "—"}
-            sub={`${kpis.semanaDias} días`} color="text-foreground" />
-          <Sep />
-          <KpiItem label="vs ant." color={kpis.vsAnteriorPct > 2 ? "text-emerald-600 dark:text-emerald-400" : kpis.vsAnteriorPct < -2 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}
-            valor={
-              <span className="flex items-center gap-0.5">
-                <DeltaIcon pct={kpis.vsAnteriorPct} />
-                {kpis.vsAnteriorPct !== 0 ? `${kpis.vsAnteriorPct > 0 ? "+" : ""}${kpis.vsAnteriorPct}%` : "—"}
-              </span>
-            }
-            sub={kpis.anteriorTotal ? kpis.anteriorTotal.toLocaleString("es-AR") : "—"} />
-          {kpis.proyectadoTotal != null && (
-            <>
-              <Sep />
-              <KpiItem label="Proy. mañana" valor={kpis.proyectadoTotal.toLocaleString("es-AR")}
-                sub={`confianza ${kpis.confianza ?? "—"}`} color="text-emerald-600 dark:text-emerald-400" />
-            </>
-          )}
-          {kpis.precisionPct != null && (
-            <>
-              <Sep />
-              <KpiItem label="Precisión" valor={`${kpis.precisionPct}%`} sub="real vs esperado"
-                color={kpis.precisionPct >= 85 ? "text-emerald-600 dark:text-emerald-400" : kpis.precisionPct >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"} />
-            </>
-          )}
-          {onRefrescar && (
-            <button onClick={() => onRefrescar()} disabled={kpis.cargando}
-              className="ml-1 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
-              title="Actualizar">
-              <RefreshCw className={cn("h-3.5 w-3.5", kpis.cargando && "animate-spin")} />
-            </button>
-          )}
-        </div>
+      {/* Solapas de Planificación (solo en /volumenes) — viven acá arriba para
+          dejarle todo el alto disponible al contenido de cada solapa. */}
+      {pathname === "/volumenes" && (
+        <>
+          <div className="h-6 w-px bg-border hidden md:block" />
+          <div className="hidden md:flex items-center gap-0.5 overflow-x-auto no-scrollbar">
+            {TABS_VOLUMENES.map(([t, lbl, Icon]) => (
+              <button key={t} onClick={() => setTab(t)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 h-8 rounded-md text-xs font-medium transition-colors whitespace-nowrap shrink-0",
+                  tab === t
+                    ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}>
+                <Icon className="h-3.5 w-3.5" />
+                {lbl}
+              </button>
+            ))}
+            {onRefrescar && (
+              <button onClick={() => onRefrescar()} disabled={kpis?.cargando}
+                className="ml-1 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
+                title="Actualizar">
+                <RefreshCw className={cn("h-3.5 w-3.5", kpis?.cargando && "animate-spin")} />
+              </button>
+            )}
+          </div>
+        </>
       )}
 
       <div className="flex-1" />
@@ -153,21 +153,3 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
   );
 }
 
-function Sep() {
-  return <div className="h-7 w-px bg-border shrink-0" />;
-}
-
-function DeltaIcon({ pct }: { pct: number }) {
-  const Icon = pct > 2 ? TrendingUp : pct < -2 ? TrendingDown : Minus;
-  return <Icon className="h-3.5 w-3.5" />;
-}
-
-function KpiItem({ label, valor, sub, color }: { label: string; valor: ReactNode; sub: string; color: string }) {
-  return (
-    <div className="text-center shrink-0">
-      <p className="text-[10px] uppercase tracking-widest text-muted-foreground leading-tight">{label}</p>
-      <p className={cn("text-sm font-bold tabular-nums leading-tight", color)}>{valor}</p>
-      <p className="text-[10px] text-muted-foreground leading-tight">{sub}</p>
-    </div>
-  );
-}

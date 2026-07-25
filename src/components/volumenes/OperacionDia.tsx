@@ -21,7 +21,6 @@ import type { AnalisisRecorrido } from "@/app/actions/operaciones-diarias";
 import { crearRecorrido, actualizarCamposRecorrido, getSiguienteCodigo, eliminarRecorrido } from "@/app/actions/recorridos";
 import { ZONA_COLOR as ZONA_HEX } from "@/lib/estados";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PageHeader } from "@/components/ui/page-header";
 import { StatRow } from "@/components/ui/stat-row";
 import type { OperacionRuta } from "@/app/actions/operacion";
 import { hoyAR, addDiasAR } from "@/lib/fechas";
@@ -837,11 +836,10 @@ export function OperacionDia({
         </div>
       </div>
 
-      {/* ── Encabezado del día: título, fecha y las métricas que importan ── */}
-      <div className="px-5 pt-4 pb-4 border-b bg-background shrink-0">
-        <PageHeader titulo="Rutas del día" meta={fmtFecha(fecha)} />
+      {/* ── Métricas del día (compactas: el listado necesita el alto) ── */}
+      <div className="px-5 py-2.5 border-b bg-background shrink-0">
         <StatRow
-          className="mt-3.5"
+          compact
           stats={[
             {
               label: "Rutas activas hoy",
