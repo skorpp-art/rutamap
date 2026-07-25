@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Save, RefreshCw, ChevronLeft, ChevronRight,
   FileDown, AlertTriangle, CheckCircle, Users, Clock,
-  Plus, Pencil, X, Lightbulb, Scissors, Sunrise, Trash2, Gauge, Search,
+  Plus, Pencil, X, Lightbulb, Scissors, Sunrise, Trash2, Gauge,
   FileSpreadsheet,
 } from "lucide-react";
 import {
@@ -84,7 +84,6 @@ export function OperacionDia({
   const [soloActivos, setSoloActivos] = useState(false);
   const [mostrarAlerta, setMostrarAlerta] = useState(false);
   const [analisisHist, setAnalisisHist] = useState<AnalisisRecorrido[]>([]);
-  const [busqueda, setBusqueda] = useState("");
   // Historial de activaciones: recorrido_id -> set de fechas en que estuvo activo (últimos 120 días)
   const [historicoActivaciones, setHistoricoActivaciones] = useState<Record<string, Set<string>>>({});
   // Panel lateral derecho (estilo Drive): "resumen" | "sugerencias" | null
@@ -303,12 +302,10 @@ export function OperacionDia({
   }
 
   // Filtrado
-  const busquedaNorm = busqueda.trim().toLowerCase();
   const rutasFiltradas = rutasConEdits.filter(r => {
     if (filtroZona && r.zona !== filtroZona) return false;
     if (filtroTipo && r.tipo !== filtroTipo) return false;
     if (soloActivos && !r.activo) return false;
-    if (busquedaNorm && !`${r.codigo} ${r.nombre}`.toLowerCase().includes(busquedaNorm)) return false;
     return true;
   });
 
@@ -1111,16 +1108,8 @@ export function OperacionDia({
         <span className="text-[10px] text-muted-foreground ml-2">
           {nActivas}/{rutas.length} · {rutasFiltradas.length} visibles
         </span>
-        <div className="relative">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-          <input
-            type="text" value={busqueda} onChange={e => setBusqueda(e.target.value)}
-            placeholder="Buscar código o nombre…"
-            className="text-[10px] pl-6 pr-2 py-1 rounded border border-border bg-background w-40 focus:outline-none focus:ring-1 focus:ring-blue-400"
-          />
-        </div>
         <Button size="sm" variant="outline" onClick={abrirNuevo}
-          className="ml-auto h-7 gap-1 text-xs">
+          className="h-7 gap-1 text-xs">
           <Plus className="h-3 w-3" />
           Agregar
         </Button>
