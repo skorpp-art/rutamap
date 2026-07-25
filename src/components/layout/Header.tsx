@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import {
-  MapPin, User, Search, RefreshCw, LogIn,
+  MapPin, User, RefreshCw, LogIn,
   TrendingUp, Settings2, BarChart3, Wrench,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -63,6 +63,11 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
   const esMapa = pathname === "/";
   const titulo = TITULOS.find(t => t.match(pathname))?.titulo ?? "RutaMap";
   const repiteTitulo = CON_TITULO_PROPIO.some(p => pathname.startsWith(p));
+
+  // En las pantallas que traen su propio encabezado grande, la barra superior
+  // no aportaba nada (solo repetía el título) — se oculta y esas pantallas
+  // ganan los 56px de alto. El buscador ⌘K vive en la barra lateral.
+  if (repiteTitulo && !esInvitado) return null;
 
   function handleZonaChange(valor: string) {
     setFiltroZona(valor === "todas" ? null : (valor as Zona));
@@ -126,16 +131,7 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
 
       <div className="flex-1" />
 
-      {/* Buscador / paleta de comandos (⌘K) */}
-      <button
-        onClick={() => window.dispatchEvent(new CustomEvent("rm-open-command-palette"))}
-        className="hidden md:inline-flex items-center gap-2 h-8 pl-2.5 pr-1.5 rounded-lg bg-muted/60 border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors text-xs"
-        title="Buscar (⌘K)"
-      >
-        <Search className="h-3.5 w-3.5" />
-        <span>Buscar…</span>
-        <kbd className="inline-flex items-center gap-0.5 rounded bg-background border px-1.5 py-0.5 text-[10px] font-medium">⌘K</kbd>
-      </button>
+      {/* El buscador ⌘K vive ahora en la barra lateral, disponible en toda la app */}
 
       {/* Chip de zona activa (mapa) */}
       {esMapa && filtros.zona && (

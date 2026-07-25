@@ -514,7 +514,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="max-w-6xl mx-auto p-5 space-y-4">
+      <div className="max-w-[1700px] mx-auto p-5 space-y-4">
         {/* ── Encabezado ── */}
         <PageHeader
           titulo="Carga del Día"

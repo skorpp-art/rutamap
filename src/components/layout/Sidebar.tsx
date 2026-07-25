@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   Map, Package, BarChart3, PackageCheck, Users, Lock, Truck, ClipboardList,
   MonitorSmartphone, LogOut, LogIn, ChevronsUpDown, PanelLeftClose, PanelLeftOpen,
-  Route as RouteIcon, ChevronDown, ChevronRight,
+  Route as RouteIcon, ChevronDown, ChevronRight, Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { tieneSolapa } from "@/lib/permisos";
@@ -161,6 +161,20 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
           className={cn("mt-2 mx-auto h-7 w-7 rounded-md text-white/40 hover:text-white hover:bg-white/10 items-center justify-center transition-colors hidden",
             colapsado && "md:flex")}>
           <PanelLeftOpen className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Buscador global (⌘K) — vive acá para que las pantallas no necesiten
+          una barra superior propia solo para alojarlo. */}
+      <div className="px-2 mb-2">
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent("rm-open-command-palette"))}
+          title="Buscar (⌘K)"
+          className="w-full flex items-center gap-2.5 h-9 rounded-lg px-2.5 md:px-3 bg-white/5 border border-white/10 text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+        >
+          <Search className={cn("h-[18px] w-[18px] shrink-0", colapsado ? "mx-auto" : "mx-auto md:mx-0")} />
+          <span className={cn("text-sm truncate", lblCls)}>Buscar…</span>
+          <kbd className={cn("ml-auto text-[10px] font-medium text-white/40", lblCls)}>⌘K</kbd>
         </button>
       </div>
 

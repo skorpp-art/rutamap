@@ -183,7 +183,7 @@ export function PendientesUI({
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="max-w-5xl mx-auto p-5 space-y-4">
+      <div className="max-w-[1700px] mx-auto p-5 space-y-4">
         {/* ── Encabezado ── */}
         <PageHeader
           titulo="Pendientes"
