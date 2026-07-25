@@ -159,7 +159,7 @@ export function RutaConductor({ recorridos }: { recorridos: RecorridoGeo[] }) {
       </div>
 
       {/* Buscador de dirección */}
-      <div className="border rounded-xl p-3 bg-card space-y-2">
+      <div className="border rounded-lg p-3 bg-card space-y-2">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -208,7 +208,7 @@ export function RutaConductor({ recorridos }: { recorridos: RecorridoGeo[] }) {
 
           <ol className="space-y-2">
             {paradas.map((p, i) => (
-              <li key={p.id} className="border rounded-xl p-3 bg-card flex items-start gap-3">
+              <li key={p.id} className="border rounded-lg p-3 bg-card flex items-start gap-3">
                 <span className="h-6 w-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
                   {i + 1}
                 </span>

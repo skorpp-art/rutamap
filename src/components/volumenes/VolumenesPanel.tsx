@@ -79,7 +79,7 @@ function CalidadDatosCard({ calidad }: { calidad: CalidadDatos[] }) {
   const meta = 12;
 
   return (
-    <div className="border rounded-xl p-4 bg-background">
+    <div className="border rounded-lg p-4 bg-background">
       <div className="flex items-center gap-2 mb-3">
         <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-300 shrink-0" />
         <p className="text-sm font-bold">Calidad de datos históricos</p>
@@ -348,7 +348,7 @@ export function VolumenesPanel() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 <div className="space-y-4">
                   <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Calculadora rápida</p>
-                  <div className="border rounded-xl p-5 space-y-4 bg-background">
+                  <div className="border rounded-lg p-5 space-y-4 bg-background">
                     <div>
                       <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Paquetes esperados</label>
                       <div className="flex items-center gap-2 mt-1.5">
@@ -413,7 +413,7 @@ export function VolumenesPanel() {
                     </div>
                   </div>
                   {calcPaquetes > 0 && (
-                    <div className="border rounded-xl overflow-hidden bg-background">
+                    <div className="border rounded-lg overflow-hidden bg-background">
                       <div className="px-5 py-4 bg-blue-600 text-white text-center">
                         <p className="text-[10px] uppercase tracking-widest opacity-80 font-semibold">Choferes necesarios</p>
                         <p className="text-6xl font-black tabular-nums mt-1"><NumeroAnimado value={choferesCalc} /></p>
@@ -445,7 +445,7 @@ export function VolumenesPanel() {
                           {(() => {
                             const min = targetPkg - 12, max = targetPkg + 12;
                             const pct = Math.min(100, Math.max(0, (promPorRuta - min) / (max - min) * 100));
-                            return <div className="absolute top-0 bottom-0 w-1 bg-blue-700 rounded-full shadow-md transition-all" style={{ left: `calc(${pct}% - 2px)` }} />;
+                            return <div className="absolute top-0 bottom-0 w-1 bg-blue-700 rounded-full transition-all" style={{ left: `calc(${pct}% - 2px)` }} />;
                           })()}
                         </div>
                         <div className="flex justify-between text-[10px] text-muted-foreground">
@@ -460,7 +460,7 @@ export function VolumenesPanel() {
                 </div>
                 <div className="space-y-4">
                   <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Proyección por fecha</p>
-                  <div className="border rounded-xl p-4 flex items-center gap-3 bg-background flex-wrap">
+                  <div className="border rounded-lg p-4 flex items-center gap-3 bg-background flex-wrap">
                     <input type="date" value={fechaProyeccion}
                       onChange={e => { setFechaProyeccion(e.target.value); setProyeccion(null); }}
                       className="border rounded px-3 py-1.5 text-sm h-9 bg-background flex-1" />
@@ -470,7 +470,7 @@ export function VolumenesPanel() {
                     </Button>
                   </div>
                   {proyeccion && (
-                    <div className="border rounded-xl p-4 bg-background space-y-3">
+                    <div className="border rounded-lg p-4 bg-background space-y-3">
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <div>
                           <p className="text-xs font-bold text-blue-700 dark:text-blue-300">{proyeccion.dia_nombre} · Semana {proyeccion.semana_mes}: {proyeccion.tipo_semana}</p>
@@ -495,7 +495,7 @@ export function VolumenesPanel() {
                           return (
                             <button key={l}
                               onClick={() => { if (!valOk) return; setPkgProyectado(v); setTipoProyeccion(tipo); setCalcPaquetes(v); }}
-                              className={cn("border rounded-xl p-3 text-center",
+                              className={cn("border rounded-lg p-3 text-center",
                                 valOk ? "hover-lift hover:border-blue-400 cursor-pointer" : "opacity-50 cursor-not-allowed",
                                 sel ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 ring-2 ring-blue-400" : hl ? "border-blue-300 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/40" : "")}>
                               <p className="text-[10px] text-muted-foreground font-medium">{l}</p>
@@ -614,7 +614,7 @@ export function VolumenesPanel() {
                     </div>
                   )}
                   {bandas.length > 0 && (
-                    <div className="border rounded-xl p-4 bg-background">
+                    <div className="border rounded-lg p-4 bg-background">
                       <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Historial — Promedio pkg/ruta</p>
                       <ResponsiveContainer width="100%" height={180}>
                         <ComposedChart data={bandas.map(b => ({ dia: b.fecha.slice(5), promedio: Number(b.promedio_ruta), zona: b.zona_riesgo }))} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
@@ -651,7 +651,7 @@ export function VolumenesPanel() {
                   const top3 = Math.round(topClientes.slice(0, 3).reduce((s, c) => s + (c.pct ?? 0), 0));
                   const riesgo = top3 >= 50 ? "alto" : top3 >= 35 ? "medio" : "bajo";
                   return (
-                  <div className="border rounded-xl overflow-hidden">
+                  <div className="border rounded-lg overflow-hidden">
                     <div className="px-4 py-2.5 border-b bg-muted/20 flex items-center gap-2">
                       <p className="text-xs font-semibold">Top clientes hoy</p>
                       {top3 > 0 && (
@@ -719,7 +719,7 @@ export function VolumenesPanel() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {HERRAMIENTAS.filter(h => h.grupo === g).map(h => (
                         <button key={h.id} onClick={() => setHerramientaActiva(h.id)}
-                          className="text-left border rounded-xl p-4 bg-background hover:border-blue-400 hover:shadow-md transition-all hover-lift">
+                          className="text-left border rounded-lg p-4 bg-background hover:border-foreground/40 transition-colors">
                           <p className="text-sm font-bold flex items-center gap-2"><h.Icono className="h-4 w-4 text-blue-600 dark:text-blue-300" /> {h.titulo}</p>
                           <p className="text-xs text-muted-foreground mt-1">{h.sub}</p>
                         </button>

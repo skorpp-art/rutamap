@@ -111,7 +111,7 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
 
       {/* Cards de piso operativo */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="border rounded-xl p-4 bg-blue-50/50 dark:bg-blue-950/40 col-span-2 lg:col-span-1">
+        <div className="border rounded-lg p-4 bg-blue-50/50 dark:bg-blue-950/40 col-span-2 lg:col-span-1">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Piso operativo (RF)</p>
           <p className="text-4xl font-bold text-blue-700 dark:text-blue-300 tabular-nums mt-1">{pisoOperativo}</p>
           <p className="text-xs text-muted-foreground mt-1">recorridos fijos activos</p>
@@ -119,7 +119,7 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
         {(["Oeste","Norte","Sur","CABA"] as const).map(zona => {
           const n = recorridos.filter(r => r.tipo === "fijo" && r.activo && r.zona === zona).length;
           return (
-            <div key={zona} className="border rounded-xl p-4">
+            <div key={zona} className="border rounded-lg p-4">
               <div className="flex items-center gap-2 mb-1">
                 <span className={cn("h-2.5 w-2.5 rounded-full", ZONA_COLORS[zona])} />
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{zona}</p>
@@ -132,7 +132,7 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
       </div>
 
       {/* Bandas de equilibrio */}
-      <div className="border rounded-xl p-4 bg-background">
+      <div className="border rounded-lg p-4 bg-background">
         <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
           Cálculo de choferes sobre {fijosActivos} recorridos fijos
         </p>
@@ -178,7 +178,7 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
         </Button>
 
         {mostrarForm && (
-          <div className="border rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40 space-y-3">
+          <div className="border rounded-lg p-4 bg-slate-50 dark:bg-slate-800/40 space-y-3">
             <p className="text-xs font-semibold">Nuevo recorrido</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="space-y-1">
@@ -272,7 +272,7 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
       </div>
 
       {/* Tabla de recorridos */}
-      <div className="border rounded-xl overflow-hidden">
+      <div className="border rounded-lg overflow-hidden">
         {cargando ? (
           <div className="p-8 text-center text-sm text-muted-foreground">Cargando…</div>
         ) : (

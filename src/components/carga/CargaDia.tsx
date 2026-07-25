@@ -617,7 +617,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
         )}
 
         {mostrarImportarClientes && (
-          <div className="border rounded-xl overflow-hidden bg-slate-50/80 dark:bg-slate-800/40">
+          <div className="border rounded-lg overflow-hidden bg-slate-50/80 dark:bg-slate-800/40">
             <ImportarClientes fechaFija={fecha}
               onImportado={() => cargar(fecha)} />
           </div>
@@ -641,7 +641,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
               : "Todavía no se cargó este día."} />
         ) : (
           porZona.map(z => (
-            <div key={z.zona} className="border rounded-xl overflow-hidden bg-card">
+            <div key={z.zona} className="border rounded-lg overflow-hidden bg-card">
               <div className="flex items-center gap-2 px-4 py-2.5 border-b bg-muted/20">
                 <span className={cn("h-2.5 w-2.5 rounded-full", ZONA_COLOR[z.zona] ?? "bg-slate-400")} />
                 <p className="text-sm font-semibold">Zona {z.zona}</p>
@@ -765,12 +765,12 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
           <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5">
             <button onClick={() => setAlcanceExport("dia")}
               className={cn("text-[11px] px-2.5 py-1.5 rounded-md font-medium transition-colors",
-                alcanceExport === "dia" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground")}>
+                alcanceExport === "dia" ? "bg-background text-foreground" : "text-muted-foreground")}>
               Solo {fecha}
             </button>
             <button onClick={() => setAlcanceExport("mes")}
               className={cn("text-[11px] px-2.5 py-1.5 rounded-md font-medium transition-colors",
-                alcanceExport === "mes" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground")}>
+                alcanceExport === "mes" ? "bg-background text-foreground" : "text-muted-foreground")}>
               Todo el mes
             </button>
           </div>
@@ -836,7 +836,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
             </div>
 
             {/* Lista */}
-            <div className="flex-1 overflow-y-auto border rounded-xl divide-y min-h-24">
+            <div className="flex-1 overflow-y-auto border rounded-lg divide-y min-h-24">
               {conductores.length === 0 ? (
                 <p className="text-center text-xs text-muted-foreground py-6">
                   Todavía no hay conductores cargados. Importá el Excel o agregalos de a uno.
@@ -885,7 +885,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto border rounded-xl divide-y min-h-24">
+            <div className="flex-1 overflow-y-auto border rounded-lg divide-y min-h-24">
               {condicionesPorCliente.length === 0 ? (
                 <p className="text-center text-xs text-muted-foreground py-6">
                   Todavía no hay condiciones cargadas. Importá el Excel de "Condiciones de pago especial".

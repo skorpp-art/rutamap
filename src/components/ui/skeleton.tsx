@@ -10,7 +10,7 @@ export function SkeletonCards({ n = 4, className }: { n?: number; className?: st
   return (
     <div className={cn("grid grid-cols-2 lg:grid-cols-4 gap-3", className)}>
       {Array.from({ length: n }).map((_, i) => (
-        <div key={i} className="border rounded-xl p-4 space-y-2">
+        <div key={i} className="border rounded-lg p-4 space-y-2">
           <Skeleton className="h-3 w-20" />
           <Skeleton className="h-7 w-16" />
           <Skeleton className="h-3 w-24" />
@@ -23,7 +23,7 @@ export function SkeletonCards({ n = 4, className }: { n?: number; className?: st
 /** Gráfico simulado. */
 export function SkeletonChart({ className, height = 200 }: { className?: string; height?: number }) {
   return (
-    <div className={cn("border rounded-xl p-5 space-y-3", className)}>
+    <div className={cn("border rounded-lg p-5 space-y-3", className)}>
       <Skeleton className="h-3 w-32" />
       <Skeleton className="w-full rounded-lg" style={{ height }} />
     </div>
@@ -33,7 +33,7 @@ export function SkeletonChart({ className, height = 200 }: { className?: string;
 /** Tabla simulada (encabezado + filas). */
 export function SkeletonTable({ rows = 6, className }: { rows?: number; className?: string }) {
   return (
-    <div className={cn("border rounded-xl overflow-hidden", className)}>
+    <div className={cn("border rounded-lg overflow-hidden", className)}>
       <div className="px-4 py-2.5 border-b bg-muted/20">
         <Skeleton className="h-3 w-40" />
       </div>

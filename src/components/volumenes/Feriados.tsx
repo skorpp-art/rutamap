@@ -59,7 +59,7 @@ export function Feriados() {
         </p>
       </div>
 
-      <div className="border rounded-xl p-4 bg-background flex flex-wrap items-end gap-2">
+      <div className="border rounded-lg p-4 bg-background flex flex-wrap items-end gap-2">
         <div>
           <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Fecha</label>
           <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}

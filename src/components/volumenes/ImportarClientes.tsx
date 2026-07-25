@@ -137,7 +137,7 @@ export function ImportarClientes({ onImportado, targetPkg = 30, fechaFija }: Pro
       </div>
 
       {/* Formato esperado */}
-      <div className="border rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40 space-y-2">
+      <div className="border rounded-lg p-4 bg-slate-50 dark:bg-slate-800/40 space-y-2">
         <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">Formato detectado automáticamente:</p>
         <div className="flex items-center gap-4">
           <table className="text-xs border rounded overflow-hidden text-left">
@@ -192,7 +192,7 @@ export function ImportarClientes({ onImportado, targetPkg = 30, fechaFija }: Pro
       </div>
 
       {/* ── Cliente manual (grande que no figura en el Excel) ── */}
-      <div className="border rounded-xl p-4 bg-amber-50/50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900 space-y-3">
+      <div className="border rounded-lg p-4 bg-amber-50/50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900 space-y-3">
         <div className="flex items-center gap-2">
           <Package className="h-4 w-4 text-amber-600 dark:text-amber-300" />
           <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Cliente manual</p>
@@ -239,7 +239,7 @@ export function ImportarClientes({ onImportado, targetPkg = 30, fechaFija }: Pro
 
       {/* Preview */}
       {preview.length > 0 && (
-        <div className="border rounded-xl overflow-hidden">
+        <div className="border rounded-lg overflow-hidden">
           <div className="px-4 py-2.5 border-b bg-green-50 dark:bg-green-950/40 flex items-center gap-3">
             <Package className="h-4 w-4 text-green-600 dark:text-green-300" />
             <span className="text-xs font-semibold text-green-700 dark:text-green-300">

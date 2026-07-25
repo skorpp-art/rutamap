@@ -257,7 +257,7 @@ export function PanelDetalle({
   }
 
   return (
-    <aside className="flex flex-col h-full w-72 shrink-0 border-l bg-background shadow-sm">
+    <aside className="flex flex-col h-full w-72 shrink-0 border-l bg-background">
 
       {/* Franja de acento con el color del recorrido */}
       <div className="h-1 w-full shrink-0" style={{ backgroundColor: recorrido.color }} />

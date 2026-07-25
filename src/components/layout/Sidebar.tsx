@@ -114,7 +114,7 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
         title={item.bloqueado ? `${item.label} (requiere iniciar sesión)` : item.label}
         className={cn(
           "group relative z-10 flex items-center gap-3 h-10 rounded-lg px-2.5 md:px-3 transition-colors duration-150",
-          activo ? "bg-brand-blue text-white shadow-sm" : "text-white/60 hover:bg-white/10 hover:text-white"
+          activo ? "bg-brand-blue text-white" : "text-white/60 hover:bg-white/10 hover:text-white"
         )}
       >
         <Icon className={cn("h-[18px] w-[18px] shrink-0", colapsado ? "mx-auto" : "mx-auto md:mx-0")} />
@@ -141,7 +141,7 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => router.push("/")}
-            className={cn("h-9 w-9 rounded-lg bg-gradient-to-br from-brand-blue to-blue-900 shadow-md ring-1 ring-white/10 flex items-center justify-center shrink-0",
+            className={cn("h-9 w-9 rounded-lg bg-gradient-to-br from-brand-blue to-blue-900 ring-1 ring-white/10 flex items-center justify-center shrink-0",
               colapsado ? "mx-auto" : "mx-auto md:mx-0")}
             title="RutaMap"
           >

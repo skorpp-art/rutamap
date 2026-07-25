@@ -105,7 +105,7 @@ export function Post21Recorridos() {
         <EmptyState icon={Clock} title="Sin datos de post-21hs"
           description="Cargá los reportes de Resultados del día (Análisis Tarde) para ver este ranking." />
       ) : (
-        <div className="border rounded-xl overflow-hidden">
+        <div className="border rounded-lg overflow-hidden">
           <table className="w-full text-xs">
             <thead className="bg-muted/40 border-b text-muted-foreground">
               <tr>

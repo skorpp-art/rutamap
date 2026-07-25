@@ -125,7 +125,7 @@ export function KpisMonitoreo() {
 
       {/* Editor de objetivos */}
       {editTargets && (
-        <div className="border rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40 flex items-end gap-4 flex-wrap">
+        <div className="border rounded-lg p-4 bg-slate-50 dark:bg-slate-800/40 flex items-end gap-4 flex-wrap">
           <div>
             <label className="text-[10px] uppercase font-semibold text-muted-foreground">Carga playón (máx min)</label>
             <input type="number" value={targets.carga}
@@ -169,7 +169,7 @@ export function KpisMonitoreo() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Formulario de carga */}
-        <div className="border rounded-xl p-4 bg-background space-y-3">
+        <div className="border rounded-lg p-4 bg-background space-y-3">
           <div className="flex items-center gap-2">
             <input type="date" value={fecha} max={hoy()} onChange={e => setFecha(e.target.value)}
               className="border rounded-lg px-2 py-1.5 text-sm bg-background flex-1" />
@@ -210,7 +210,7 @@ export function KpisMonitoreo() {
                 <SkeletonChart height={140} />
               </>
             ) : (
-              <div className="border rounded-xl bg-background">
+              <div className="border rounded-lg bg-background">
                 <EmptyState
                   icon={Activity}
                   title="Todavía no hay KPIs cargados"
@@ -276,7 +276,7 @@ function MiniChart({ titulo, data, dataKey, target, targetMode, color, dominio }
 }) {
   const ct = useChartTheme();
   return (
-    <div className="border rounded-xl p-4 bg-background">
+    <div className="border rounded-lg p-4 bg-background">
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{titulo}</p>
         <span className="text-[10px] text-muted-foreground">

@@ -84,7 +84,7 @@ export function DashboardCobertura({ recorridos, onCerrar }: DashboardCoberturaP
   const pctTraza = activos.length > 0 ? Math.round((conTraza.length / activos.length) * 100) : 0;
 
   return (
-    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[900] w-[520px] max-w-[calc(100vw-2rem)] bg-background/97 backdrop-blur-sm border rounded-xl shadow-xl">
+    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[900] w-[520px] max-w-[calc(100vw-2rem)] bg-background/97 backdrop-blur-sm border rounded-lg shadow-xl">
       {/* Cabecera */}
       <div className="flex items-center gap-2 px-4 py-3 border-b">
         <BarChart2 className="h-4 w-4 text-muted-foreground" />

@@ -813,7 +813,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
         {mostrarCalor && !editando && (
           <div
             data-no-export
-            className="absolute bottom-6 left-3 z-[900] bg-background/97 backdrop-blur-sm border rounded-xl shadow-lg p-3 w-56"
+            className="absolute bottom-6 left-3 z-[900] bg-background/97 backdrop-blur-sm border rounded-lg shadow-lg p-3 w-56"
           >
             <div className="flex items-center gap-1.5 mb-2">
               <Flame className="h-3.5 w-3.5 text-orange-600 dark:text-orange-300" />

@@ -82,21 +82,21 @@ export function PendientesHistorico() {
         <>
           {/* Tarjetas acumuladas del mes */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="border rounded-xl p-4 bg-card">
+            <div className="border rounded-lg p-4 bg-card">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Total del mes</p>
               <p className="text-2xl font-bold tabular-nums mt-1">{totales.total}</p>
             </div>
-            <div className="border rounded-xl p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/50">
+            <div className="border rounded-lg p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/50">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Recibidos</p>
               <p className="text-2xl font-bold tabular-nums mt-1 text-emerald-700 dark:text-emerald-300">{totales.recibidos}</p>
               <p className="text-[11px] text-muted-foreground">{totales.pctRecibido}% del total</p>
             </div>
-            <div className={cn("border rounded-xl p-4", totales.noRecibidos > 0 && "bg-red-50/50 dark:bg-red-950/20 border-red-200/60 dark:border-red-900/50")}>
+            <div className={cn("border rounded-lg p-4", totales.noRecibidos > 0 && "bg-red-50/50 dark:bg-red-950/20 border-red-200/60 dark:border-red-900/50")}>
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">No recibidos</p>
               <p className={cn("text-2xl font-bold tabular-nums mt-1", totales.noRecibidos > 0 && "text-red-600 dark:text-red-300")}>{totales.noRecibidos}</p>
               <p className="text-[11px] text-muted-foreground">{totales.pctNoRecibido}% del total</p>
             </div>
-            <div className="border rounded-xl p-4 bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/50">
+            <div className="border rounded-lg p-4 bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/50">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Sin marcar</p>
               <p className="text-2xl font-bold tabular-nums mt-1 text-amber-700 dark:text-amber-300">{totales.pendientes}</p>
             </div>
@@ -118,7 +118,7 @@ export function PendientesHistorico() {
           </div>
 
           {/* Evolución diaria */}
-          <div className="border rounded-xl overflow-hidden bg-card">
+          <div className="border rounded-lg overflow-hidden bg-card">
             <div className="px-4 py-2.5 border-b bg-muted/20">
               <p className="text-sm font-semibold">Evolución por día</p>
             </div>
@@ -139,7 +139,7 @@ export function PendientesHistorico() {
 
           {/* Desglose de motivos de no recibido */}
           {motivos.length > 0 && (
-            <div className="border rounded-xl overflow-hidden bg-card">
+            <div className="border rounded-lg overflow-hidden bg-card">
               <div className="px-4 py-2.5 border-b bg-muted/20">
                 <p className="text-sm font-semibold">Motivos de no recibido</p>
               </div>

@@ -81,7 +81,7 @@ export function DescargarApp({ esMaestro }: { esMaestro: boolean }) {
       <div className="max-w-2xl mx-auto p-5 space-y-5 pb-16">
         {/* Encabezado */}
         <div className="flex items-start gap-3">
-          <span className="inline-flex items-center justify-center h-10 w-10 rounded-xl bg-blue-500/15 text-blue-700 dark:text-blue-300 shrink-0">
+          <span className="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-blue-500/15 text-blue-700 dark:text-blue-300 shrink-0">
             <MonitorSmartphone className="h-5 w-5" />
           </span>
           <div>
@@ -93,7 +93,7 @@ export function DescargarApp({ esMaestro }: { esMaestro: boolean }) {
         </div>
 
         {yaInstalada && (
-          <div className="border border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl p-4 flex items-center gap-3">
+          <div className="border border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-lg p-4 flex items-center gap-3">
             <CheckCircle2 className="h-6 w-6 text-emerald-500 shrink-0" />
             <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
               Ya estás usando RutaMap como app instalada en este dispositivo.
@@ -102,7 +102,7 @@ export function DescargarApp({ esMaestro }: { esMaestro: boolean }) {
         )}
 
         {/* Instalación directa (PWA) — el camino recomendado */}
-        <div className="border rounded-2xl p-5 bg-card shadow-sm space-y-3">
+        <div className="border rounded-2xl p-5 bg-card space-y-3">
           <div className="flex items-center gap-2">
             <Smartphone className="h-4 w-4 text-blue-600 dark:text-blue-300" />
             <p className="font-semibold text-sm">Instalar en este dispositivo (recomendado)</p>
@@ -122,7 +122,7 @@ export function DescargarApp({ esMaestro }: { esMaestro: boolean }) {
                 Si el botón de instalación directa no aparece en tu navegador, seguí estos pasos (una sola vez por dispositivo):
               </p>
               <div className="grid sm:grid-cols-2 gap-3">
-                <div className="border rounded-xl p-3 space-y-1.5">
+                <div className="border rounded-lg p-3 space-y-1.5">
                   <p className="font-semibold text-foreground flex items-center gap-1.5">
                     <MoreVertical className="h-3.5 w-3.5" /> Android (Chrome)
                   </p>
@@ -132,7 +132,7 @@ export function DescargarApp({ esMaestro }: { esMaestro: boolean }) {
                     <li>Confirmá — el ícono aparece como cualquier app</li>
                   </ol>
                 </div>
-                <div className="border rounded-xl p-3 space-y-1.5">
+                <div className="border rounded-lg p-3 space-y-1.5">
                   <p className="font-semibold text-foreground flex items-center gap-1.5">
                     <Share className="h-3.5 w-3.5" /> iPhone / iPad (Safari)
                   </p>
@@ -148,7 +148,7 @@ export function DescargarApp({ esMaestro }: { esMaestro: boolean }) {
         </div>
 
         {/* APK */}
-        <div className="border rounded-2xl p-5 bg-card shadow-sm space-y-3">
+        <div className="border rounded-2xl p-5 bg-card space-y-3">
           <div className="flex items-center gap-2">
             <Download className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
             <p className="font-semibold text-sm">APK para Android</p>

@@ -151,7 +151,7 @@ export function PanelLateral({
               <ArrowUpDown className="h-3.5 w-3.5" />
             </Button>
             {mostrarOrden && (
-              <div className="absolute right-0 top-7 z-50 bg-background border rounded-lg shadow-md py-1 min-w-[120px]">
+              <div className="absolute right-0 top-7 z-50 bg-background border rounded-lg py-1 min-w-[120px]">
                 {(Object.keys(ORDEN_LABELS) as Orden[]).map((o) => (
                   <button
                     key={o}

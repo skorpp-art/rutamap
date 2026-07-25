@@ -158,7 +158,7 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
       />
 
       {/* Crear cuenta directamente (recomendado para uso interno) */}
-      <form onSubmit={onCrear} className="border rounded-xl p-4 bg-card space-y-3">
+      <form onSubmit={onCrear} className="border rounded-lg p-4 bg-card space-y-3">
         <p className="text-sm font-semibold flex items-center gap-1.5">
           <UserPlus className="h-4 w-4 text-blue-600 dark:text-blue-300" /> Crear cuenta
         </p>
@@ -216,7 +216,7 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
       </form>
 
       {/* Tabla de usuarios */}
-      <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
+      <div className="border rounded-lg overflow-hidden bg-card">
         {cargando && usuarios.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground animate-pulse">Cargando usuarios…</div>
         ) : usuarios.length === 0 ? (

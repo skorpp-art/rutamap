@@ -602,17 +602,17 @@ export function AnalisisDiario() {
           <div className="flex gap-1 bg-muted/40 rounded-lg p-1">
             <button onClick={() => setVista("dia")}
               className={cn("text-xs px-3 py-1.5 rounded-md font-medium transition-colors",
-                vista === "dia" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+                vista === "dia" ? "bg-background" : "text-muted-foreground hover:text-foreground")}>
               Día
             </button>
             <button onClick={() => setVista("historico")}
               className={cn("text-xs px-3 py-1.5 rounded-md font-medium transition-colors",
-                vista === "historico" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+                vista === "historico" ? "bg-background" : "text-muted-foreground hover:text-foreground")}>
               Histórico
             </button>
             <button onClick={() => setVista("recorridos")}
               className={cn("text-xs px-3 py-1.5 rounded-md font-medium transition-colors",
-                vista === "recorridos" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+                vista === "recorridos" ? "bg-background" : "text-muted-foreground hover:text-foreground")}>
               Recorridos post-21hs
             </button>
           </div>
@@ -637,7 +637,7 @@ export function AnalisisDiario() {
 
       {/* Preview de carga en lote */}
       {lote.length > 0 && (
-        <div className="border rounded-xl p-4 space-y-3 bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900">
+        <div className="border rounded-lg p-4 space-y-3 bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900">
           <div className="flex items-center gap-2">
             <Layers className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
             <p className="text-sm font-bold">
@@ -692,7 +692,7 @@ export function AnalisisDiario() {
 
       {/* Preview de carga */}
       {(tardeRaw || resumenRaw) && (
-        <div className="border rounded-xl p-4 space-y-3 bg-blue-50/40 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+        <div className="border rounded-lg p-4 space-y-3 bg-blue-50/40 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
           <div className="flex items-center gap-2 flex-wrap">
             <FileSpreadsheet className="h-4 w-4 text-blue-600 dark:text-blue-300" />
             <p className="text-sm font-bold">Vista previa</p>
@@ -929,16 +929,16 @@ function DiaView({
             return (
               <div className="space-y-2">
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                  <div className="border rounded-xl p-4 bg-card">
+                  <div className="border rounded-lg p-4 bg-card">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Total paquetes</p>
                     <p className="text-2xl font-bold tabular-nums mt-1">{resumen.total_paquetes.toLocaleString("es-AR")}</p>
                   </div>
-                  <div className="border rounded-xl p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/50">
+                  <div className="border rounded-lg p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/50">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Entregados</p>
                     <p className="text-2xl font-bold tabular-nums mt-1 text-emerald-700 dark:text-emerald-300">{resumen.entregados.toLocaleString("es-AR")}</p>
                     <p className="text-[11px] text-muted-foreground">{resumen.pct_exito.toFixed(1)}% del total</p>
                   </div>
-                  <div className={cn("border rounded-xl p-4",
+                  <div className={cn("border rounded-lg p-4",
                     noEntregados > 0 ? "bg-red-50/50 dark:bg-red-950/20 border-red-200/60 dark:border-red-900/50" : "bg-card")}>
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">No entregados</p>
                     <p className={cn("text-2xl font-bold tabular-nums mt-1", noEntregados > 0 && "text-red-600 dark:text-red-300")}>{noEntregados.toLocaleString("es-AR")}</p>
@@ -999,7 +999,7 @@ function DiaView({
           )}
 
           {/* Detalle de paquetes post-21hs sin entregar (dirección, cliente, chofer) */}
-          <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
+          <div className="border rounded-lg overflow-hidden bg-card">
             <button onClick={toggleDetallePost21}
               className="w-full flex items-center gap-2 px-4 py-3 border-b bg-muted/20 text-left hover:bg-muted/30 transition-colors">
               {verDetallePost21 ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
@@ -1039,7 +1039,7 @@ function DiaView({
 
           <div className="grid lg:grid-cols-5 gap-4">
             {/* Estados — con barra de proporción */}
-            <div className="lg:col-span-2 border rounded-xl overflow-hidden bg-card shadow-sm">
+            <div className="lg:col-span-2 border rounded-lg overflow-hidden bg-card">
               <SeccionHeader icon={CheckCircle} titulo="Resolución del día por estado" tono="emerald" />
               <div className="divide-y max-h-[22rem] overflow-y-auto">
                 {estados.map(e => {
@@ -1063,7 +1063,7 @@ function DiaView({
             </div>
 
             {/* Clientes — con búsqueda y análisis individual */}
-            <div className="lg:col-span-3 border rounded-xl overflow-hidden bg-card shadow-sm">
+            <div className="lg:col-span-3 border rounded-lg overflow-hidden bg-card">
               <SeccionHeader icon={Users} titulo="Clientes del día" tono="blue">
                 <div className="flex items-center gap-1.5 bg-background border rounded-md px-2 py-1">
                   <Search className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1077,7 +1077,7 @@ function DiaView({
 
               {/* Detalle del cliente seleccionado */}
               {sel && (
-                <div className="m-3 rounded-xl border bg-gradient-to-br from-violet-50 to-sky-50/40 dark:from-violet-950/30 dark:to-sky-950/10 border-violet-200/70 dark:border-violet-900/50 p-3">
+                <div className="m-3 rounded-lg border bg-gradient-to-br from-violet-50 to-sky-50/40 dark:from-violet-950/30 dark:to-sky-950/10 border-violet-200/70 dark:border-violet-900/50 p-3">
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <p className="text-sm font-bold flex items-center gap-1.5"><Users className="h-4 w-4 text-violet-600 dark:text-violet-300" /> {sel.cliente}</p>
                     <button onClick={() => setClienteSel(null)} className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">Cerrar <X className="h-3 w-3" /></button>
@@ -1326,7 +1326,7 @@ function HistoricoView({
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-3 flex-wrap bg-muted/30 rounded-xl px-3 py-2.5 border">
+      <div className="flex items-center gap-3 flex-wrap bg-muted/30 rounded-lg px-3 py-2.5 border">
         <div className="flex items-center gap-2 bg-background border rounded-lg px-2.5 py-1.5">
           <Calendar className="h-4 w-4 text-muted-foreground" />
           <input type="date" value={desde} onChange={e => setDesde(e.target.value)} className="text-xs bg-transparent outline-none" />
@@ -1388,7 +1388,7 @@ function HistoricoView({
           </div>
 
           {/* Evolución diaria — barras apiladas (composición real de cada día) + % de éxito */}
-          <div className="border rounded-xl p-4 bg-card shadow-sm">
+          <div className="border rounded-lg p-4 bg-card">
             <div className="flex items-baseline justify-between mb-2">
               <p className="text-xs font-bold">Evolución diaria — composición de paquetes y % de éxito</p>
               <p className="text-[10px] text-muted-foreground">
@@ -1420,7 +1420,7 @@ function HistoricoView({
           </div>
 
           {/* Estados del período */}
-          <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
+          <div className="border rounded-lg overflow-hidden bg-card">
             <SeccionHeader icon={AlertTriangle} titulo="Estados del período" tono="amber" />
             {estadosTotales.length === 0 ? (
               <div className="p-4"><EmptyState icon={AlertTriangle} title="Sin datos de estados en este rango" /></div>
@@ -1442,7 +1442,7 @@ function HistoricoView({
           </div>
 
           {/* Total de paquetes por cliente (acumulado del período) */}
-          <div className="border rounded-xl p-4 bg-card shadow-sm">
+          <div className="border rounded-lg p-4 bg-card">
             <p className="text-xs font-bold mb-2">Paquetes totales por cliente (top 8 del período)</p>
             {chartClientesTotales.length === 0 ? (
               <EmptyState icon={Users} title="Sin datos en este rango" />
@@ -1463,7 +1463,7 @@ function HistoricoView({
       ) : (
         <div className="space-y-4">
           {historicoCliente.length === 0 ? (
-            <div className="border rounded-xl p-4 bg-card shadow-sm">
+            <div className="border rounded-lg p-4 bg-card">
               <EmptyState icon={Users} title={`Sin datos de ${clienteSel} en este rango`} />
             </div>
           ) : (() => {
@@ -1505,7 +1505,7 @@ function HistoricoView({
                   sub="cuánto de lo suyo se demora" tono="amber" />
               </div>
 
-              <div className="border rounded-xl p-4 bg-card shadow-sm space-y-4">
+              <div className="border rounded-lg p-4 bg-card space-y-4">
                 <p className="text-xs font-bold">Evolución diaria — paquetes y % demorados de {clienteSel}</p>
                 <ResponsiveContainer width="100%" height={260}>
                   <ComposedChart data={chartCliente}>

@@ -95,7 +95,7 @@ export function BuscadorDireccion({ onDireccionElegida, onLimpiar }: Props) {
 
   return (
     <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[900] w-[22rem] max-w-[90vw]">
-      <div className="flex items-center gap-2 bg-background/96 backdrop-blur-sm border rounded-xl shadow-lg px-3 py-2">
+      <div className="flex items-center gap-2 bg-background/96 backdrop-blur-sm border rounded-lg shadow-lg px-3 py-2">
         {buscando
           ? <Loader2 className="h-4 w-4 text-muted-foreground animate-spin shrink-0" />
           : <Search className="h-4 w-4 text-muted-foreground shrink-0" />}
@@ -117,7 +117,7 @@ export function BuscadorDireccion({ onDireccionElegida, onLimpiar }: Props) {
       </div>
 
       {abierto && (resultados.length > 0 || error) && (
-        <div className="mt-1 bg-background border rounded-xl shadow-lg overflow-hidden">
+        <div className="mt-1 bg-background border rounded-lg shadow-lg overflow-hidden">
           {error ? (
             <p className="text-xs text-muted-foreground px-3 py-3 text-center leading-relaxed">{error}</p>
           ) : (

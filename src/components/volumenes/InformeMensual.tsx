@@ -404,7 +404,7 @@ export function InformeMensual() {
           {/* Destacados */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {resumen.mejorDia && (
-              <div className="border rounded-xl p-3 bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900">
+              <div className="border rounded-lg p-3 bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Mejor día</p>
                 <p className="text-sm font-bold mt-1">
                   {new Date(resumen.mejorDia.fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "long" })}
@@ -413,7 +413,7 @@ export function InformeMensual() {
               </div>
             )}
             {resumen.peorDia && (
-              <div className="border rounded-xl p-3 bg-red-50/40 dark:bg-red-950/20 border-red-200 dark:border-red-900">
+              <div className="border rounded-lg p-3 bg-red-50/40 dark:bg-red-950/20 border-red-200 dark:border-red-900">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-red-700 dark:text-red-300">Día más bajo</p>
                 <p className="text-sm font-bold mt-1">
                   {new Date(resumen.peorDia.fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "long" })}
@@ -431,7 +431,7 @@ export function InformeMensual() {
           )}
 
           {/* Desglose por semana */}
-          <div className="border rounded-xl overflow-hidden">
+          <div className="border rounded-lg overflow-hidden">
             <table className="w-full text-xs">
               <thead className="bg-muted/30 border-b">
                 <tr>
@@ -470,7 +470,7 @@ export function InformeMensual() {
             <p className="text-xs font-bold text-muted-foreground mb-2">
               Por día de la semana <span className="font-normal">— clic en un día para ver el detalle de fechas</span>
             </p>
-            <div className="border rounded-xl overflow-hidden">
+            <div className="border rounded-lg overflow-hidden">
               <table className="w-full text-xs">
                 <thead className="bg-muted/30 border-b">
                   <tr>
@@ -508,7 +508,7 @@ export function InformeMensual() {
             </div>
 
             {diaSeleccionado && (
-              <div className="mt-3 border rounded-xl overflow-hidden">
+              <div className="mt-3 border rounded-lg overflow-hidden">
                 <div className="px-3 py-2 bg-blue-50/60 dark:bg-blue-950/30 border-b flex items-center justify-between">
                   <p className="text-xs font-bold">Detalle — todos los {diaSeleccionado} de {resumen.mesLabel}</p>
                   <button onClick={() => setDiaSeleccionado(null)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
@@ -562,7 +562,7 @@ function DeltaIcon({ pct }: { pct: number }) {
 
 function Kpi({ label, valor, sub, color }: { label: string; valor: string; sub: React.ReactNode; color: string }) {
   return (
-    <div className="border rounded-xl p-3 bg-background">
+    <div className="border rounded-lg p-3 bg-background">
       <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
       <p className={cn("text-lg font-bold tabular-nums mt-0.5", color)}>{valor}</p>
       <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>

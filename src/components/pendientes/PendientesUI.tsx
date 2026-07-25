@@ -194,12 +194,12 @@ export function PendientesUI({
           <div className="flex gap-1 bg-muted/40 rounded-lg p-1">
             <button onClick={() => setVista("dia")}
               className={cn("text-xs px-3 py-1.5 rounded-md font-medium transition-colors",
-                vista === "dia" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+                vista === "dia" ? "bg-background" : "text-muted-foreground hover:text-foreground")}>
               Día
             </button>
             <button onClick={() => setVista("historico")}
               className={cn("text-xs px-3 py-1.5 rounded-md font-medium transition-colors",
-                vista === "historico" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+                vista === "historico" ? "bg-background" : "text-muted-foreground hover:text-foreground")}>
               Histórico mensual
             </button>
           </div>
@@ -260,7 +260,7 @@ export function PendientesUI({
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                 {/* Chip "Todas" */}
                 <button onClick={() => setFiltroZona(null)}
-                  className={cn("border rounded-xl p-3 text-left transition-all",
+                  className={cn("border rounded-lg p-3 text-left transition-all",
                     filtroZona === null ? "border-blue-500 ring-2 ring-blue-400/40 bg-blue-50/40 dark:bg-blue-950/30" : "bg-card hover:border-blue-300")}>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">TODAS</span>
                   <p className="text-lg font-bold tabular-nums mt-1">{stats.resueltos}<span className="text-xs text-muted-foreground font-normal">/{stats.total}</span></p>
@@ -271,7 +271,7 @@ export function PendientesUI({
                   const sel = filtroZona === z.zona;
                   return (
                     <button key={z.zona} onClick={() => setFiltroZona(sel ? null : z.zona)}
-                      className={cn("border rounded-xl p-3 text-left transition-all",
+                      className={cn("border rounded-lg p-3 text-left transition-all",
                         sel ? "border-blue-500 ring-2 ring-blue-400/40 bg-blue-50/40 dark:bg-blue-950/30" : "bg-card hover:border-blue-300")}>
                       <div className="flex items-center justify-between mb-1">
                         <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded", MACROZONA_COLOR[z.zona] ?? "bg-muted text-muted-foreground")}>{z.zona}</span>
@@ -299,35 +299,35 @@ export function PendientesUI({
 
             {/* ── Contadores (de la zona elegida) ── */}
             <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-              <div className="border rounded-xl p-4 bg-card">
+              <div className="border rounded-lg p-4 bg-card">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
                   {filtroZona ? `Pendientes ${filtroZona}` : "Total pendientes"}
                 </p>
                 <p className="text-2xl font-bold tabular-nums mt-1">{vTotal}</p>
               </div>
-              <div className="border rounded-xl p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/50">
+              <div className="border rounded-lg p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/50">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Recibidos</p>
                 <p className="text-2xl font-bold tabular-nums mt-1 text-emerald-700 dark:text-emerald-300">{vRecibidos}</p>
                 <p className="text-[11px] text-muted-foreground">{vTotal > 0 ? Math.round(vRecibidos / vTotal * 100) : 0}% del total</p>
               </div>
-              <div className={cn("border rounded-xl p-4",
+              <div className={cn("border rounded-lg p-4",
                 vEntregados > 0 ? "bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/60 dark:border-blue-900/50" : "bg-card")}>
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Entregados</p>
                 <p className={cn("text-2xl font-bold tabular-nums mt-1", vEntregados > 0 && "text-blue-700 dark:text-blue-300")}>{vEntregados}</p>
                 <p className="text-[11px] text-muted-foreground">cuenta como resuelto</p>
               </div>
-              <div className={cn("border rounded-xl p-4",
+              <div className={cn("border rounded-lg p-4",
                 vNoRecibidos > 0 ? "bg-red-50/50 dark:bg-red-950/20 border-red-200/60 dark:border-red-900/50" : "bg-card")}>
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">No recibidos</p>
                 <p className={cn("text-2xl font-bold tabular-nums mt-1", vNoRecibidos > 0 && "text-red-600 dark:text-red-300")}>{vNoRecibidos}</p>
                 <p className="text-[11px] text-muted-foreground">{pctNoRecibido}% del total</p>
               </div>
-              <div className={cn("border rounded-xl p-4",
+              <div className={cn("border rounded-lg p-4",
                 vFaltan > 0 ? "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/50" : "bg-card")}>
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Sin resolver</p>
                 <p className={cn("text-2xl font-bold tabular-nums mt-1", vFaltan > 0 && "text-amber-700 dark:text-amber-300")}>{vFaltan}</p>
               </div>
-              <div className="border rounded-xl p-4 bg-card">
+              <div className="border rounded-lg p-4 bg-card">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Urgentes sin resolver</p>
                 <p className={cn("text-2xl font-bold tabular-nums mt-1", vUrgentesFaltan > 0 && "text-amber-700 dark:text-amber-300")}>
                   {vUrgentesFaltan}<span className="text-sm text-muted-foreground font-normal"> / {vUrgentes}</span>
@@ -371,7 +371,7 @@ export function PendientesUI({
             </div>
 
             {/* ── Agrupado por conductor o cliente (expandible) ── */}
-            <div className="border rounded-xl overflow-hidden bg-card">
+            <div className="border rounded-lg overflow-hidden bg-card">
               <div className="flex items-center gap-2 px-4 py-2.5 border-b bg-muted/20">
                 <Truck className="h-4 w-4 text-muted-foreground" />
                 <p className="text-sm font-semibold">Detalle</p>
@@ -380,7 +380,7 @@ export function PendientesUI({
                   {(["conductor", "cliente"] as const).map(g => (
                     <button key={g} onClick={() => { setAgrupar(g); setCadeteExpandido(null); }}
                       className={cn("text-[11px] px-2.5 py-1 rounded-md font-medium transition-colors capitalize",
-                        agrupar === g ? "bg-background shadow-sm text-foreground" : "text-muted-foreground")}>
+                        agrupar === g ? "bg-background text-foreground" : "text-muted-foreground")}>
                       Por {g}
                     </button>
                   ))}

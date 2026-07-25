@@ -1019,7 +1019,7 @@ export function OperacionDia({
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 pt-2 space-y-2">
                   {sugerencias.map(s => (
-                    <div key={s.codigo} className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900 rounded-xl p-3 space-y-2">
+                    <div key={s.codigo} className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900 rounded-lg p-3 space-y-2">
                       <div className="flex items-start gap-2.5">
                         {s.tipoSugerido === "pre_turno"
                           ? <Sunrise className="h-4 w-4 text-violet-600 dark:text-violet-300 shrink-0 mt-0.5" />
@@ -1380,7 +1380,7 @@ export function OperacionDia({
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-3 text-center border rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+            <div className="grid grid-cols-3 gap-3 text-center border rounded-lg p-3 bg-slate-50 dark:bg-slate-800/40">
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Rutas</p>
                 <p className="text-xl font-bold">{nActivas}</p>
@@ -1401,7 +1401,7 @@ export function OperacionDia({
             {/* Margen hasta 40P */}
             {nActivas > 0 && pkgTotal > 0 && (
               <div className={cn(
-                "rounded-xl p-3 border text-center",
+                "rounded-lg p-3 border text-center",
                 margenHasta40 < 0 ? "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900" :
                 margenHasta35 < 200 ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900" :
                 "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900"

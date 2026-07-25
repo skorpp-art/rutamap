@@ -229,7 +229,7 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
         ) : (
           <div className="space-y-2">
             {paquetes.map(p => (
-              <div key={p.id} className="border rounded-xl p-3 text-xs space-y-1.5">
+              <div key={p.id} className="border rounded-lg p-3 text-xs space-y-1.5">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold flex-1 truncate">{p.cliente ?? "Sin cliente"}</span>
                   {p.tracking && <span className="font-mono text-muted-foreground">{p.tracking}</span>}
@@ -272,11 +272,11 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
         {puedeEditar && (
           !mostrarForm ? (
             <button onClick={() => setMostrarForm(true)}
-              className="w-full inline-flex items-center justify-center gap-1.5 text-sm font-medium py-2.5 rounded-xl border-2 border-dashed border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50/50 dark:hover:bg-amber-950/20 transition-colors">
+              className="w-full inline-flex items-center justify-center gap-1.5 text-sm font-medium py-2.5 rounded-lg border-2 border-dashed border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50/50 dark:hover:bg-amber-950/20 transition-colors">
               <Plus className="h-4 w-4" /> Cargar paquete especial
             </button>
           ) : (
-            <div className="border border-amber-300 dark:border-amber-800 rounded-xl p-4 space-y-3 bg-amber-50/30 dark:bg-amber-950/10">
+            <div className="border border-amber-300 dark:border-amber-800 rounded-lg p-4 space-y-3 bg-amber-50/30 dark:bg-amber-950/10">
               {/* Indicador de pasos */}
               <div className="flex items-center gap-1.5">
                 {([1, 2, 3] as Paso[]).map(n => (

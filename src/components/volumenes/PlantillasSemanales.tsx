@@ -150,7 +150,7 @@ export function PlantillasSemanales({ onUsarValor }: Props) {
       </div>
 
       {/* Grilla */}
-      <div className="border rounded-xl overflow-x-auto bg-background">
+      <div className="border rounded-lg overflow-x-auto bg-background">
         <table className="w-full text-xs border-collapse min-w-[760px]">
           <thead>
             <tr className="bg-muted/30 border-b">

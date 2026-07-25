@@ -40,7 +40,7 @@ export function DialogRecorrido({
         <Dialog.Content
           className={cn(
             "fixed left-1/2 top-1/2 z-[1001] -translate-x-1/2 -translate-y-1/2",
-            "w-full max-w-md bg-background rounded-xl shadow-xl border p-5",
+            "w-full max-w-md bg-background rounded-lg shadow-xl border p-5",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",

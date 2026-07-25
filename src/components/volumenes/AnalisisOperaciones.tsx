@@ -322,14 +322,14 @@ export function AnalisisOperaciones() {
                 });
                 if (atencion.size === 0) {
                   return (
-                    <div className="flex items-center gap-2 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/40 px-4 py-2.5">
+                    <div className="flex items-center gap-2 rounded-lg border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/40 px-4 py-2.5">
                       <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-300 shrink-0" />
                       <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Todo en orden — ningún recorrido requiere atención</span>
                     </div>
                   );
                 }
                 return (
-                  <div className="flex items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5 flex-wrap">
+                  <div className="flex items-center gap-3 rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5 flex-wrap">
                     <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-300 shrink-0" />
                     <span className="text-sm font-bold text-amber-800 dark:text-amber-200">
                       {atencion.size} recorrido{atencion.size > 1 ? "s" : ""} necesita{atencion.size > 1 ? "n" : ""} atención
@@ -362,7 +362,7 @@ export function AnalisisOperaciones() {
 
               {/* Gráficos de evolución */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="border rounded-xl p-5 bg-background">
+                <div className="border rounded-lg p-5 bg-background">
                   <p className="text-sm font-bold mb-4">Paquetes — últimos {Math.min(14, dashboard.length)} días</p>
                   <ResponsiveContainer width="100%" height={260}>
                     <ComposedChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 5 }} barCategoryGap="20%">
@@ -384,7 +384,7 @@ export function AnalisisOperaciones() {
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="border rounded-xl p-5 bg-background">
+                <div className="border rounded-lg p-5 bg-background">
                   <p className="text-sm font-bold mb-4">Choferes y promedio/ruta — últimos {Math.min(14, dashboard.length)} días</p>
                   <ResponsiveContainer width="100%" height={260}>
                     <ComposedChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 5 }} barCategoryGap="35%">
@@ -422,7 +422,7 @@ export function AnalisisOperaciones() {
               </div>
 
               {/* Tabla detalle por día */}
-              <div className="border rounded-xl overflow-hidden">
+              <div className="border rounded-lg overflow-hidden">
                 <div className="px-4 py-2.5 border-b bg-muted/20 flex items-center">
                   <p className="text-xs font-semibold">Detalle por día</p>
                   <p className="text-[10px] text-muted-foreground ml-auto">Clic en fila para ver detalle</p>
@@ -519,7 +519,7 @@ export function AnalisisOperaciones() {
 
               {/* Alertas de recorridos */}
               {alertas.length > 0 && (
-                <div className="border rounded-xl overflow-hidden">
+                <div className="border rounded-lg overflow-hidden">
                   <div className="px-4 py-2.5 border-b bg-red-50 dark:bg-red-950/40 flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-300" />
                     <p className="text-xs font-semibold text-red-700 dark:text-red-300">Recorridos con sobrecarga frecuente — últimos {diasVista} días</p>
@@ -566,7 +566,7 @@ export function AnalisisOperaciones() {
 
           {/* ── Sección 2: Análisis por recorrido ────────────────────────────── */}
           {analisis.length > 0 && (
-            <div className="border rounded-xl overflow-hidden">
+            <div className="border rounded-lg overflow-hidden">
               <div className="px-4 py-3 bg-muted/20 border-b flex items-center gap-2">
                 <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                   <BarChart2 className="h-3.5 w-3.5" /> Análisis por recorrido — últimos {diasVista} días
