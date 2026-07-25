@@ -108,7 +108,7 @@ export function KpisMonitoreo() {
   const num = (v: number | null | undefined, suf = "") => v == null ? "—" : `${v}${suf}`;
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-5 space-y-4">
       {/* Header */}
       <div className="flex items-start gap-3 flex-wrap">
         <div className="flex items-center gap-2">

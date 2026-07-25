@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, SlidersHorizontal, Plus, ArrowUpDown } from "lucide-react";
+import { Search, SlidersHorizontal, Plus, ArrowUpDown, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -117,7 +117,7 @@ export function PanelLateral({
   return (
     <aside className="flex flex-col h-full w-72 shrink-0 border-r bg-background">
       {/* Cabecera */}
-      <div className="px-3 py-3 border-b space-y-2.5">
+      <div className="px-3 py-2.5 border-b space-y-2">
         {/* Título + acciones */}
         <div className="flex items-center gap-1.5">
           <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
@@ -125,6 +125,19 @@ export function PanelLateral({
           <span className="ml-auto text-xs text-muted-foreground tabular-nums">
             {filtrados.length}/{recorridos.length}
           </span>
+
+          {/* Visibilidad en el mapa (antes ocupaban una fila entera) */}
+          <Button variant="ghost" size="icon"
+            className="h-6 w-6 text-muted-foreground hover:text-foreground"
+            title={hayFiltros ? `Mostrar en el mapa los ${filtrados.length} filtrados` : "Mostrar todos en el mapa"}
+            onClick={() => onMostrarTodo(filtrados.map((r) => r.id))}>
+            <Eye className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon"
+            className="h-6 w-6 text-muted-foreground hover:text-foreground"
+            title="Ocultar todos del mapa" onClick={onOcultarTodo}>
+            <EyeOff className="h-3.5 w-3.5" />
+          </Button>
 
           {/* Ordenar */}
           <div className="relative">
@@ -200,25 +213,6 @@ export function PanelLateral({
               {zona}
             </button>
           ))}
-        </div>
-
-        {/* Controles rápidos de visibilidad */}
-        <div className="flex gap-1 items-center">
-          <span className="text-[10px] text-muted-foreground">Mapa:</span>
-          <button
-            onClick={() => onMostrarTodo(filtrados.map((r) => r.id))}
-            className="text-[10px] px-1.5 py-0.5 rounded border border-border text-muted-foreground hover:border-brand-blue/50 transition-colors"
-            title={hayFiltros ? "Mostrar en el mapa los recorridos filtrados" : "Mostrar todos en el mapa"}
-          >
-            {hayFiltros ? `Ver filtrados (${filtrados.length})` : "Ver todos"}
-          </button>
-          <button
-            onClick={onOcultarTodo}
-            className="text-[10px] px-1.5 py-0.5 rounded border border-border text-muted-foreground hover:border-brand-blue/50 transition-colors"
-            title="Ocultar todos del mapa"
-          >
-            Ocultar
-          </button>
         </div>
 
         {/* Filtro tipos + activo + limpiar */}

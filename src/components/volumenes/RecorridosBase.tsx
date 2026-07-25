@@ -107,7 +107,7 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
   const fijosActivos = recorridos.filter(r => r.tipo === "fijo" && r.activo).length;
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-5 space-y-4">
 
       {/* Cards de piso operativo */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

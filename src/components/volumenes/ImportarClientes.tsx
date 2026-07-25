@@ -130,7 +130,7 @@ export function ImportarClientes({ onImportado, targetPkg = 30, fechaFija }: Pro
   const totalPreview = preview.reduce((s, r) => s + r.paquetes, 0);
 
   return (
-    <div className="p-6 space-y-5 max-w-3xl">
+    <div className="p-5 space-y-4 max-w-3xl">
       <div className="flex items-center gap-2">
         <FileSpreadsheet className="h-5 w-5 text-green-600 dark:text-green-300" />
         <h2 className="text-sm font-semibold">Paquetes por cliente</h2>

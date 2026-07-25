@@ -590,7 +590,7 @@ export function AnalisisDiario() {
   }, { total: 0, post21: 0, enCamino: 0, post21SinEntregar: 0 });
 
   return (
-    <div className="h-full overflow-y-auto p-6 space-y-5">
+    <div className="h-full overflow-y-auto p-5 space-y-4">
       {/* Header */}
       <PageHeader
         titulo="Resultados"
