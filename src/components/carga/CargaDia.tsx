@@ -5,11 +5,13 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   ClipboardList, Calendar, RefreshCw, Package, Trash2, Download,
-  Send, Sunrise, Plus, Users, Upload, X, Wallet, Boxes, PackagePlus, Sigma, Check,
+  Send, Sunrise, Plus, Users, Upload, X, Wallet, Check,
   FileSpreadsheet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatRow } from "@/components/ui/stat-row";
 import { hoyAR } from "@/lib/fechas";
 import {
   getCargaDia, upsertCargaFila, eliminarCargaFila, iniciarCargaDesdeOperacion,
@@ -46,70 +48,24 @@ function semaforo(total: number): string {
   return "bg-muted text-muted-foreground border-border";
 }
 
-// Anima un número de su valor anterior al nuevo (count-up) con easing.
-// Respeta prefers-reduced-motion: si está activo, muestra el valor directo.
-function useCountUp(value: number, duration = 550): number {
-  const [display, setDisplay] = useState(value);
-  const fromRef = useRef(value);
-  useEffect(() => {
-    const reduce = typeof window !== "undefined"
-      && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const from = fromRef.current;
-    const to = value;
-    if (reduce || from === to) { setDisplay(to); fromRef.current = to; return; }
-    let raf = 0;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setDisplay(Math.round(from + (to - from) * eased));
-      if (t < 1) raf = requestAnimationFrame(tick);
-      else fromRef.current = to;
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [value, duration]);
-  return display;
-}
-
-// Stat card estilo dashboard: cuadro de ícono + número grande
-const STAT_TONO: Record<string, { tile: string; num: string }> = {
-  slate: { tile: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300", num: "text-foreground" },
-  blue: { tile: "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300", num: "text-blue-700 dark:text-blue-300" },
-  amber: { tile: "bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300", num: "text-amber-700 dark:text-amber-300" },
-};
-function StatCard({ icon: Icon, tono, label, valor, sub }: {
-  icon: typeof Package; tono: "slate" | "blue" | "amber"; label: string; valor: number; sub?: string;
-}) {
-  const t = STAT_TONO[tono];
-  const shown = useCountUp(valor);
-  return (
-    <div className="border rounded-xl p-3.5 bg-card shadow-sm flex items-center gap-3 hover-lift">
-      <span className={cn("inline-flex items-center justify-center h-10 w-10 rounded-xl shrink-0", t.tile)}>
-        <Icon className="h-5 w-5" />
-      </span>
-      <div className="min-w-0">
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">{label}</p>
-        <p className={cn("text-2xl font-bold tabular-nums leading-tight", t.num)}>{shown.toLocaleString("es-AR")}</p>
-        {sub && <p className="text-[11px] text-muted-foreground leading-tight">{sub}</p>}
-      </div>
-    </div>
-  );
-}
-
-// Pill de filtro de zona (tab con punto de color + contador)
+// Pill de filtro de zona (tab con cuadrito de color + contador)
 function ZonaPill({ activo, onClick, dot, label, count, icon: Icon }: {
   activo: boolean; onClick: () => void; dot: string; label: string; count: number; icon?: typeof Package;
 }) {
   return (
     <button onClick={onClick}
-      className={cn("shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border text-xs font-medium transition-colors",
-        activo ? "bg-blue-600 text-white border-blue-600 shadow-sm" : "bg-card border-border hover:bg-muted")}>
+      className={cn("shrink-0 inline-flex items-center gap-2 h-10 px-4 rounded-md border text-sm font-bold transition-colors",
+        activo
+          ? "bg-foreground text-background border-foreground"
+          : "bg-card border-border hover:border-foreground/40")}>
+      {/* El cuadrito conserva el color propio de cada zona, también en activo */}
       {Icon
-        ? <Icon className={cn("h-3 w-3", activo ? "text-white" : "text-violet-500")} />
-        : <span className={cn("h-2 w-2 rounded-full", dot)} />}
-      <span className={activo ? "text-white" : "text-foreground"}>{label}</span>
-      <span className={cn("tabular-nums", activo ? "text-white/80" : "text-muted-foreground")}>{count}</span>
+        ? <Icon className={cn("h-3.5 w-3.5", activo ? "text-background" : "text-violet-500")} />
+        : <span className={cn("h-2.5 w-2.5 rounded-[3px] shrink-0", dot)} />}
+      <span>{label}</span>
+      <span className={cn("tabular-nums font-semibold", activo ? "text-background/70" : "text-muted-foreground")}>
+        {count}
+      </span>
     </button>
   );
 }
@@ -560,39 +516,52 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
     <div className="h-full overflow-y-auto">
       <div className="max-w-6xl mx-auto p-5 space-y-5">
         {/* ── Encabezado ── */}
-        <div className="flex items-start gap-3 flex-wrap">
-          <span className="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-blue-500/15 text-blue-700 dark:text-blue-300">
-            <ClipboardList className="h-5 w-5" />
-          </span>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold">Carga del Día</h1>
-            <p className="text-xs text-muted-foreground">
-              Los coordinadores cargan chofer y paquetes (sistema / por fuera) por recorrido. Al cierre, enviá el día al análisis.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 bg-muted/40 border rounded-lg px-2.5 py-1.5">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
-              className="text-xs bg-transparent outline-none" />
-          </div>
-          <button onClick={() => cargar(fecha)} disabled={cargando}
-            className="p-2 rounded-lg border hover:bg-muted/40 transition-colors" title="Actualizar">
-            <RefreshCw className={cn("h-4 w-4 text-muted-foreground", cargando && "animate-spin")} />
-          </button>
-        </div>
+        <PageHeader
+          titulo="Carga del Día"
+          meta={
+            <span className="inline-flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 border rounded-md px-2.5 py-1.5">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
+                  className="text-xs bg-transparent outline-none" />
+              </span>
+              <button onClick={() => cargar(fecha)} disabled={cargando}
+                className="p-2 rounded-md border hover:bg-muted/40 transition-colors" title="Actualizar">
+                <RefreshCw className={cn("h-4 w-4 text-muted-foreground", cargando && "animate-spin")} />
+              </button>
+            </span>
+          }
+        />
+        <p className="text-sm text-muted-foreground max-w-3xl -mt-1">
+          Los coordinadores cargan chofer y paquetes (sistema / por fuera) por recorrido. Al cierre, enviá el día al análisis.
+        </p>
 
-        {/* ── Resumen (stat cards estilo dashboard) ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 stagger-children">
-          <StatCard icon={Boxes} tono="slate" label="Sistema" valor={granTotal.sistema} />
-          <StatCard icon={PackagePlus} tono="slate" label="X fuera" valor={granTotal.xFuera} />
-          <StatCard icon={Sigma} tono="blue" label="Gran total" valor={granTotal.total}
-            sub={filtro === null
-              ? `${filasParaTotal.length} recorridos (día completo)`
-              : `${filasParaTotal.length} recorridos`} />
-          <StatCard icon={Package} tono="amber" label="Especiales" valor={granTotal.especiales} />
-          <StatCard icon={FileSpreadsheet} tono="blue" label="Paq. por cliente" valor={totalPaquetesCliente}
-            sub={totalPaquetesCliente > 0 ? "Excel importado" : "sin importar"} />
-        </div>
+        {/* ── Resumen del día ── */}
+        <StatRow
+          labelsUpper
+          stats={[
+            { label: "Sistema", valor: granTotal.sistema.toLocaleString("es-AR") },
+            { label: "X fuera", valor: granTotal.xFuera.toLocaleString("es-AR") },
+            {
+              label: "Gran total",
+              valor: granTotal.total.toLocaleString("es-AR"),
+              valorClassName: "text-blue-700 dark:text-blue-300",
+              sub: filtro === null
+                ? `${filasParaTotal.length} recorridos · día completo`
+                : `${filasParaTotal.length} recorridos`,
+            },
+            {
+              label: "Especiales",
+              valor: granTotal.especiales.toLocaleString("es-AR"),
+              valorClassName: granTotal.especiales > 0 ? "text-amber-700 dark:text-amber-300" : undefined,
+            },
+            {
+              label: "Paq. por cliente",
+              valor: totalPaquetesCliente.toLocaleString("es-AR"),
+              sub: totalPaquetesCliente > 0 ? "Excel importado" : "sin importar",
+            },
+          ]}
+        />
 
         {/* Filtro por zona (pills tipo tabs; pre-turno como 5ta zona) */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 stagger-children">
@@ -612,28 +581,28 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
         {/* ── Acciones de armado ── */}
         {puedeEditar && (
           <div className="flex items-center gap-2 flex-wrap">
-            <Button size="sm" variant="outline" onClick={traerDeOperacion} className="h-8 gap-1.5 text-xs">
-              <Plus className="h-3.5 w-3.5" />
+            <Button size="sm" variant="outline" onClick={traerDeOperacion} className="h-10 gap-1.5 text-sm font-bold rounded-md">
+              <Plus className="h-4 w-4" />
               Traer recorridos de Operación del Día
             </Button>
-            <Button size="sm" variant="outline" onClick={() => setModalConductores(true)} className="h-8 gap-1.5 text-xs">
-              <Users className="h-3.5 w-3.5" />
+            <Button size="sm" variant="outline" onClick={() => setModalConductores(true)} className="h-10 gap-1.5 text-sm font-bold rounded-md">
+              <Users className="h-4 w-4" />
               Conductores ({conductores.length})
             </Button>
-            <Button size="sm" variant="outline" onClick={() => setModalCondiciones(true)} className="h-8 gap-1.5 text-xs">
-              <Wallet className="h-3.5 w-3.5" />
+            <Button size="sm" variant="outline" onClick={() => setModalCondiciones(true)} className="h-10 gap-1.5 text-sm font-bold rounded-md">
+              <Wallet className="h-4 w-4" />
               Condiciones especiales ({condicionesPorCliente.length})
             </Button>
             <Button size="sm" variant={mostrarImportarClientes ? "default" : "outline"}
               onClick={() => setMostrarImportarClientes(v => !v)}
-              className={cn("h-8 gap-1.5 text-xs", mostrarImportarClientes && "bg-blue-600 text-white hover:bg-blue-700")}>
-              <FileSpreadsheet className="h-3.5 w-3.5" />
+              className={cn("h-10 gap-1.5 text-sm font-bold rounded-md", mostrarImportarClientes && "bg-blue-600 text-white hover:bg-blue-700")}>
+              <FileSpreadsheet className="h-4 w-4" />
               {mostrarImportarClientes ? "Cerrar" : "Paquetes por cliente (Excel)"}
             </Button>
             {rutasDisponibles.length > 0 && (
               <select value={agregandoCodigo}
                 onChange={e => { if (e.target.value) agregarRecorrido(e.target.value); }}
-                className="text-xs border rounded-lg px-2 py-1.5 bg-background max-w-72 h-8">
+                className="text-sm font-medium border rounded-md px-3 bg-background max-w-72 h-10">
                 <option value="">+ Agregar recorrido suelto…</option>
                 {rutasDisponibles.map(r => (
                   <option key={r.recorrido_id} value={r.recorrido_id}>

@@ -15,23 +15,42 @@ export interface Stat {
  * KPIs del lenguaje visual nuevo: etiqueta en gris arriba, número grande y
  * contundente abajo. Pensada para 2 a 4 métricas de cabecera.
  */
-export function StatRow({ stats, className }: { stats: Stat[]; className?: string }) {
+export function StatRow({
+  stats,
+  labelsUpper = false,
+  className,
+}: {
+  stats: Stat[];
+  /** Etiquetas en mayúscula y con tracking (look de tablero). */
+  labelsUpper?: boolean;
+  className?: string;
+}) {
   if (!stats.length) return null;
   return (
     <div
       className={cn(
         "border rounded-lg bg-card overflow-hidden grid divide-x divide-border animate-fade-up",
-        stats.length >= 4 ? "grid-cols-2 sm:grid-cols-4" : stats.length === 3 ? "grid-cols-3" : "grid-cols-2",
+        stats.length >= 5 ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
+          : stats.length === 4 ? "grid-cols-2 sm:grid-cols-4"
+          : stats.length === 3 ? "grid-cols-3"
+          : "grid-cols-2",
         className
       )}
     >
       {stats.map(s => (
         <div key={s.label} className="px-4 py-3.5 min-w-0">
-          <p className="text-xs sm:text-sm text-muted-foreground truncate">{s.label}</p>
+          <p className={cn(
+            "text-muted-foreground",
+            labelsUpper
+              ? "text-[11px] font-bold uppercase tracking-widest"
+              : "text-xs sm:text-sm truncate"
+          )}>
+            {s.label}
+          </p>
           <p className={cn("text-3xl sm:text-4xl font-black tabular-nums leading-none mt-1.5", s.valorClassName)}>
             {s.valor}
           </p>
-          {s.sub && <p className="text-[11px] text-muted-foreground mt-1.5 truncate">{s.sub}</p>}
+          {s.sub && <p className="text-[11px] text-muted-foreground mt-1.5">{s.sub}</p>}
         </div>
       ))}
     </div>
