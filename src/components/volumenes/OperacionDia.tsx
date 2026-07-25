@@ -21,6 +21,8 @@ import type { AnalisisRecorrido } from "@/app/actions/operaciones-diarias";
 import { crearRecorrido, actualizarCamposRecorrido, getSiguienteCodigo, eliminarRecorrido } from "@/app/actions/recorridos";
 import { ZONA_COLOR as ZONA_HEX } from "@/lib/estados";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatRow } from "@/components/ui/stat-row";
 import type { OperacionRuta } from "@/app/actions/operacion";
 import { hoyAR, addDiasAR } from "@/lib/fechas";
 
@@ -833,6 +835,37 @@ export function OperacionDia({
             </Button>
           )}
         </div>
+      </div>
+
+      {/* ── Encabezado del día: título, fecha y las métricas que importan ── */}
+      <div className="px-5 pt-4 pb-4 border-b bg-background shrink-0">
+        <PageHeader titulo="Rutas del día" meta={fmtFecha(fecha)} />
+        <StatRow
+          className="mt-3.5"
+          stats={[
+            {
+              label: "Rutas activas hoy",
+              valor: nActivas,
+              sub: `de ${rutas.length} · ${nFijos}F ${nPreT}PT ${nCortes}C`,
+            },
+            {
+              label: "Paquetes del día",
+              valor: pkgTotal > 0 ? pkgTotal.toLocaleString("es-AR") : "—",
+              sub: pkgBase > 0 ? `importado ${pkgBase.toLocaleString("es-AR")}` : "sin importar",
+            },
+            {
+              label: "Prom. pkg/ruta",
+              valor: promedio > 0 ? promedio.toFixed(1) : "—",
+              sub: `objetivo 25–35 · ${estadoLabel}`,
+              valorClassName: estadoColor,
+            },
+            {
+              label: "Choferes necesarios",
+              valor: pkgTotal > 0 ? choferes : "—",
+              sub: `@ ${targetPkg} pkg/chofer`,
+            },
+          ]}
+        />
       </div>
 
       {/* ── Rail lateral derecho (estilo Drive) ── */}
