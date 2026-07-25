@@ -20,9 +20,9 @@ function Stat({ label, valor, sub, color }: {
 }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-muted-foreground font-medium">{label}</span>
       <span className={cn("text-2xl font-bold tabular-nums", color ?? "text-foreground")}>{valor}</span>
-      {sub && <span className="text-[10px] text-muted-foreground">{sub}</span>}
+      {sub && <span className="text-xs text-muted-foreground">{sub}</span>}
     </div>
   );
 }
@@ -42,12 +42,12 @@ function BarraZona({ zona, recorridos }: { zona: Zona; recorridos: RecorridoGeo[
     <div className="space-y-1.5">
       <div className="flex items-center gap-2">
         <span className="text-xs font-semibold w-12">{zona}</span>
-        <span className="text-[10px] text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           {activos.length} activos
           {todos.length > activos.length && ` · ${todos.length - activos.length} inactivos`}
         </span>
         {sinArea.length > 0 && (
-          <Badge variant="destructive" className="text-[10px] h-4 px-1.5 ml-auto">
+          <Badge variant="destructive" className="text-xs h-4 px-1.5 ml-auto">
             {sinArea.length} sin área
           </Badge>
         )}
@@ -59,7 +59,7 @@ function BarraZona({ zona, recorridos }: { zona: Zona; recorridos: RecorridoGeo[
           style={{ width: `${pctArea}%` }}
         />
       </div>
-      <div className="flex gap-3 text-[10px] text-muted-foreground">
+      <div className="flex gap-3 text-xs text-muted-foreground">
         <span>
           <span className="text-green-600 dark:text-green-300 font-medium">{conArea.length}</span>/{activos.length} con área
         </span>
@@ -118,7 +118,7 @@ export function DashboardCobertura({ recorridos, onCerrar }: DashboardCoberturaP
           <div className="h-2 rounded-full bg-muted overflow-hidden">
             <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${pctArea}%` }} />
           </div>
-          <div className="flex gap-3 text-[10px] text-muted-foreground">
+          <div className="flex gap-3 text-xs text-muted-foreground">
             <span className="text-green-600 dark:text-green-300 font-medium">{conArea.length} con área</span>
             {sinArea.length > 0 && (
               <span className="flex items-center gap-1 text-destructive">
@@ -140,7 +140,7 @@ export function DashboardCobertura({ recorridos, onCerrar }: DashboardCoberturaP
             <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${pctTraza}%` }} />
           </div>
           {sinTraza.length > 0 && (
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Sin traza: {sinTraza.map((r) => r.codigo).slice(0, 8).join(", ")}
               {sinTraza.length > 8 && ` +${sinTraza.length - 8} más`}
             </p>

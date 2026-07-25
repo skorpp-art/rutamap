@@ -204,7 +204,7 @@ export function PanelLateral({
               key={zona}
               onClick={() => toggleZona(zona)}
               className={cn(
-                "text-[10px] px-1.5 py-0.5 rounded border transition-colors",
+                "text-xs px-1.5 py-0.5 rounded border transition-colors",
                 zonasActivas.has(zona)
                   ? "bg-brand-blue text-white border-brand-blue"
                   : "bg-transparent text-muted-foreground border-border hover:border-brand-blue/50"
@@ -222,7 +222,7 @@ export function PanelLateral({
               key={tipo}
               onClick={() => toggleTipo(tipo)}
               className={cn(
-                "text-[10px] px-1.5 py-0.5 rounded border transition-colors",
+                "text-xs px-1.5 py-0.5 rounded border transition-colors",
                 tiposActivos.has(tipo)
                   ? tipo === "suplencia"
                     ? "bg-orange-500 text-white border-orange-500"
@@ -242,7 +242,7 @@ export function PanelLateral({
           <button
             onClick={() => setSoloActivos((v) => !v)}
             className={cn(
-              "text-[10px] px-1.5 py-0.5 rounded border transition-colors",
+              "text-xs px-1.5 py-0.5 rounded border transition-colors",
               !soloActivos
                 ? "bg-slate-500 text-white border-slate-500"
                 : "bg-transparent text-muted-foreground border-border hover:border-brand-blue/50"
@@ -256,7 +256,7 @@ export function PanelLateral({
             <Button
               variant="ghost"
               size="sm"
-              className="ml-auto h-5 text-[10px] px-1.5 text-muted-foreground"
+              className="ml-auto h-5 text-xs px-1.5 text-muted-foreground"
               onClick={() => {
                 setBusqueda("");
                 setZonasActivas(new Set());
@@ -294,20 +294,20 @@ export function PanelLateral({
 
       {/* Pie */}
       <div className="px-3 py-2 border-t flex items-center gap-2 flex-wrap">
-        <Badge variant="secondary" className="text-[10px]">
+        <Badge variant="secondary" className="text-xs">
           {totalActivos} activos
         </Badge>
         {totalInactivos > 0 && soloActivos && (
           <button
             onClick={() => setSoloActivos(false)}
-            className="text-[10px] text-muted-foreground border border-dashed border-border rounded px-1.5 py-0.5 hover:bg-accent transition-colors"
+            className="text-xs text-muted-foreground border border-dashed border-border rounded px-1.5 py-0.5 hover:bg-accent transition-colors"
             title="Ver recorridos inactivos para reactivarlos o eliminarlos"
           >
             {totalInactivos} inactivo{totalInactivos > 1 ? "s" : ""} — ver
           </button>
         )}
         {totalInactivos > 0 && !soloActivos && (
-          <Badge variant="outline" className="text-[10px] text-muted-foreground">
+          <Badge variant="outline" className="text-xs text-muted-foreground">
             {totalInactivos} inactivo{totalInactivos > 1 ? "s" : ""}
           </Badge>
         )}

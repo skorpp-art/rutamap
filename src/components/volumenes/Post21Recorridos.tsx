@@ -47,7 +47,7 @@ export function Post21Recorridos() {
         <div className={cn("flex gap-1", fecha && "opacity-40")}>
           {[14, 30, 60].map(d => (
             <button key={d} onClick={() => { setFecha(""); setDias(d); }}
-              className={cn("text-[11px] px-2.5 py-1 rounded border transition-colors",
+              className={cn("text-xs px-2.5 py-1 rounded border transition-colors",
                 !fecha && dias === d ? "bg-slate-700 text-white border-slate-700" : "border-border text-muted-foreground hover:bg-muted")}>
               {d} días
             </button>
@@ -82,7 +82,7 @@ export function Post21Recorridos() {
         </span>
       </div>
 
-      <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+      <p className="text-xs text-muted-foreground flex items-start gap-1.5">
         <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
         <span>
           {(() => {
@@ -129,7 +129,7 @@ export function Post21Recorridos() {
                   <td className="px-3 py-2 font-mono font-bold text-blue-700 dark:text-blue-300 whitespace-nowrap">{r.codigo}</td>
                   <td className="px-3 py-2 font-medium">{r.chofer}</td>
                   <td className="px-2 py-2">
-                    <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium", ZONA_COLOR[r.zona?.toUpperCase()] ?? "bg-muted text-muted-foreground")}>
+                    <span className={cn("text-xs px-1.5 py-0.5 rounded font-medium", ZONA_COLOR[r.zona?.toUpperCase()] ?? "bg-muted text-muted-foreground")}>
                       {r.zona}
                     </span>
                   </td>

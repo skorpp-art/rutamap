@@ -39,7 +39,7 @@ export function MetricCard({
       {/* Encabezado: ícono opcional + etiqueta */}
       <div className="flex items-center gap-1.5">
         {icon && <span style={{ color: accent }} className={cn(!accent && "text-muted-foreground")}>{icon}</span>}
-        <span className="text-[11px] uppercase tracking-widest text-muted-foreground font-bold truncate">
+        <span className="text-xs uppercase tracking-widest text-muted-foreground font-bold truncate">
           {label}
         </span>
       </div>

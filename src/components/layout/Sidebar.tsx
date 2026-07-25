@@ -70,21 +70,21 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
   }
 
   const grupos: GrupoNav[] = [
-    { key: "operacion", label: "Operación diaria", desc: "Cargar, planificar y controlar el día", items: [
+    { key: "operacion", label: "Operación diaria", desc: "Cargar, planificar y controlar", items: [
       { href: "/carga", label: "Carga del Día", icon: ClipboardList, visible: !esInvitado && tieneSolapa(perfil, "carga") },
       { href: "/volumenes", label: "Planificación", icon: Package, visible: esInvitado || tieneSolapa(perfil, "volumenes"), bloqueado: esInvitado },
       { href: "/pendientes", label: "Pendientes", icon: PackageCheck, visible: !esInvitado && tieneSolapa(perfil, "pendientes") },
     ] },
-    { key: "analisis", label: "Análisis", desc: "Resultados y desempeño del reparto", items: [
+    { key: "analisis", label: "Análisis", desc: "Resultados y desempeño", items: [
       { href: "/analisis-diario", label: "Resultados", icon: BarChart3, visible: esInvitado || tieneSolapa(perfil, "analisis"), bloqueado: esInvitado },
     ] },
     { key: "mapa", label: "Mapa", desc: "Zonas y recorridos en el mapa", items: [
       { href: "/", label: "Mapa", icon: Map, visible: tieneSolapa(perfil, "mapa") || esInvitado },
     ] },
-    { key: "campo", label: "Campo", desc: "Herramienta para el chofer en la calle", items: [
+    { key: "campo", label: "Campo", desc: "Herramienta para el chofer", items: [
       { href: "/ruta", label: "Mi ruta", icon: RouteIcon, visible: !esInvitado },
     ] },
-    { key: "ajustes", label: "Ajustes", desc: "Usuarios y configuración de la app", items: [
+    { key: "ajustes", label: "Ajustes", desc: "Usuarios y configuración", items: [
       { href: "/usuarios", label: "Usuarios", icon: Users, visible: perfil?.rol === "maestro" },
       { href: "/descargar", label: "Instalar app", icon: MonitorSmartphone, visible: !esInvitado },
     ] },
@@ -123,7 +123,7 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
           <Lock className={cn("h-2.5 w-2.5 text-white/40", colapsado ? "absolute bottom-1 left-7" : "absolute bottom-1 left-7 md:static md:ml-auto")} />
         )}
         {/* Tooltip cuando está colapsado */}
-        <span className={cn("pointer-events-none absolute left-full ml-2 px-2 py-1 rounded-md bg-black/90 text-white text-[11px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg",
+        <span className={cn("pointer-events-none absolute left-full ml-2 px-2 py-1 rounded-md bg-black/90 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg",
           colapsado ? "block" : "md:hidden")}>
           {item.label}
         </span>
@@ -151,14 +151,14 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
             Ruta<span className="text-blue-300">Map</span>
           </span>
           <button onClick={toggleColapsar} title="Colapsar barra"
-            className={cn("ml-auto h-7 w-7 rounded-md text-white/40 hover:text-white hover:bg-white/10 items-center justify-center transition-colors hidden md:inline-flex",
+            className={cn("ml-auto h-8 w-8 rounded-md text-white/40 hover:text-white hover:bg-white/10 items-center justify-center transition-colors hidden md:inline-flex",
               colapsado && "md:hidden")}>
             <PanelLeftClose className="h-4 w-4" />
           </button>
         </div>
         {/* Botón expandir cuando está colapsado (solo md+) */}
         <button onClick={toggleColapsar} title="Expandir barra"
-          className={cn("mt-2 mx-auto h-7 w-7 rounded-md text-white/40 hover:text-white hover:bg-white/10 items-center justify-center transition-colors hidden",
+          className={cn("mt-2 mx-auto h-8 w-8 rounded-md text-white/40 hover:text-white hover:bg-white/10 items-center justify-center transition-colors hidden",
             colapsado && "md:flex")}>
           <PanelLeftOpen className="h-4 w-4" />
         </button>
@@ -174,7 +174,7 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
         >
           <Search className={cn("h-[18px] w-[18px] shrink-0", colapsado ? "mx-auto" : "mx-auto md:mx-0")} />
           <span className={cn("text-sm truncate", lblCls)}>Buscar…</span>
-          <kbd className={cn("ml-auto text-[10px] font-medium text-white/40", lblCls)}>⌘K</kbd>
+          <kbd className={cn("ml-auto text-xs font-medium text-white/40", lblCls)}>⌘K</kbd>
         </button>
       </div>
 
@@ -189,13 +189,16 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
             return (
               <div key={g.key} className="mb-0.5">
                 <button onClick={() => toggleGrupo(g.key)} title={g.desc}
-                  className="w-full flex items-center gap-1 px-2 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/30 hover:text-white/60 transition-colors">
+                  className="w-full flex items-center gap-1 px-2 pt-2.5 pb-1 text-xs font-semibold uppercase tracking-widest text-white/30 hover:text-white/60 transition-colors">
                   {cerrado ? <ChevronRight className="h-3 w-3 shrink-0" /> : <ChevronDown className="h-3 w-3 shrink-0" />}
                   <span className="truncate">{g.label}</span>
                 </button>
                 {!cerrado && (
                   <>
-                    <p className="px-2 pl-6 pb-1.5 text-[10px] leading-tight text-white/25">{g.desc}</p>
+                    {/* Excepción al piso de 12px: en una columna de 224px el
+                        subtítulo se partía en dos líneas. Es texto secundario,
+                        no interactivo, así que va un punto más chico. */}
+                    <p className="px-2 pl-6 pb-1.5 text-[11px] leading-tight text-white/25">{g.desc}</p>
                     <div className="flex flex-col gap-0.5">{vis.map(renderItem)}</div>
                   </>
                 )}
@@ -213,7 +216,7 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
       {/* Pie: tema + perfil */}
       <div className="px-2 pt-2 mt-1 border-t border-white/5 space-y-1.5">
         <div className="flex items-center justify-between px-1">
-          <span className={cn("text-[10px] uppercase tracking-widest text-white/30 pl-1", lblCls)}>Modo</span>
+          <span className={cn("text-xs uppercase tracking-widest text-white/30 pl-1", lblCls)}>Modo</span>
           <ThemeToggle className="mx-auto md:mx-0" />
         </div>
 
@@ -234,7 +237,7 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
                 </span>
                 <span className={cn("flex-col items-start min-w-0 flex-1", colapsado ? "hidden" : "hidden md:flex")}>
                   <span className="text-sm font-medium leading-tight truncate max-w-[120px]">{perfil?.nombre ?? "Usuario"}</span>
-                  <span className="text-[11px] text-white/40 capitalize leading-tight">{perfil?.rol ?? "—"}</span>
+                  <span className="text-xs text-white/40 capitalize leading-tight">{perfil?.rol ?? "—"}</span>
                 </span>
                 <ChevronsUpDown className={cn("h-3.5 w-3.5 text-white/40 shrink-0", colapsado ? "hidden" : "hidden md:block")} />
               </button>

@@ -608,7 +608,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
                 ))}
               </select>
             )}
-            <span className="text-[11px] text-muted-foreground ml-auto">
+            <span className="text-xs text-muted-foreground ml-auto">
               Semáforo: <span className="text-emerald-600 font-medium">≤29</span> ·{" "}
               <span className="text-amber-600 font-medium">30–39</span> ·{" "}
               <span className="text-red-600 font-medium">40+</span> — se guarda solo al escribir
@@ -624,7 +624,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
         )}
 
         {filasVisibles.length > 0 && (
-          <p className="text-[11px] text-muted-foreground -mt-2 flex items-center gap-3 flex-wrap">
+          <p className="text-xs text-muted-foreground -mt-2 flex items-center gap-3 flex-wrap">
             <span className="font-medium">Control (clic en el círculo):</span>
             <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> En control</span>
             <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-red-500" /> Por encima de lo esperado</span>
@@ -645,7 +645,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
               <div className="flex items-center gap-2 px-4 py-2.5 border-b bg-muted/20">
                 <span className={cn("h-2.5 w-2.5 rounded-full", ZONA_COLOR[z.zona] ?? "bg-slate-400")} />
                 <p className="text-sm font-semibold">Zona {z.zona}</p>
-                <span className="text-[11px] text-muted-foreground ml-auto tabular-nums">
+                <span className="text-xs text-muted-foreground ml-auto tabular-nums">
                   {z.sistema} sistema · {z.xFuera} x fuera · <strong className="text-foreground">{z.total} total</strong>
                 </span>
               </div>
@@ -680,7 +680,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
                                 : f.estado_control === "amarillo" ? "Recorrido finalizado — clic para marcar frenado"
                                 : f.estado_control === "azul" ? "Frenado por alguna razón — clic para desmarcar"
                                 : "Sin controlar — clic para marcar en verde"}
-                              className={cn("h-7 w-7 sm:h-5 sm:w-5 rounded-full border-2 transition-colors",
+                              className={cn("h-8 w-8 sm:h-5 sm:w-5 rounded-full border-2 transition-colors",
                                 f.estado_control === "verde" && "bg-emerald-500 border-emerald-600",
                                 f.estado_control === "rojo" && "bg-red-500 border-red-600",
                                 f.estado_control === "amarillo" && "bg-amber-400 border-amber-500",
@@ -764,12 +764,12 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
         <div className="flex items-center gap-2 flex-wrap border-t pt-4 pb-8">
           <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5">
             <button onClick={() => setAlcanceExport("dia")}
-              className={cn("text-[11px] px-2.5 py-1.5 rounded-md font-medium transition-colors",
+              className={cn("text-xs px-2.5 py-1.5 rounded-md font-medium transition-colors",
                 alcanceExport === "dia" ? "bg-background text-foreground" : "text-muted-foreground")}>
               Solo {fecha}
             </button>
             <button onClick={() => setAlcanceExport("mes")}
-              className={cn("text-[11px] px-2.5 py-1.5 rounded-md font-medium transition-colors",
+              className={cn("text-xs px-2.5 py-1.5 rounded-md font-medium transition-colors",
                 alcanceExport === "mes" ? "bg-background text-foreground" : "text-muted-foreground")}>
               Todo el mes
             </button>
@@ -895,7 +895,7 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
                   <p className="text-xs font-semibold mb-1">{cliente}</p>
                   <div className="space-y-1">
                     {lista.map(c => (
-                      <div key={c.id} className="text-[11px] text-muted-foreground pl-2 border-l-2 border-amber-300 dark:border-amber-800">
+                      <div key={c.id} className="text-xs text-muted-foreground pl-2 border-l-2 border-amber-300 dark:border-amber-800">
                         <span className="whitespace-pre-line">{c.condicion}</span>
                         {c.observacion_adicional && <span className="block italic">{c.observacion_adicional}</span>}
                       </div>

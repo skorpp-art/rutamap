@@ -112,7 +112,7 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
       {/* Cards de piso operativo */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="border rounded-lg p-4 bg-blue-50/50 dark:bg-blue-950/40 col-span-2 lg:col-span-1">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Piso operativo (RF)</p>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Piso operativo (RF)</p>
           <p className="text-4xl font-bold text-blue-700 dark:text-blue-300 tabular-nums mt-1">{pisoOperativo}</p>
           <p className="text-xs text-muted-foreground mt-1">recorridos fijos activos</p>
         </div>
@@ -122,10 +122,10 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
             <div key={zona} className="border rounded-lg p-4">
               <div className="flex items-center gap-2 mb-1">
                 <span className={cn("h-2.5 w-2.5 rounded-full", ZONA_COLORS[zona])} />
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{zona}</p>
+                <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">{zona}</p>
               </div>
               <p className="text-2xl font-bold tabular-nums">{n}</p>
-              <p className="text-[10px] text-muted-foreground">fijos</p>
+              <p className="text-xs text-muted-foreground">fijos</p>
             </div>
           );
         })}
@@ -150,19 +150,19 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
             // So choferes = fijosActivos (base), adjusted by package load
             return (
               <div key={label} className={cn("rounded-lg p-3 text-center", bg, highlight && "ring-2 ring-green-400")}>
-                <p className="text-[10px] font-semibold text-muted-foreground">{label}</p>
+                <p className="text-xs font-semibold text-muted-foreground">{label}</p>
                 <p className={cn("text-2xl font-bold tabular-nums mt-1", color)}>
                   {fijosActivos}
                 </p>
-                <p className="text-[10px] text-muted-foreground">choferes base</p>
-                <p className={cn("text-[11px] font-semibold mt-1", color)}>
+                <p className="text-xs text-muted-foreground">choferes base</p>
+                <p className={cn("text-xs font-semibold mt-1", color)}>
                   {pkg} pkg/chofer
                 </p>
               </div>
             );
           })}
         </div>
-        <p className="text-[10px] text-muted-foreground mt-2">
+        <p className="text-xs text-muted-foreground mt-2">
           El piso de {fijosActivos} RF implica {fijosActivos} choferes como mínimo. Con la proyección de paquetes del día se calcula cuántos adicionales se necesitan.
         </p>
       </div>
@@ -182,7 +182,7 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
             <p className="text-xs font-semibold">Nuevo recorrido</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Código *</label>
+                <label className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Código *</label>
                 <input
                   type="text"
                   placeholder="ej: RF-OE-17"
@@ -192,7 +192,7 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
                 />
               </div>
               <div className="space-y-1 md:col-span-1">
-                <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Nombre *</label>
+                <label className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Nombre *</label>
                 <input
                   type="text"
                   placeholder="ej: General Las Heras"
@@ -202,7 +202,7 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Zona</label>
+                <label className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Zona</label>
                 <select
                   value={nuevoForm.zona}
                   onChange={e => setNuevoForm(p => ({ ...p, zona: e.target.value }))}
@@ -212,7 +212,7 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Tipo</label>
+                <label className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Tipo</label>
                 <select
                   value={nuevoForm.tipo}
                   onChange={e => setNuevoForm(p => ({ ...p, tipo: e.target.value }))}
@@ -250,7 +250,7 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
         <div className="flex gap-1">
           {zonas.map(z => (
             <button key={z} onClick={() => setFiltroZona(filtroZona === z ? null : z)}
-              className={cn("text-[10px] px-2 py-0.5 rounded border transition-colors font-medium",
+              className={cn("text-xs px-2 py-0.5 rounded border transition-colors font-medium",
                 filtroZona === z ? `${ZONA_COLORS[z]} text-white border-transparent` : "border-border text-muted-foreground hover:border-blue-400")}>
               {z}
             </button>
@@ -261,14 +261,14 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
             const cfg = TIPO_CONFIG[t];
             return (
               <button key={t} onClick={() => setFiltroTipo(filtroTipo === t ? null : t)}
-                className={cn("text-[10px] px-2 py-0.5 rounded border transition-colors",
+                className={cn("text-xs px-2 py-0.5 rounded border transition-colors",
                   filtroTipo === t ? `${cfg.bg} ${cfg.text} ${cfg.border}` : "border-border text-muted-foreground hover:border-blue-400")}>
                 {cfg.label}
               </button>
             );
           })}
         </div>
-        <span className="text-[10px] text-muted-foreground ml-auto">{filtrados.length} de {recorridos.length}</span>
+        <span className="text-xs text-muted-foreground ml-auto">{filtrados.length} de {recorridos.length}</span>
       </div>
 
       {/* Tabla de recorridos */}
@@ -306,13 +306,13 @@ export function RecorridosBase({ targetPkg = 30 }: Props) {
                         </div>
                       </td>
                       <td className="px-3 py-2">
-                        <Badge variant="outline" className={cn("text-[10px] h-4 px-1.5", cfg.bg, cfg.text, cfg.border)}>
+                        <Badge variant="outline" className={cn("text-xs h-4 px-1.5", cfg.bg, cfg.text, cfg.border)}>
                           {cfg.label}
                         </Badge>
                       </td>
                       <td className="px-3 py-2 text-center">
                         <button onClick={() => handleToggleActivo(r)}
-                          className={cn("text-[10px] px-2 py-0.5 rounded-full border font-medium transition-colors",
+                          className={cn("text-xs px-2 py-0.5 rounded-full border font-medium transition-colors",
                             r.activo
                               ? "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-900 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
                               : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-green-50 hover:text-green-700 hover:border-green-200"

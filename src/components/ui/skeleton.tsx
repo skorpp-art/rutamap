@@ -12,7 +12,7 @@ export function SkeletonCards({ n = 4, className }: { n?: number; className?: st
       {Array.from({ length: n }).map((_, i) => (
         <div key={i} className="border rounded-lg p-4 space-y-2">
           <Skeleton className="h-3 w-20" />
-          <Skeleton className="h-7 w-16" />
+          <Skeleton className="h-8 w-16" />
           <Skeleton className="h-3 w-24" />
         </div>
       ))}

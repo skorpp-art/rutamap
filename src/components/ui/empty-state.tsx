@@ -21,7 +21,7 @@ export function EmptyState({
         {/* Halo suave con el índigo de firma */}
         <div className="absolute inset-0 rounded-2xl bg-primary/15 blur-xl" />
         <div className="relative h-16 w-16 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 ring-1 ring-primary/15 flex items-center justify-center">
-          <Icon className="h-7 w-7 text-primary/80" strokeWidth={1.75} />
+          <Icon className="h-8 w-8 text-primary/80" strokeWidth={1.75} />
         </div>
       </div>
       <p className="text-base font-semibold tracking-tight">{title}</p>

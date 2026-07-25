@@ -67,7 +67,7 @@ export function HistorialRecorrido({ recorridoId }: HistorialRecorridoProps) {
         className="flex items-center gap-1.5 w-full text-left group"
       >
         <History className="h-3 w-3 text-muted-foreground" />
-        <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium group-hover:text-foreground transition-colors">
+        <span className="text-xs uppercase tracking-wide text-muted-foreground font-medium group-hover:text-foreground transition-colors">
           Historial
         </span>
         {abierto ? (
@@ -81,9 +81,9 @@ export function HistorialRecorrido({ recorridoId }: HistorialRecorridoProps) {
       {abierto && (
         <div className="pl-1 space-y-0.5">
           {cargando ? (
-            <p className="text-[10px] text-muted-foreground py-1">Cargando…</p>
+            <p className="text-xs text-muted-foreground py-1">Cargando…</p>
           ) : historial.length === 0 ? (
-            <p className="text-[10px] text-muted-foreground py-1">Sin registros</p>
+            <p className="text-xs text-muted-foreground py-1">Sin registros</p>
           ) : (
             historial.map((h, i) => (
               <div key={i} className="flex items-start gap-2 py-1">
@@ -95,10 +95,10 @@ export function HistorialRecorrido({ recorridoId }: HistorialRecorridoProps) {
                   )}
                 />
                 <div className="min-w-0">
-                  <p className="text-[11px] text-foreground leading-tight">
+                  <p className="text-xs text-foreground leading-tight">
                     {ACCION_LABELS[h.accion] ?? h.accion}
                   </p>
-                  <p className="text-[10px] text-muted-foreground leading-tight">
+                  <p className="text-xs text-muted-foreground leading-tight">
                     {new Date(h.realizado_en).toLocaleDateString("es-AR", {
                       day: "2-digit",
                       month: "short",

@@ -405,7 +405,7 @@ export function InformeMensual() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {resumen.mejorDia && (
               <div className="border rounded-lg p-3 bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Mejor día</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Mejor día</p>
                 <p className="text-sm font-bold mt-1">
                   {new Date(resumen.mejorDia.fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "long" })}
                 </p>
@@ -414,7 +414,7 @@ export function InformeMensual() {
             )}
             {resumen.peorDia && (
               <div className="border rounded-lg p-3 bg-red-50/40 dark:bg-red-950/20 border-red-200 dark:border-red-900">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-red-700 dark:text-red-300">Día más bajo</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-red-700 dark:text-red-300">Día más bajo</p>
                 <p className="text-sm font-bold mt-1">
                   {new Date(resumen.peorDia.fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "long" })}
                 </p>
@@ -563,9 +563,9 @@ function DeltaIcon({ pct }: { pct: number }) {
 function Kpi({ label, valor, sub, color }: { label: string; valor: string; sub: React.ReactNode; color: string }) {
   return (
     <div className="border rounded-lg p-3 bg-background">
-      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
+      <p className="text-xs uppercase tracking-widest text-muted-foreground">{label}</p>
       <p className={cn("text-lg font-bold tabular-nums mt-0.5", color)}>{valor}</p>
-      <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>
+      <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>
     </div>
   );
 }

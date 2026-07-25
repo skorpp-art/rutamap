@@ -63,7 +63,7 @@ export function RendimientoRecorrido({ codigo }: { codigo: string }) {
           <p className="text-2xl font-bold tabular-nums leading-none">
             {Number(stats.prom_total).toFixed(1)}
           </p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">paquetes/día promedio</p>
+          <p className="text-xs text-muted-foreground mt-0.5">paquetes/día promedio</p>
         </div>
         <span className={cn("inline-flex items-center gap-1 text-xs font-semibold", t.cls)}>
           <TIcon className="h-3.5 w-3.5" />{t.label}
@@ -73,11 +73,11 @@ export function RendimientoRecorrido({ codigo }: { codigo: string }) {
       <div className="grid grid-cols-3 gap-1.5 text-center">
         <div className="rounded-lg bg-muted/40 px-1 py-1.5">
           <p className="text-sm font-bold tabular-nums">{stats.dias_registrados}</p>
-          <p className="text-[10px] text-muted-foreground">días c/datos</p>
+          <p className="text-xs text-muted-foreground">días c/datos</p>
         </div>
         <div className="rounded-lg bg-muted/40 px-1 py-1.5">
           <p className="text-sm font-bold tabular-nums">{stats.min_total}–{stats.max_total}</p>
-          <p className="text-[10px] text-muted-foreground">mín–máx</p>
+          <p className="text-xs text-muted-foreground">mín–máx</p>
         </div>
         <div className={cn("rounded-lg px-1 py-1.5",
           sobrecargado ? "bg-red-50 dark:bg-red-950/40" : "bg-muted/40")}>
@@ -85,12 +85,12 @@ export function RendimientoRecorrido({ codigo }: { codigo: string }) {
             sobrecargado && "text-red-600 dark:text-red-300")}>
             {Number(stats.pct_sobrecarga).toFixed(0)}%
           </p>
-          <p className="text-[10px] text-muted-foreground">días &gt;40 pkg</p>
+          <p className="text-xs text-muted-foreground">días &gt;40 pkg</p>
         </div>
       </div>
 
       {sobrecargado && (
-        <p className="flex items-center gap-1.5 text-[11px] text-red-600 dark:text-red-300">
+        <p className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-300">
           <BarChart2 className="h-3 w-3 shrink-0" />
           Sobrecarga frecuente — evaluar dividir la zona o sumar refuerzo.
         </p>

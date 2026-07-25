@@ -156,7 +156,7 @@ function MarcadorDireccion({ punto }: { punto: PuntoDireccion | null }) {
             <p className="text-[12px] text-red-600">No pertenece a ningún recorrido con área cargada.</p>
           ) : (
             <div className="space-y-1">
-              <p className="text-[11px] text-neutral-500 uppercase tracking-wide font-medium">
+              <p className="text-xs text-neutral-500 uppercase tracking-wide font-medium">
                 {punto.recorridos.length > 1 ? "Recorridos que la incluyen" : "Recorrido"}
               </p>
               {punto.recorridos.map((r) => (
@@ -165,9 +165,9 @@ function MarcadorDireccion({ punto }: { punto: PuntoDireccion | null }) {
                     <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: r.color }} />
                     <span className="font-mono font-bold">{r.codigo}</span>
                     <span className="text-neutral-600 truncate">— {r.nombre}</span>
-                    {!r.activo && <span className="text-[10px] text-amber-600">(inactivo)</span>}
+                    {!r.activo && <span className="text-xs text-amber-600">(inactivo)</span>}
                   </div>
-                  <p className="text-[11px] pl-4">
+                  <p className="text-xs pl-4">
                     {r.chofer
                       ? <>Conductor hoy: <b>{r.chofer}</b></>
                       : <span className="text-neutral-400">Sin conductor asignado hoy</span>}

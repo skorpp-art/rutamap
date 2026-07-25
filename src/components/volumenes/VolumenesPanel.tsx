@@ -84,7 +84,7 @@ function CalidadDatosCard({ calidad }: { calidad: CalidadDatos[] }) {
         <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-300 shrink-0" />
         <p className="text-sm font-bold">Calidad de datos históricos</p>
         <span className={cn(
-          "ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full",
+          "ml-auto text-xs font-semibold px-2 py-0.5 rounded-full",
           diasConDatos === totalDias ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300" :
           diasConDatos >= 3 ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300" :
           "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300"
@@ -106,13 +106,13 @@ function CalidadDatosCard({ calidad }: { calidad: CalidadDatos[] }) {
               <div className="flex-1 h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                 <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
               </div>
-              <span className="text-[10px] tabular-nums text-muted-foreground w-16 text-right shrink-0">{registros}/{meta} sem</span>
-              <span className={`text-[10px] font-semibold w-14 shrink-0 ${labelColor}`}>{confianza}</span>
+              <span className="text-xs tabular-nums text-muted-foreground w-16 text-right shrink-0">{registros}/{meta} sem</span>
+              <span className={`text-xs font-semibold w-14 shrink-0 ${labelColor}`}>{confianza}</span>
             </div>
           );
         })}
       </div>
-      <p className="text-[10px] text-muted-foreground border-t pt-2 mt-2">
+      <p className="text-xs text-muted-foreground border-t pt-2 mt-2">
         Barra llena = {meta} semanas (confianza máxima). Objetivo mínimo: 8 semanas por día.
       </p>
     </div>
@@ -395,7 +395,7 @@ export function VolumenesPanel() {
                           />
                           <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCalcRutas(v => v + 1)}>+</Button>
                         </div>
-                        <button className="text-[10px] text-blue-600 dark:text-blue-300 mt-1" onClick={() => setCalcRutas(rutasFijasCount)}>RF piso ({rutasFijasCount})</button>
+                        <button className="text-xs text-blue-600 dark:text-blue-300 mt-1" onClick={() => setCalcRutas(rutasFijasCount)}>RF piso ({rutasFijasCount})</button>
                       </div>
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Obj. pkg/chofer</label>
@@ -405,9 +405,9 @@ export function VolumenesPanel() {
                           <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setTargetPkg(v => Math.min(100, v + 1))}>+</Button>
                         </div>
                         <div className="flex gap-1 mt-1">
-                          <span className="text-[10px] px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">Mín {targetPkg-5}</span>
-                          <span className="text-[10px] px-1 py-0.5 rounded bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-bold">Obj {targetPkg}</span>
-                          <span className="text-[10px] px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">Máx {targetPkg+5}</span>
+                          <span className="text-xs px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">Mín {targetPkg-5}</span>
+                          <span className="text-xs px-1 py-0.5 rounded bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-bold">Obj {targetPkg}</span>
+                          <span className="text-xs px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">Máx {targetPkg+5}</span>
                         </div>
                       </div>
                     </div>
@@ -415,7 +415,7 @@ export function VolumenesPanel() {
                   {calcPaquetes > 0 && (
                     <div className="border rounded-lg overflow-hidden bg-background">
                       <div className="px-5 py-4 bg-blue-600 text-white text-center">
-                        <p className="text-[10px] uppercase tracking-widest opacity-80 font-semibold">Choferes necesarios</p>
+                        <p className="text-xs uppercase tracking-widest opacity-80 font-semibold">Choferes necesarios</p>
                         <p className="text-6xl font-black tabular-nums mt-1"><NumeroAnimado value={choferesCalc} /></p>
                         <p className="text-sm opacity-90 mt-1">{calcPaquetes.toLocaleString("es-AR")} paq ÷ {targetPkg} pkg/chofer</p>
                       </div>
@@ -426,7 +426,7 @@ export function VolumenesPanel() {
                           { l: "Máx (@"+(targetPkg-5)+")", v: choferesMax },
                         ].map(({ l, v, hl }) => (
                           <div key={l} className={cn("p-3 text-center", hl && "bg-blue-50/50 dark:bg-blue-950/40")}>
-                            <p className="text-[10px] text-muted-foreground">{l}</p>
+                            <p className="text-xs text-muted-foreground">{l}</p>
                             <p className={cn("text-xl font-bold tabular-nums", hl ? "text-blue-700 dark:text-blue-300" : "")}>{v}</p>
                           </div>
                         ))}
@@ -448,7 +448,7 @@ export function VolumenesPanel() {
                             return <div className="absolute top-0 bottom-0 w-1 bg-blue-700 rounded-full transition-all" style={{ left: `calc(${pct}% - 2px)` }} />;
                           })()}
                         </div>
-                        <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <div className="flex justify-between text-xs text-muted-foreground">
                           <span>↓ Ineficiente ({targetPkg-10})</span>
                           <span className="font-semibold text-green-600 dark:text-green-300">P.E. ({targetPkg})</span>
                           <span>↑ Peligroso ({targetPkg+10})</span>
@@ -474,16 +474,16 @@ export function VolumenesPanel() {
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <div>
                           <p className="text-xs font-bold text-blue-700 dark:text-blue-300">{proyeccion.dia_nombre} · Semana {proyeccion.semana_mes}: {proyeccion.tipo_semana}</p>
-                          <p className="text-[10px] text-muted-foreground">Factor estacional: {proyeccion.factor_semana > 1 ? "+" : ""}{Math.round((proyeccion.factor_semana - 1) * 100)}%</p>
+                          <p className="text-xs text-muted-foreground">Factor estacional: {proyeccion.factor_semana > 1 ? "+" : ""}{Math.round((proyeccion.factor_semana - 1) * 100)}%</p>
                         </div>
-                        <span className={cn("text-[10px] font-semibold px-2 py-1 rounded-full border",
+                        <span className={cn("text-xs font-semibold px-2 py-1 rounded-full border",
                           proyeccion.confianza === "alta" ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300" :
                           proyeccion.confianza === "media" ? "bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300" :
                           "bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300")}>
                           ● Confianza {proyeccion.confianza}
                         </span>
                       </div>
-                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">Seleccioná un escenario para usar en Operación:</p>
+                      <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Seleccioná un escenario para usar en Operación:</p>
                       <div className="grid grid-cols-3 gap-2 text-center">
                         {[
                           { l: "Mínimo", v: proyeccion.minimo ?? 0, c: proyeccion.choferes_min ?? 0, tipo: "min" as const },
@@ -498,10 +498,10 @@ export function VolumenesPanel() {
                               className={cn("border rounded-lg p-3 text-center",
                                 valOk ? "hover-lift hover:border-blue-400 cursor-pointer" : "opacity-50 cursor-not-allowed",
                                 sel ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 ring-2 ring-blue-400" : hl ? "border-blue-300 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/40" : "")}>
-                              <p className="text-[10px] text-muted-foreground font-medium">{l}</p>
+                              <p className="text-xs text-muted-foreground font-medium">{l}</p>
                               <p className={cn("text-xl font-bold tabular-nums mt-0.5", sel || hl ? "text-blue-700 dark:text-blue-300" : "")}>{valOk ? v.toLocaleString("es-AR") : "—"}</p>
-                              <p className="text-[10px] font-semibold text-blue-600 dark:text-blue-300 mt-0.5">{c > 0 ? `${c} choferes` : "—"}</p>
-                              {sel && <p className="text-[10px] text-emerald-600 dark:text-emerald-300 font-bold mt-0.5">✓ Seleccionado</p>}
+                              <p className="text-xs font-semibold text-blue-600 dark:text-blue-300 mt-0.5">{c > 0 ? `${c} choferes` : "—"}</p>
+                              {sel && <p className="text-xs text-emerald-600 dark:text-emerald-300 font-bold mt-0.5">✓ Seleccionado</p>}
                             </button>
                           );
                         })}
@@ -513,7 +513,7 @@ export function VolumenesPanel() {
                             <span className="text-xs font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
                               <Layers className="h-3.5 w-3.5" /> Proyección por zona — choferes sugeridos
                             </span>
-                            <span className="text-[10px] text-muted-foreground">objetivo {targetPkg} pkg/chofer</span>
+                            <span className="text-xs text-muted-foreground">objetivo {targetPkg} pkg/chofer</span>
                           </div>
                           <table className="w-full text-xs">
                             <thead className="bg-muted/30 text-muted-foreground">
@@ -533,7 +533,7 @@ export function VolumenesPanel() {
                                   <td className="px-3 py-1.5 font-semibold">{z.zona}</td>
                                   {sinDatos ? (
                                     <>
-                                      <td colSpan={3} className="px-2 py-1.5 text-center text-[11px] text-muted-foreground italic">
+                                      <td colSpan={3} className="px-2 py-1.5 text-center text-xs text-muted-foreground italic">
                                         Sin historial para este día todavía
                                       </td>
                                     </>
@@ -543,7 +543,7 @@ export function VolumenesPanel() {
                                       <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">{z.minimo}–{z.maximo}</td>
                                       <td className="px-3 py-1.5 text-right tabular-nums font-bold">
                                         {z.choferes_esp}
-                                        <span className="text-[10px] text-muted-foreground font-normal"> ({z.choferes_min}–{z.choferes_max})</span>
+                                        <span className="text-xs text-muted-foreground font-normal"> ({z.choferes_min}–{z.choferes_max})</span>
                                       </td>
                                     </>
                                   )}
@@ -574,7 +574,7 @@ export function VolumenesPanel() {
                               </tr>
                             </tfoot>
                           </table>
-                          <p className="text-[10px] text-muted-foreground px-3 py-1.5 border-t">
+                          <p className="text-xs text-muted-foreground px-3 py-1.5 border-t">
                             Basado en el histórico de Carga del Día del mismo día de la semana. La confianza sube a medida que se acumulan semanas.
                           </p>
                         </div>
@@ -588,14 +588,14 @@ export function VolumenesPanel() {
                           <div className="divide-y max-h-40 overflow-y-auto">
                             {recomendaciones.map(r => (
                               <div key={r.codigo} className="px-3 py-2 flex items-start gap-3">
-                                <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0 mt-0.5",
+                                <span className={cn("text-xs px-1.5 py-0.5 rounded-full font-bold shrink-0 mt-0.5",
                                   r.prioridad === "alta" ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300" :
                                   r.prioridad === "media" ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400")}>
                                   {r.prioridad.toUpperCase()}
                                 </span>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-xs font-bold text-blue-700 dark:text-blue-300">{r.codigo}</p>
-                                  <p className="text-[10px] text-slate-600 dark:text-slate-300">{r.motivo}</p>
+                                  <p className="text-xs text-slate-600 dark:text-slate-300">{r.motivo}</p>
                                 </div>
                                 {r.prom_hist > 0 && (
                                   <p className={cn("text-xs font-bold shrink-0", Number(r.prom_hist) > 40 ? "text-red-600 dark:text-red-300" : "text-amber-600 dark:text-amber-300")}>{r.prom_hist} prom</p>
@@ -610,7 +610,7 @@ export function VolumenesPanel() {
                           <CheckCircle className="h-4 w-4" /> Ir a Operación del Día con {pkgProyectado.toLocaleString("es-AR")} paq
                         </Button>
                       )}
-                      <p className="text-[10px] text-muted-foreground text-center">{proyeccion.registros} {proyeccion.dia_nombre}s históricos</p>
+                      <p className="text-xs text-muted-foreground text-center">{proyeccion.registros} {proyeccion.dia_nombre}s históricos</p>
                     </div>
                   )}
                   {bandas.length > 0 && (
@@ -655,7 +655,7 @@ export function VolumenesPanel() {
                     <div className="px-4 py-2.5 border-b bg-muted/20 flex items-center gap-2">
                       <p className="text-xs font-semibold">Top clientes hoy</p>
                       {top3 > 0 && (
-                        <span className={cn("ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full",
+                        <span className={cn("ml-auto text-xs font-semibold px-2 py-0.5 rounded-full",
                           riesgo === "alto" ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300" :
                           riesgo === "medio" ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300" :
                           "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300")}
@@ -742,7 +742,7 @@ export function VolumenesPanel() {
                 <div className="h-4 w-px bg-border" />
                 <div>
                   <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5"><activa.Icono className="h-3.5 w-3.5" /> {activa.titulo}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{activa.sub}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{activa.sub}</p>
                 </div>
               </div>
               {activa.id === "plantillas" && (

@@ -819,18 +819,18 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
               <Flame className="h-3.5 w-3.5 text-orange-600 dark:text-orange-300" />
               <p className="text-xs font-bold">Calor de volumen</p>
             </div>
-            <p className="text-[10px] text-muted-foreground mb-2 leading-snug">
+            <p className="text-xs text-muted-foreground mb-2 leading-snug">
               Promedio de paquetes por recorrido — últimos 30 días de operación.
             </p>
             <div className="space-y-1">
               {CALOR_BANDAS.map((b) => (
-                <div key={b.label} className="flex items-center gap-2 text-[10px]">
+                <div key={b.label} className="flex items-center gap-2 text-xs">
                   <span className="inline-block w-3.5 h-3.5 rounded shrink-0" style={{ backgroundColor: b.color }} />
                   <span className="text-muted-foreground">{b.label}</span>
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-muted-foreground border-t pt-1.5 mt-2 tabular-nums">
+            <p className="text-xs text-muted-foreground border-t pt-1.5 mt-2 tabular-nums">
               {Object.keys(calorMap).length} recorridos con datos
             </p>
           </div>
@@ -869,14 +869,14 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
                 <span className="text-amber-700/70 dark:text-amber-300 font-normal"> — {recorridoActivo.nombre}</span>
               </span>
               {nodos > 0 && (
-                <span className="ml-auto text-[10px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-200/60 px-2 py-0.5 rounded-full tabular-nums shrink-0">
+                <span className="ml-auto text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-200/60 px-2 py-0.5 rounded-full tabular-nums shrink-0">
                   {nodos} puntos
                 </span>
               )}
             </div>
 
             {/* ── Instrucción contextual ── */}
-            <p className="px-4 pb-2 text-[11px] text-amber-700/80 dark:text-amber-300 leading-snug">
+            <p className="px-4 pb-2 text-xs text-amber-700/80 dark:text-amber-300 leading-snug">
               {instruccion}
             </p>
 
@@ -891,7 +891,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
                     size="sm"
                     disabled={guardando || herramientaActiva === "tijera" || modoPluma !== null}
                     onClick={() => { setModoEditarNodos(false); setHerramientaActiva(herramientaActiva === "lapiz" ? null : "lapiz"); }}
-                    className={cn("h-7 px-2.5 text-xs gap-1 font-semibold",
+                    className={cn("h-8 px-2.5 text-xs gap-1 font-semibold",
                       herramientaActiva === "lapiz" ? "bg-amber-500 hover:bg-amber-600 text-white border-amber-500" : "border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-100")}
                     title="Dibujar zona punto por punto">
                     <Pencil className="h-3.5 w-3.5" />
@@ -904,7 +904,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
                     size="sm"
                     disabled={guardando || herramientaActiva !== null || modoPluma !== null}
                     onClick={() => { setModoPluma(null); setModoEditarNodos(v => !v); }}
-                    className={cn("h-7 px-2.5 text-xs gap-1 font-semibold",
+                    className={cn("h-8 px-2.5 text-xs gap-1 font-semibold",
                       modoEditarNodos ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : "border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-100")}
                     title="Mover los puntos libremente">
                     <Pencil className="h-3.5 w-3.5" /> Editar puntos
@@ -917,7 +917,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
                       size="sm"
                       disabled={guardando || herramientaActiva !== null || modoEditarNodos}
                       onClick={() => { setModoEditarNodos(false); setModoPluma(modoPluma === "agregar" ? null : "agregar"); }}
-                      className={cn("h-7 px-2 text-xs gap-1 rounded-none font-semibold",
+                      className={cn("h-8 px-2 text-xs gap-1 rounded-none font-semibold",
                         modoPluma === "agregar" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "text-amber-700 dark:text-amber-300 hover:bg-amber-100")}
                       title="Pluma: clic sobre la línea (entre dos puntos) para agregar un nodo">
                       <PenTool className="h-3.5 w-3.5" />+
@@ -928,7 +928,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
                       size="sm"
                       disabled={guardando || herramientaActiva !== null || modoEditarNodos}
                       onClick={() => { setModoEditarNodos(false); setModoPluma(modoPluma === "quitar" ? null : "quitar"); }}
-                      className={cn("h-7 px-2 text-xs gap-1 rounded-none font-semibold",
+                      className={cn("h-8 px-2 text-xs gap-1 rounded-none font-semibold",
                         modoPluma === "quitar" ? "bg-red-600 hover:bg-red-700 text-white" : "text-amber-700 dark:text-amber-300 hover:bg-amber-100")}
                       title="Pluma: clic sobre un punto para eliminarlo">
                       <PenTool className="h-3.5 w-3.5" />−
@@ -941,7 +941,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
                     size="sm"
                     disabled={guardando || herramientaActiva === "lapiz" || modoPluma !== null}
                     onClick={() => { setModoEditarNodos(false); setHerramientaActiva(herramientaActiva === "tijera" ? null : "tijera"); }}
-                    className={cn("h-7 w-7 p-0",
+                    className={cn("h-8 w-8 p-0",
                       herramientaActiva === "tijera" ? "bg-orange-500 hover:bg-orange-600 text-white border-orange-500" : "border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-100")}
                     title="Recortar zona del área">
                     <Scissors className="h-3.5 w-3.5" />
@@ -950,13 +950,13 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
                   {/* Simplificar */}
                   <div className="relative">
                     <Button variant="outline" size="sm" onClick={() => setMostrarNiveles((v) => !v)} disabled={guardando}
-                      className={cn("h-7 px-2 text-xs gap-1 border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-50", mostrarNiveles && "bg-blue-50 dark:bg-blue-950/40")}
+                      className={cn("h-8 px-2 text-xs gap-1 border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-50", mostrarNiveles && "bg-blue-50 dark:bg-blue-950/40")}
                       title="Reducir cantidad de puntos">
                       <Wand2 className="h-3 w-3" />Simplif.
                     </Button>
                     {mostrarNiveles && (
                       <div className="absolute bottom-9 left-0 z-50 bg-background border rounded-lg shadow-lg py-1 min-w-[190px]">
-                        <p className="px-3 pt-1 pb-1.5 text-[10px] text-muted-foreground border-b">Intensidad:</p>
+                        <p className="px-3 pt-1 pb-1.5 text-xs text-muted-foreground border-b">Intensidad:</p>
                         {NIVELES_SIMPLIF.map((n) => (
                           <button key={n.label} onClick={() => handleSimplificar(n.eps)}
                             className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors flex gap-2">
@@ -975,7 +975,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
               {/* Deshacer */}
               <Button variant="outline" size="sm" onClick={deshacerEdicion}
                 disabled={guardando || historialGeometria.current.length === 0}
-                className="h-7 px-2 text-xs gap-1 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-100"
+                className="h-8 px-2 text-xs gap-1 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-100"
                 title="Deshacer último cambio (Ctrl+Z)">
                 <Undo2 className="h-3.5 w-3.5" /> Deshacer
               </Button>
@@ -983,7 +983,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
               {/* Vaciar */}
               {modoEdicion === "area" && (
                 <Button variant="outline" size="sm" onClick={handleVaciar} disabled={guardando}
-                  className="h-7 px-2 text-xs gap-1 border-amber-300 dark:border-amber-800 text-red-600 dark:text-red-300 hover:bg-red-50"
+                  className="h-8 px-2 text-xs gap-1 border-amber-300 dark:border-amber-800 text-red-600 dark:text-red-300 hover:bg-red-50"
                   title="Borrar todo y empezar de cero">
                   <Trash2 className="h-3.5 w-3.5" /> Vaciar
                 </Button>
@@ -991,12 +991,12 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
 
               <div className="ml-auto flex items-center gap-1.5">
                 <Button variant="ghost" size="sm" onClick={cancelarEdicion} disabled={guardando}
-                  className="h-7 px-3 text-xs text-amber-700 dark:text-amber-300 hover:bg-amber-100">
+                  className="h-8 px-3 text-xs text-amber-700 dark:text-amber-300 hover:bg-amber-100">
                   Cancelar
                 </Button>
                 <Button size="sm" onClick={guardarEdicion}
                   disabled={guardando || (!geometriaTemporalRef.current && !geometriaTemporal && !ultimaGeometriaRef.current)}
-                  className="h-7 px-4 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white gap-1">
+                  className="h-8 px-4 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white gap-1">
                   {guardando ? "Guardando…" : <><Check className="h-3.5 w-3.5" /> Guardar</>}
                 </Button>
               </div>

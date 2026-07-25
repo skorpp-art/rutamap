@@ -58,7 +58,7 @@ function DiaDetalle({ fecha }: DiaDetalleProps) {
           {/* Paquetes por cliente */}
           {topClientes.length > 0 && (
             <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
                 <Package className="h-3 w-3" /> Top clientes del día
               </p>
               <div className="space-y-1">
@@ -73,7 +73,7 @@ function DiaDetalle({ fecha }: DiaDetalleProps) {
                   </div>
                 ))}
                 {detalle.total_clientes > 5 && (
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     + {detalle.total_clientes - 5} clientes más · Total: {Number(detalle.total_paquetes).toLocaleString("es-AR")} paq
                   </p>
                 )}
@@ -84,19 +84,19 @@ function DiaDetalle({ fecha }: DiaDetalleProps) {
           {/* Por zona */}
           {porZona.length > 0 && (
             <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
                 <Users className="h-3 w-3" /> Recorridos por zona
               </p>
               <div className="space-y-1.5">
                 {porZona.map(z => (
                   <div key={z.zona} className="flex items-center gap-2 text-xs">
-                    <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium border w-14 text-center shrink-0", ZONA_COLORS[z.zona])}>
+                    <span className={cn("px-1.5 py-0.5 rounded text-xs font-medium border w-14 text-center shrink-0", ZONA_COLORS[z.zona])}>
                       {z.zona}
                     </span>
                     <span className="text-muted-foreground tabular-nums w-16">{z.rutas} rutas</span>
                     <span className={cn("font-semibold tabular-nums", colorProm(z.prom))}>{z.prom} prom</span>
                     {z.alertas > 0 && (
-                      <span className="text-[10px] text-red-600 dark:text-red-300 font-bold">⚠ {z.alertas}</span>
+                      <span className="text-xs text-red-600 dark:text-red-300 font-bold">⚠ {z.alertas}</span>
                     )}
                   </div>
                 ))}
@@ -107,7 +107,7 @@ function DiaDetalle({ fecha }: DiaDetalleProps) {
           {/* Rutas en alerta */}
           {rutasAlerta.length > 0 && (
             <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-red-600 dark:text-red-300 flex items-center gap-1">
+              <p className="text-xs font-bold uppercase tracking-widest text-red-600 dark:text-red-300 flex items-center gap-1">
                 <AlertTriangle className="h-3 w-3" /> Rutas con sobrecarga (&gt;35)
               </p>
               <div className="space-y-1">
@@ -118,12 +118,12 @@ function DiaDetalle({ fecha }: DiaDetalleProps) {
                       {r.total} paq
                     </span>
                     {r.x_fuera > 0 && (
-                      <span className="text-[10px] text-amber-500">+{r.x_fuera} fuera</span>
+                      <span className="text-xs text-amber-500">+{r.x_fuera} fuera</span>
                     )}
                   </div>
                 ))}
                 {rutasAlerta.length > 6 && (
-                  <p className="text-[10px] text-muted-foreground">+ {rutasAlerta.length - 6} más</p>
+                  <p className="text-xs text-muted-foreground">+ {rutasAlerta.length - 6} más</p>
                 )}
               </div>
             </div>
@@ -191,7 +191,7 @@ export function HistorialDias() {
         <div className="flex gap-1">
           {[14, 30, 60, 90].map(d => (
             <button key={d} onClick={() => { setDias(d); cargar(d); }}
-              className={cn("text-[10px] px-1.5 py-0.5 rounded border transition-colors",
+              className={cn("text-xs px-1.5 py-0.5 rounded border transition-colors",
                 dias === d ? "bg-blue-600 text-white border-blue-600" : "border-border text-muted-foreground")}>
               {d}d
             </button>
@@ -201,22 +201,22 @@ export function HistorialDias() {
         {/* Filtro por día de la semana */}
         <div className="flex gap-1 items-center">
           <button onClick={() => setFiltroDia(null)}
-            className={cn("text-[10px] px-1.5 py-0.5 rounded border transition-colors",
+            className={cn("text-xs px-1.5 py-0.5 rounded border transition-colors",
               filtroDia === null ? "bg-blue-600 text-white border-blue-600" : "border-border text-muted-foreground")}>
             Todos
           </button>
           {DIAS_SEMANA.filter(d => diasPresentes.has(d)).map(d => (
             <button key={d} onClick={() => setFiltroDia(filtroDia === d ? null : d)}
-              className={cn("text-[10px] px-1.5 py-0.5 rounded border transition-colors",
+              className={cn("text-xs px-1.5 py-0.5 rounded border transition-colors",
                 filtroDia === d ? "bg-blue-600 text-white border-blue-600" : "border-border text-muted-foreground")}>
               {d.slice(0, 3)}
             </button>
           ))}
         </div>
-        <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" onClick={() => cargar(dias)} disabled={cargando}>
+        <Button variant="ghost" size="icon" className="h-8 w-8 ml-auto" onClick={() => cargar(dias)} disabled={cargando}>
           <RefreshCw className={cn("h-3.5 w-3.5", cargando && "animate-spin")} />
         </Button>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Clic en una fila para ver el detalle completo del día
         </p>
       </div>
@@ -292,7 +292,7 @@ export function HistorialDias() {
                       </td>
                       <td className="px-3 py-2 text-muted-foreground">{d.dia_semana}</td>
                       <td className="px-3 py-2">
-                        <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full border font-medium",
+                        <span className={cn("text-xs px-1.5 py-0.5 rounded-full border font-medium",
                           d.semana_mes === 1 ? "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300" :
                           d.semana_mes === 2 ? "bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-900 text-green-700 dark:text-green-300" :
                           d.semana_mes === 3 ? "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400" :

@@ -133,7 +133,7 @@ export function BuscadorDireccion({ onDireccionElegida, onLimpiar }: Props) {
                       <MapPin className="h-3.5 w-3.5 text-red-500 mt-0.5 shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{nombre}</p>
-                        {contexto && <p className="text-[11px] text-muted-foreground truncate">{contexto}</p>}
+                        {contexto && <p className="text-xs text-muted-foreground truncate">{contexto}</p>}
                       </div>
                     </button>
                   </li>

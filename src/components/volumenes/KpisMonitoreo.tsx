@@ -127,24 +127,24 @@ export function KpisMonitoreo() {
       {editTargets && (
         <div className="border rounded-lg p-4 bg-slate-50 dark:bg-slate-800/40 flex items-end gap-4 flex-wrap">
           <div>
-            <label className="text-[10px] uppercase font-semibold text-muted-foreground">Carga playón (máx min)</label>
+            <label className="text-xs uppercase font-semibold text-muted-foreground">Carga playón (máx min)</label>
             <input type="number" value={targets.carga}
               onChange={e => guardarTargets({ ...targets, carga: parseInt(e.target.value) || 0 })}
               className="w-24 border rounded-lg px-2 py-1.5 text-sm mt-1 block bg-background" />
           </div>
           <div>
-            <label className="text-[10px] uppercase font-semibold text-muted-foreground">Entregas en término (mín %)</label>
+            <label className="text-xs uppercase font-semibold text-muted-foreground">Entregas en término (mín %)</label>
             <input type="number" value={targets.termino}
               onChange={e => guardarTargets({ ...targets, termino: parseInt(e.target.value) || 0 })}
               className="w-24 border rounded-lg px-2 py-1.5 text-sm mt-1 block bg-background" />
           </div>
           <div>
-            <label className="text-[10px] uppercase font-semibold text-muted-foreground">Devoluciones (máx %)</label>
+            <label className="text-xs uppercase font-semibold text-muted-foreground">Devoluciones (máx %)</label>
             <input type="number" value={targets.devol}
               onChange={e => guardarTargets({ ...targets, devol: parseInt(e.target.value) || 0 })}
               className="w-24 border rounded-lg px-2 py-1.5 text-sm mt-1 block bg-background" />
           </div>
-          <p className="text-[10px] text-muted-foreground">Se guardan en este navegador.</p>
+          <p className="text-xs text-muted-foreground">Se guardan en este navegador.</p>
         </div>
       )}
 
@@ -185,14 +185,14 @@ export function KpisMonitoreo() {
           <Campo label="Incidencias" valor={form.incidencias}
             onChange={v => setForm(f => ({ ...f, incidencias: v }))} />
           <div>
-            <label className="text-[10px] uppercase font-semibold text-muted-foreground">Notas</label>
+            <label className="text-xs uppercase font-semibold text-muted-foreground">Notas</label>
             <textarea value={form.notas ?? ""} rows={2}
               onChange={e => setForm(f => ({ ...f, notas: e.target.value || null }))}
               placeholder="Observaciones del día…"
               className="w-full border rounded-lg px-2 py-1.5 text-sm mt-1 bg-background resize-none" />
           </div>
           {form.total_despachado && form.devoluciones != null && form.total_despachado > 0 && (
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               % devoluciones: <strong>{(form.devoluciones / form.total_despachado * 100).toFixed(2)}%</strong>
             </p>
           )}
@@ -231,7 +231,7 @@ export function KpisMonitoreo() {
         </div>
       </div>
 
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         {cargando ? "Cargando…" : `${kpis.length} días con KPIs en los últimos 45 días.`}
       </p>
     </div>
@@ -259,7 +259,7 @@ function Campo({ label, valor, onChange, max }: {
 }) {
   return (
     <div>
-      <label className="text-[10px] uppercase font-semibold text-muted-foreground">{label}</label>
+      <label className="text-xs uppercase font-semibold text-muted-foreground">{label}</label>
       <input type="number" min={0} max={max} value={valor ?? ""}
         placeholder="—"
         onChange={e => onChange(e.target.value === "" ? null : Number(e.target.value))}
@@ -279,7 +279,7 @@ function MiniChart({ titulo, data, dataKey, target, targetMode, color, dominio }
     <div className="border rounded-lg p-4 bg-background">
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{titulo}</p>
-        <span className="text-[10px] text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           objetivo {targetMode === "min" ? "≥" : "≤"} {target}
         </span>
       </div>

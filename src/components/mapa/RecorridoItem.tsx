@@ -80,20 +80,20 @@ export function RecorridoItem({ recorrido, seleccionado, visible, onClick, onTog
               </span>
             )}
             {!recorrido.activo && (
-              <span className="text-[10px] text-muted-foreground shrink-0">inactivo</span>
+              <span className="text-xs text-muted-foreground shrink-0">inactivo</span>
             )}
           </div>
           <p className="text-xs text-muted-foreground truncate leading-tight mt-0.5">
             {recorrido.nombre}
           </p>
           <div className="flex gap-1 mt-1 flex-wrap">
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+            <Badge variant="secondary" className="text-xs px-1.5 py-0 h-4">
               {recorrido.zona}
             </Badge>
             <Badge
               variant="outline"
               className={cn(
-                "text-[10px] px-1.5 py-0 h-4",
+                "text-xs px-1.5 py-0 h-4",
                 recorrido.tipo === "suplencia" && "border-orange-300 dark:border-orange-800 text-orange-600 dark:text-orange-300",
                 recorrido.tipo === "corte" && "border-red-300 dark:border-red-800 text-red-600 dark:text-red-300",
                 recorrido.tipo === "pre_turno" && "border-violet-300 dark:border-violet-800 text-violet-600 dark:text-violet-300",

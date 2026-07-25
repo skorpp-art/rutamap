@@ -207,7 +207,7 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
             <p className="font-bold flex items-center gap-1.5">
               Paquetes especiales
               {!cargando && (
-                <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-300">
+                <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-300">
                   {paquetes.length} asignado{paquetes.length !== 1 ? "s" : ""}
                 </span>
               )}
@@ -281,13 +281,13 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
               <div className="flex items-center gap-1.5">
                 {([1, 2, 3] as Paso[]).map(n => (
                   <div key={n} className="flex items-center gap-1.5 flex-1">
-                    <span className={cn("h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0",
+                    <span className={cn("h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
                       n === paso ? "bg-amber-500 text-white"
                         : n < paso ? "bg-amber-200 dark:bg-amber-900 text-amber-700 dark:text-amber-300"
                         : "bg-muted text-muted-foreground")}>
                       {n < paso ? <Check className="h-3 w-3" /> : n}
                     </span>
-                    <span className={cn("text-[10px] font-medium", n === paso ? "text-foreground" : "text-muted-foreground")}>
+                    <span className={cn("text-xs font-medium", n === paso ? "text-foreground" : "text-muted-foreground")}>
                       {n === 1 ? "Paquete" : n === 2 ? "Cliente" : "Condición"}
                     </span>
                     {n < 3 && <div className={cn("h-px flex-1", n < paso ? "bg-amber-400" : "bg-border")} />}
@@ -344,10 +344,10 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
                   </div>
                   {clientesConCondicion.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
-                      <span className="text-[10px] text-muted-foreground w-full">Clientes con condición registrada:</span>
+                      <span className="text-xs text-muted-foreground w-full">Clientes con condición registrada:</span>
                       {clientesConCondicion.slice(0, 12).map(c => (
                         <button key={c} onClick={() => { setCliente(c); setCondicionElegida(null); }}
-                          className={cn("text-[11px] px-2 py-1 rounded-lg border transition-colors",
+                          className={cn("text-xs px-2 py-1 rounded-lg border transition-colors",
                             cliente === c ? "bg-amber-500 text-white border-amber-500" : "border-border text-muted-foreground hover:bg-muted")}>
                           {c}
                         </button>
@@ -379,7 +379,7 @@ export function PaquetesEspecialesModal({ fecha, recorrido, clientes, puedeEdita
                           <span>
                             <span className="whitespace-pre-line font-medium">{c.condicion}</span>
                             {c.observacion_adicional && (
-                              <span className="block text-[11px] text-muted-foreground mt-0.5">{c.observacion_adicional}</span>
+                              <span className="block text-xs text-muted-foreground mt-0.5">{c.observacion_adicional}</span>
                             )}
                           </span>
                         </label>

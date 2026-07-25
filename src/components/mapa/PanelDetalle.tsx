@@ -33,7 +33,7 @@ interface PanelDetalleProps {
 function Campo({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-0.5">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+      <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
         {label}
       </p>
       <div className="text-sm text-foreground">{children}</div>
@@ -403,7 +403,7 @@ export function PanelDetalle({
           <Separator />
 
           <Campo label="ID">
-            <span className="text-[10px] font-mono text-muted-foreground break-all">
+            <span className="text-xs font-mono text-muted-foreground break-all">
               {recorrido.id}
             </span>
           </Campo>
@@ -413,7 +413,7 @@ export function PanelDetalle({
       {/* ── Acciones ── */}
       <div className="px-3 py-2.5 border-t space-y-1.5">
         {!puedeEditar && (
-          <div className="text-[11px] text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 mb-1 flex items-center gap-1.5">
+          <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 mb-1 flex items-center gap-1.5">
             <Eye className="h-3.5 w-3.5 shrink-0" /> Modo invitado — solo lectura. Iniciá sesión para editar recorridos.
           </div>
         )}
@@ -488,7 +488,7 @@ export function PanelDetalle({
           </Button>
         ) : (
           <div className="space-y-1.5">
-            <p className="text-[10px] text-muted-foreground">Código para la copia:</p>
+            <p className="text-xs text-muted-foreground">Código para la copia:</p>
             <div className="flex gap-1.5">
               <input
                 autoFocus
@@ -499,11 +499,11 @@ export function PanelDetalle({
                   if (e.key === "Escape") { setMostrarDuplicar(false); setCodigoCopia(""); }
                 }}
                 placeholder="Ej: MON-010-C"
-                className="flex-1 h-7 rounded border border-input bg-background px-2 text-xs uppercase outline-none focus:ring-1 focus:ring-ring"
+                className="flex-1 h-8 rounded border border-input bg-background px-2 text-xs uppercase outline-none focus:ring-1 focus:ring-ring"
               />
               <Button
                 size="sm"
-                className="h-7 px-2 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                className="h-8 px-2 text-xs bg-blue-600 hover:bg-blue-700 text-white"
                 onClick={handleDuplicar}
                 disabled={duplicando}
               >
@@ -512,7 +512,7 @@ export function PanelDetalle({
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 px-2 text-xs"
+                className="h-8 px-2 text-xs"
                 onClick={() => { setMostrarDuplicar(false); setCodigoCopia(""); }}
               >
                 <X className="h-3.5 w-3.5" />

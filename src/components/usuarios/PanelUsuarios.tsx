@@ -180,7 +180,7 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
 
         {/* Permisos de la cuenta nueva */}
         <div className="flex items-center gap-2 flex-wrap border rounded-lg px-3 py-2 bg-muted/20">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mr-1">Solapas:</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mr-1">Solapas:</span>
           {SOLAPAS.map(s => (
             <label key={s.key} className={cn("inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border cursor-pointer transition-colors",
               nuevasSolapas.includes(s.key)
@@ -204,7 +204,7 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
         </div>
 
         <div className="flex items-center justify-between gap-3">
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             La cuenta queda lista para usar (sin confirmación de mail). Pasale el email y la contraseña a la persona.
           </p>
           <button type="submit" disabled={creando}
@@ -245,7 +245,7 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
                     <tr key={u.id} className={cn(esYo && "bg-blue-50/40 dark:bg-blue-950/20")}>
                       <td className="px-4 py-2.5">
                         <span className="font-medium">{u.nombre}</span>
-                        {esYo && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-600/15 text-blue-700 dark:text-blue-300">vos</span>}
+                        {esYo && <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-blue-600/15 text-blue-700 dark:text-blue-300">vos</span>}
                       </td>
                       <td className="px-3 py-2.5 text-xs text-muted-foreground">{u.email}</td>
                       <td className="px-3 py-2.5 text-xs text-muted-foreground tabular-nums">
@@ -271,10 +271,10 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
                       </td>
                       <td className="px-3 py-2.5 text-center">
                         {esYo || esMaestro ? (
-                          <span className="text-[10px] text-muted-foreground">{esMaestro ? "todo" : "—"}</span>
+                          <span className="text-xs text-muted-foreground">{esMaestro ? "todo" : "—"}</span>
                         ) : (
                           <button onClick={() => setPermisosAbierto(abierto ? null : u.id)}
-                            className={cn("inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg border transition-colors",
+                            className={cn("inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border transition-colors",
                               abierto ? "bg-blue-600/10 border-blue-400 text-blue-700 dark:text-blue-300" : "border-border text-muted-foreground hover:bg-muted")}>
                             <SlidersHorizontal className="h-3 w-3" />
                             {u.solapas ? `${solapasU.length}/${TODAS_LAS_SOLAPAS.length}` : "todas"}
@@ -284,7 +284,7 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
                       </td>
                       <td className="px-3 py-2.5 text-center">
                         <button onClick={() => abrirModalPass(u)} title="Cambiar contraseña"
-                          className="inline-flex items-center justify-center h-7 w-7 rounded-lg border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                          className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
                           <KeyRound className="h-3.5 w-3.5" />
                         </button>
                       </td>
@@ -293,7 +293,7 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
                       <tr key={`${u.id}-permisos`} className="bg-muted/10">
                         <td colSpan={6} className="px-4 py-3">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mr-1">Solapas:</span>
+                            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mr-1">Solapas:</span>
                             {SOLAPAS.map(s => (
                               <label key={s.key} className={cn("inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border cursor-pointer transition-colors",
                                 solapasU.includes(s.key)
@@ -317,7 +317,7 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
                               {editaU ? "Puede editar" : "Solo lectura"}
                             </label>
                           </div>
-                          <p className="text-[10px] text-muted-foreground mt-2">
+                          <p className="text-xs text-muted-foreground mt-2">
                             Los cambios se guardan al instante. La persona los ve al recargar la página.
                           </p>
                         </td>
@@ -331,7 +331,7 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
         )}
       </div>
 
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         El maestro siempre ve y edita todo. Tu propio rol y permisos no se pueden cambiar desde este
         panel (evita que te quedes sin acceso maestro).
       </p>
@@ -355,7 +355,7 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
               </button>
             </div>
 
-            <p className="text-[11px] text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
+            <p className="text-xs text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
               No es posible ver la contraseña actual (queda guardada de forma irreversible, por seguridad).
               Esto establece una contraseña nueva — la persona va a tener que usar esta a partir de ahora.
             </p>

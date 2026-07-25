@@ -174,8 +174,8 @@ export function DescargarApp({ esMaestro }: { esMaestro: boolean }) {
 
           {esMaestro && (
             <div className="border-t pt-3 space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Publicar / actualizar el APK (solo maestro)</p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Publicar / actualizar el APK (solo maestro)</p>
+              <p className="text-xs text-muted-foreground">
                 Generalo una sola vez en <span className="font-mono font-medium text-foreground">pwabuilder.com</span> con
                 la URL <span className="font-mono font-medium text-foreground">rutamap.vercel.app</span> (Android → Generate Package)
                 y subilo acá. Las actualizaciones de la app NO requieren regenerar el APK — solo cambia si querés otro ícono o nombre.
@@ -190,7 +190,7 @@ export function DescargarApp({ esMaestro }: { esMaestro: boolean }) {
           )}
         </div>
 
-        <p className={cn("text-[11px] text-muted-foreground")}>
+        <p className={cn("text-xs text-muted-foreground")}>
           La app instalada abre directo en <span className="font-medium">Carga del Día</span> y usa siempre la última
           versión desplegada — no hay que actualizar nada en los dispositivos.
         </p>

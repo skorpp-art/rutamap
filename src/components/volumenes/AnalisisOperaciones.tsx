@@ -56,7 +56,7 @@ function TooltipUnif({ active, payload, label }: any) {
       {d?.rutas_activas > 0 && <p>Rutas: <b>{d.rutas_activas}</b> ({d.rutas_fijas}F {d.rutas_preturno}PT)</p>}
       {d?.prom_por_ruta > 0 && <p>Prom/ruta: <b className={colorProm(d.prom_por_ruta)}>{d.prom_por_ruta}</b></p>}
       {d?.choferes_30 > 0 && <p>Choferes @30: <b>{d.choferes_30}</b></p>}
-      <p className="text-[10px] text-muted-foreground flex gap-1">
+      <p className="text-xs text-muted-foreground flex gap-1">
         {d?.tiene_clientes && <span className="text-blue-600 dark:text-blue-300">● Clientes</span>}
         {d?.tiene_ops && <span className="text-green-600 dark:text-green-300">● Operaciones</span>}
       </p>
@@ -92,7 +92,7 @@ function DiaDetalleInline({ fecha }: { fecha: string }) {
         {/* Top clientes */}
         {topClientes.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
               <Package className="h-3 w-3" /> Top clientes
             </p>
             {topClientes.map((c, i) => (
@@ -103,22 +103,22 @@ function DiaDetalleInline({ fecha }: { fecha: string }) {
               </div>
             ))}
             {detalle.total_clientes > 6 && (
-              <p className="text-[10px] text-muted-foreground">+ {detalle.total_clientes - 6} más · Total {Number(detalle.total_paquetes).toLocaleString("es-AR")} paq</p>
+              <p className="text-xs text-muted-foreground">+ {detalle.total_clientes - 6} más · Total {Number(detalle.total_paquetes).toLocaleString("es-AR")} paq</p>
             )}
           </div>
         )}
         {/* Por zona */}
         {porZona.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
               <Users className="h-3 w-3" /> Por zona
             </p>
             {porZona.map(z => (
               <div key={z.zona} className="flex items-center gap-2 text-xs">
-                <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium min-w-14 text-center shrink-0", ZONA_COLORS[z.zona]?.bg, ZONA_COLORS[z.zona]?.text)}>{z.zona}</span>
+                <span className={cn("px-1.5 py-0.5 rounded text-xs font-medium min-w-14 text-center shrink-0", ZONA_COLORS[z.zona]?.bg, ZONA_COLORS[z.zona]?.text)}>{z.zona}</span>
                 <span className="text-muted-foreground tabular-nums w-14">{z.rutas} rutas</span>
                 <span className={cn("font-semibold tabular-nums", colorProm(z.prom))}>{z.prom} prom</span>
-                {z.alertas > 0 && <span className="text-[10px] text-red-600 dark:text-red-300 font-bold">⚠{z.alertas}</span>}
+                {z.alertas > 0 && <span className="text-xs text-red-600 dark:text-red-300 font-bold">⚠{z.alertas}</span>}
               </div>
             ))}
           </div>
@@ -126,14 +126,14 @@ function DiaDetalleInline({ fecha }: { fecha: string }) {
         {/* Rutas en alerta */}
         {rutasAlerta.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-red-600 dark:text-red-300 flex items-center gap-1">
+            <p className="text-xs font-bold uppercase tracking-widest text-red-600 dark:text-red-300 flex items-center gap-1">
               <AlertTriangle className="h-3 w-3" /> Sobrecarga (&gt;35)
             </p>
             {rutasAlerta.slice(0, 6).map((r: { codigo: string; total: number; x_fuera: number }) => (
               <div key={r.codigo} className="flex items-center gap-2 text-xs">
                 <span className="font-mono font-bold text-blue-700 dark:text-blue-300 w-20">{r.codigo}</span>
                 <span className={cn("font-bold tabular-nums", r.total > 40 ? "text-red-600 dark:text-red-300" : "text-amber-600 dark:text-amber-300")}>{r.total} paq</span>
-                {r.x_fuera > 0 && <span className="text-[10px] text-amber-500">+{r.x_fuera}</span>}
+                {r.x_fuera > 0 && <span className="text-xs text-amber-500">+{r.x_fuera}</span>}
               </div>
             ))}
           </div>
@@ -178,9 +178,9 @@ function PatronDiaInline({ codigo }: { codigo: string }) {
   return (
     <div className="py-3 px-4 space-y-2">
       <div className="flex items-center gap-2 flex-wrap">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Promedio por día de la semana</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Promedio por día de la semana</p>
         {pico.prom > 35 && (
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             · Pico <b style={{ color: hexProm(pico.prom) }}>{pico.dia} ({pico.prom})</b>
             {valle.prom < pico.prom && <> · valle <b className="text-green-600 dark:text-green-300">{valle.dia} ({valle.prom})</b></>}
           </span>
@@ -281,13 +281,13 @@ export function AnalisisOperaciones() {
         <div className="flex gap-1">
           {[14, 30, 60].map(d => (
             <button key={d} onClick={() => { setDiasVista(d); cargarDatos(d); }}
-              className={cn("text-[10px] px-2 py-1 rounded border transition-colors",
+              className={cn("text-xs px-2 py-1 rounded border transition-colors",
                 diasVista === d ? "bg-slate-700 text-white border-slate-700" : "border-border text-muted-foreground")}>
               {d} días
             </button>
           ))}
         </div>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => cargarDatos(diasVista)} disabled={cargando}>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => cargarDatos(diasVista)} disabled={cargando}>
           <RefreshCw className={cn("h-3.5 w-3.5", cargando && "animate-spin")} />
         </Button>
       </div>
@@ -335,16 +335,16 @@ export function AnalisisOperaciones() {
                       {atencion.size} recorrido{atencion.size > 1 ? "s" : ""} necesita{atencion.size > 1 ? "n" : ""} atención
                     </span>
                     <div className="flex items-center gap-1.5 flex-wrap ml-auto">
-                      {sob > 0 && <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">{sob} sobrecargado{sob > 1 ? "s" : ""}</span>}
-                      {xf > 0 && <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">{xf} con X fuera alto</span>}
-                      {alza > 0 && <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300">{alza} en alza</span>}
+                      {sob > 0 && <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">{sob} sobrecargado{sob > 1 ? "s" : ""}</span>}
+                      {xf > 0 && <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">{xf} con X fuera alto</span>}
+                      {alza > 0 && <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300">{alza} en alza</span>}
                     </div>
                   </div>
                 );
               })()}
 
               {/* Badges de fuentes */}
-              <div className="flex gap-2 text-[10px] flex-wrap">
+              <div className="flex gap-2 text-xs flex-wrap">
                 <span className={cn("px-2 py-1 rounded-full border flex items-center gap-1",
                   tieneClientes ? "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300" : "bg-slate-50 dark:bg-slate-800/40 border-dashed text-muted-foreground")}>
                   <Package className="h-3 w-3" />
@@ -356,7 +356,7 @@ export function AnalisisOperaciones() {
                   {tieneOps ? "Operaciones por recorrido ✓" : "Sin datos de recorridos"}
                 </span>
                 {!tieneClientes && (
-                  <span className="text-[10px] text-amber-600 dark:text-amber-300 self-center">→ Importá el Excel de clientes para ver paquetes totales</span>
+                  <span className="text-xs text-amber-600 dark:text-amber-300 self-center">→ Importá el Excel de clientes para ver paquetes totales</span>
                 )}
               </div>
 
@@ -414,7 +414,7 @@ export function AnalisisOperaciones() {
                       )}
                     </ComposedChart>
                   </ResponsiveContainer>
-                  <div className="flex gap-3 mt-1 text-[10px] text-muted-foreground">
+                  <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
                     <span className="text-red-400">- - - 40 (máx)</span>
                     <span className="text-green-600 dark:text-green-300">— — 30 (P.E.)</span>
                   </div>
@@ -425,7 +425,7 @@ export function AnalisisOperaciones() {
               <div className="border rounded-lg overflow-hidden">
                 <div className="px-4 py-2.5 border-b bg-muted/20 flex items-center">
                   <p className="text-xs font-semibold">Detalle por día</p>
-                  <p className="text-[10px] text-muted-foreground ml-auto">Clic en fila para ver detalle</p>
+                  <p className="text-xs text-muted-foreground ml-auto">Clic en fila para ver detalle</p>
                 </div>
                 <div className="max-h-72 overflow-y-auto">
                   <table className="w-full text-xs">
@@ -441,7 +441,7 @@ export function AnalisisOperaciones() {
                         <th className="text-right px-3 py-2 text-muted-foreground font-medium">Efect.</th>
                         <th className="text-right px-3 py-2 text-muted-foreground font-medium">Chof.@30</th>
                         <th className="text-left px-3 py-2 text-muted-foreground font-medium">Estado</th>
-                        <th className="text-center px-2 py-2 text-muted-foreground font-medium text-[10px]">Borrar</th>
+                        <th className="text-center px-2 py-2 text-muted-foreground font-medium text-xs">Borrar</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -463,7 +463,7 @@ export function AnalisisOperaciones() {
                               </td>
                               <td className="px-3 py-1.5 text-right tabular-nums">
                                 {d.rutas_activas > 0
-                                  ? <span>{d.rutas_activas} <span className="text-[10px] text-muted-foreground">({d.rutas_fijas}F {d.rutas_preturno}PT)</span></span>
+                                  ? <span>{d.rutas_activas} <span className="text-xs text-muted-foreground">({d.rutas_fijas}F {d.rutas_preturno}PT)</span></span>
                                   : <span className="text-muted-foreground/40">—</span>}
                               </td>
                               <td className={cn("px-3 py-1.5 text-right tabular-nums font-semibold", colorProm(d.prom_por_ruta))}>
@@ -486,7 +486,7 @@ export function AnalisisOperaciones() {
                                 {d.choferes_30 > 0 ? d.choferes_30 : "—"}
                               </td>
                               <td className="px-3 py-1.5">
-                                <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium",
+                                <span className={cn("text-xs px-1.5 py-0.5 rounded-full font-medium",
                                   d.estado === "SOBRECARGA" ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300" :
                                   d.estado === "SOBRE TARGET" ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300" :
                                   d.estado === "OK" ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300" :
@@ -540,7 +540,7 @@ export function AnalisisOperaciones() {
                         <tr key={r.codigo} className="hover:bg-accent/20">
                           <td className="px-3 py-2 font-mono font-bold text-blue-700 dark:text-blue-300">{r.codigo}</td>
                           <td className="px-3 py-2">
-                            <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium", ZONA_COLORS[r.zona]?.bg, ZONA_COLORS[r.zona]?.text)}>{r.zona}</span>
+                            <span className={cn("px-1.5 py-0.5 rounded text-xs font-medium", ZONA_COLORS[r.zona]?.bg, ZONA_COLORS[r.zona]?.text)}>{r.zona}</span>
                           </td>
                           <td className={cn("px-3 py-2 text-right font-bold tabular-nums", colorProm(r.prom_total))}>{r.prom_total}</td>
                           <td className="px-3 py-2 text-right tabular-nums font-semibold">{r.max_total}</td>
@@ -548,7 +548,7 @@ export function AnalisisOperaciones() {
                             <span className={cn("font-bold", r.pct_sobre >= 75 ? "text-red-600 dark:text-red-300" : "text-amber-600 dark:text-amber-300")}>{r.pct_sobre}%</span>
                           </td>
                           <td className="px-3 py-2">
-                            <span className={cn("text-[10px] px-2 py-0.5 rounded-full",
+                            <span className={cn("text-xs px-2 py-0.5 rounded-full",
                               r.recomendacion.includes("permanente") ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 font-semibold" :
                               r.recomendacion.includes("frecuente") ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300" :
                               "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400")}>
@@ -571,7 +571,7 @@ export function AnalisisOperaciones() {
                 <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                   <BarChart2 className="h-3.5 w-3.5" /> Análisis por recorrido — últimos {diasVista} días
                 </p>
-                <p className="text-[10px] text-muted-foreground ml-auto">Clic en una fila → patrón por día</p>
+                <p className="text-xs text-muted-foreground ml-auto">Clic en una fila → patrón por día</p>
               </div>
               <table className="w-full text-xs">
                 <thead className="bg-muted/40 dark:bg-muted/20 border-b sticky top-0 z-10 backdrop-blur-sm">
@@ -620,7 +620,7 @@ export function AnalisisOperaciones() {
                         </span>
                       </td>
                       <td className="px-3 py-2">
-                        <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium", ZONA_COLORS[r.zona]?.bg, ZONA_COLORS[r.zona]?.text)}>{r.zona}</span>
+                        <span className={cn("px-1.5 py-0.5 rounded text-xs font-medium", ZONA_COLORS[r.zona]?.bg, ZONA_COLORS[r.zona]?.text)}>{r.zona}</span>
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{r.dias_registrados}</td>
                       <td className={cn("px-3 py-2 text-right tabular-nums", colorProm(r.prom_total))}>{r.prom_total}</td>
@@ -645,9 +645,9 @@ export function AnalisisOperaciones() {
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex gap-1 flex-wrap">
-                          {r.pct_sobrecarga >= 50 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">⚠ Sobrecarga</span>}
-                          {r.prom_x_fuera >= 3 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">X Fuera alto</span>}
-                          {r.tendencia === "subiendo" && r.prom_total > 32 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300">↑ Revisar</span>}
+                          {r.pct_sobrecarga >= 50 && <span className="text-xs px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">⚠ Sobrecarga</span>}
+                          {r.prom_x_fuera >= 3 && <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">X Fuera alto</span>}
+                          {r.tendencia === "subiendo" && r.prom_total > 32 && <span className="text-xs px-1.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300">↑ Revisar</span>}
                         </div>
                       </td>
                     </tr>

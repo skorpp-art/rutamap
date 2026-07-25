@@ -61,12 +61,12 @@ export function Feriados() {
 
       <div className="border rounded-lg p-4 bg-background flex flex-wrap items-end gap-2">
         <div>
-          <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Fecha</label>
+          <label className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Fecha</label>
           <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
             className="border rounded-lg px-3 py-1.5 text-sm h-9 bg-background block mt-1" />
         </div>
         <div className="flex-1 min-w-[160px]">
-          <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Motivo (opcional)</label>
+          <label className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Motivo (opcional)</label>
           <input type="text" value={descripcion} onChange={e => setDescripcion(e.target.value)}
             placeholder="ej: Feriado nacional" maxLength={60}
             className="w-full border rounded-lg px-3 py-1.5 text-sm h-9 bg-background block mt-1" />
@@ -84,13 +84,13 @@ export function Feriados() {
         <div className="space-y-3">
           {proximos.length > 0 && (
             <div className="space-y-1">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Próximos</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Próximos</p>
               {proximos.map(f => <FilaFeriado key={f.fecha} f={f} onQuitar={quitar} />)}
             </div>
           )}
           {pasados.length > 0 && (
             <div className="space-y-1">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Pasados</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Pasados</p>
               {pasados.map(f => <FilaFeriado key={f.fecha} f={f} onQuitar={quitar} />)}
             </div>
           )}

@@ -45,7 +45,7 @@ export function StatRow({
           <p className={cn(
             "text-muted-foreground",
             labelsUpper
-              ? "text-[10px] font-bold uppercase tracking-widest"
+              ? "text-xs font-bold uppercase tracking-widest"
               : compact ? "text-xs truncate" : "text-xs sm:text-sm truncate"
           )}>
             {s.label}
@@ -58,7 +58,7 @@ export function StatRow({
             {s.valor}
           </p>
           {s.sub && (
-            <p className={cn("text-[10px] text-muted-foreground truncate", compact ? "mt-1" : "text-[11px] mt-1.5")}>
+            <p className={cn("text-xs text-muted-foreground truncate", compact ? "mt-1" : "text-xs mt-1.5")}>
               {s.sub}
             </p>
           )}

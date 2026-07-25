@@ -152,7 +152,7 @@ export function RutaConductor({ recorridos }: { recorridos: RecorridoGeo[] }) {
           ))}
         </select>
         {recorridoSel && (
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             marca 🟢 dentro / 🔴 fuera de <b>{recorridoSel}</b>
           </span>
         )}
@@ -214,7 +214,7 @@ export function RutaConductor({ recorridos }: { recorridos: RecorridoGeo[] }) {
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">{p.direccion}</p>
-                  <div className="flex items-center gap-2 mt-0.5 text-[11px]">
+                  <div className="flex items-center gap-2 mt-0.5 text-xs">
                     {p.dentro === true && (
                       <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-300">
                         <CheckCircle2 className="h-3 w-3" /> dentro de {p.recorrido_codigo}
@@ -247,7 +247,7 @@ export function RutaConductor({ recorridos }: { recorridos: RecorridoGeo[] }) {
             <Navigation className="h-4 w-4" />
             Abrir ruta en Google Maps ({paradas.length} paradas)
           </Button>
-          <p className="text-[10px] text-muted-foreground text-center -mt-2">
+          <p className="text-xs text-muted-foreground text-center -mt-2">
             Se abre con las paradas en el orden de la lista. El ícono de navegación de cada fila abre esa parada en Waze.
           </p>
         </>

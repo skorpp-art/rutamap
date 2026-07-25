@@ -135,7 +135,7 @@ export function FormRecorrido({ recorrido, onExito, onCancelar }: FormRecorridoP
             }}
           />
           {errors.codigo && (
-            <p className="text-[10px] text-destructive">{errors.codigo.message}</p>
+            <p className="text-xs text-destructive">{errors.codigo.message}</p>
           )}
         </div>
 
@@ -155,7 +155,7 @@ export function FormRecorrido({ recorrido, onExito, onCancelar }: FormRecorridoP
             ))}
           </select>
           {errors.tipo && (
-            <p className="text-[10px] text-destructive">{errors.tipo.message}</p>
+            <p className="text-xs text-destructive">{errors.tipo.message}</p>
           )}
         </div>
       </div>
@@ -172,7 +172,7 @@ export function FormRecorrido({ recorrido, onExito, onCancelar }: FormRecorridoP
           className="h-8 text-sm"
         />
         {errors.nombre && (
-          <p className="text-[10px] text-destructive">{errors.nombre.message}</p>
+          <p className="text-xs text-destructive">{errors.nombre.message}</p>
         )}
       </div>
 
@@ -193,7 +193,7 @@ export function FormRecorrido({ recorrido, onExito, onCancelar }: FormRecorridoP
           ))}
         </select>
         {errors.zona && (
-          <p className="text-[10px] text-destructive">{errors.zona.message}</p>
+          <p className="text-xs text-destructive">{errors.zona.message}</p>
         )}
       </div>
 
@@ -208,7 +208,7 @@ export function FormRecorrido({ recorrido, onExito, onCancelar }: FormRecorridoP
               title={c.nombre}
               onClick={() => setValue("color", c.valor)}
               className={cn(
-                "h-7 w-7 rounded-full border-2 transition-all",
+                "h-8 w-8 rounded-full border-2 transition-all",
                 colorActual === c.valor
                   ? "border-foreground scale-110 shadow"
                   : "border-transparent hover:border-muted-foreground/50"
@@ -218,7 +218,7 @@ export function FormRecorrido({ recorrido, onExito, onCancelar }: FormRecorridoP
           ))}
         </div>
         {errors.color && (
-          <p className="text-[10px] text-destructive">{errors.color.message}</p>
+          <p className="text-xs text-destructive">{errors.color.message}</p>
         )}
       </div>
 
@@ -236,7 +236,7 @@ export function FormRecorrido({ recorrido, onExito, onCancelar }: FormRecorridoP
           className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-ring"
         />
         {errors.descripcion && (
-          <p className="text-[10px] text-destructive">{errors.descripcion.message}</p>
+          <p className="text-xs text-destructive">{errors.descripcion.message}</p>
         )}
       </div>
 

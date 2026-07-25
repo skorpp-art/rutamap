@@ -16,7 +16,7 @@ export function EstadoBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full border",
+        "inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full border",
         s.bg, s.text, s.border, className
       )}
     >

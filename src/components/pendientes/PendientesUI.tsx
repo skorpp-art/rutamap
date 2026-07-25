@@ -255,14 +255,14 @@ export function PendientesUI({
             <div>
               <p className="text-xs font-semibold mb-2 flex items-center gap-1.5">
                 <MapPin className="h-3.5 w-3.5 text-muted-foreground" /> Por zona
-                <span className="text-[11px] text-muted-foreground font-normal">— clic para ver los paquetes de esa zona</span>
+                <span className="text-xs text-muted-foreground font-normal">— clic para ver los paquetes de esa zona</span>
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                 {/* Chip "Todas" */}
                 <button onClick={() => setFiltroZona(null)}
                   className={cn("border rounded-lg p-3 text-left transition-all",
                     filtroZona === null ? "border-blue-500 ring-2 ring-blue-400/40 bg-blue-50/40 dark:bg-blue-950/30" : "bg-card hover:border-blue-300")}>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">TODAS</span>
+                  <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">TODAS</span>
                   <p className="text-lg font-bold tabular-nums mt-1">{stats.resueltos}<span className="text-xs text-muted-foreground font-normal">/{stats.total}</span></p>
                 </button>
                 {stats.zonas.map(z => {
@@ -274,14 +274,14 @@ export function PendientesUI({
                       className={cn("border rounded-lg p-3 text-left transition-all",
                         sel ? "border-blue-500 ring-2 ring-blue-400/40 bg-blue-50/40 dark:bg-blue-950/30" : "bg-card hover:border-blue-300")}>
                       <div className="flex items-center justify-between mb-1">
-                        <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded", MACROZONA_COLOR[z.zona] ?? "bg-muted text-muted-foreground")}>{z.zona}</span>
+                        <span className={cn("text-xs font-bold px-1.5 py-0.5 rounded", MACROZONA_COLOR[z.zona] ?? "bg-muted text-muted-foreground")}>{z.zona}</span>
                         {faltan === 0
                           ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                          : <span className="text-[11px] font-bold text-red-600 dark:text-red-300 tabular-nums">{faltan}</span>}
+                          : <span className="text-xs font-bold text-red-600 dark:text-red-300 tabular-nums">{faltan}</span>}
                       </div>
                       <p className="text-lg font-bold tabular-nums">{resueltos}<span className="text-xs text-muted-foreground font-normal">/{z.total}</span></p>
                       {(z.entregados > 0 || z.noRecibidos > 0) && (
-                        <p className="text-[10px] font-medium flex gap-1.5">
+                        <p className="text-xs font-medium flex gap-1.5">
                           {z.entregados > 0 && <span className="text-blue-600 dark:text-blue-300">{z.entregados} entreg.</span>}
                           {z.noRecibidos > 0 && <span className="text-red-600 dark:text-red-300">{z.noRecibidos} no rec.</span>}
                         </p>
@@ -300,35 +300,35 @@ export function PendientesUI({
             {/* ── Contadores (de la zona elegida) ── */}
             <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
               <div className="border rounded-lg p-4 bg-card">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
                   {filtroZona ? `Pendientes ${filtroZona}` : "Total pendientes"}
                 </p>
                 <p className="text-2xl font-bold tabular-nums mt-1">{vTotal}</p>
               </div>
               <div className="border rounded-lg p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/50">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Recibidos</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Recibidos</p>
                 <p className="text-2xl font-bold tabular-nums mt-1 text-emerald-700 dark:text-emerald-300">{vRecibidos}</p>
-                <p className="text-[11px] text-muted-foreground">{vTotal > 0 ? Math.round(vRecibidos / vTotal * 100) : 0}% del total</p>
+                <p className="text-xs text-muted-foreground">{vTotal > 0 ? Math.round(vRecibidos / vTotal * 100) : 0}% del total</p>
               </div>
               <div className={cn("border rounded-lg p-4",
                 vEntregados > 0 ? "bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/60 dark:border-blue-900/50" : "bg-card")}>
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Entregados</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Entregados</p>
                 <p className={cn("text-2xl font-bold tabular-nums mt-1", vEntregados > 0 && "text-blue-700 dark:text-blue-300")}>{vEntregados}</p>
-                <p className="text-[11px] text-muted-foreground">cuenta como resuelto</p>
+                <p className="text-xs text-muted-foreground">cuenta como resuelto</p>
               </div>
               <div className={cn("border rounded-lg p-4",
                 vNoRecibidos > 0 ? "bg-red-50/50 dark:bg-red-950/20 border-red-200/60 dark:border-red-900/50" : "bg-card")}>
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">No recibidos</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">No recibidos</p>
                 <p className={cn("text-2xl font-bold tabular-nums mt-1", vNoRecibidos > 0 && "text-red-600 dark:text-red-300")}>{vNoRecibidos}</p>
-                <p className="text-[11px] text-muted-foreground">{pctNoRecibido}% del total</p>
+                <p className="text-xs text-muted-foreground">{pctNoRecibido}% del total</p>
               </div>
               <div className={cn("border rounded-lg p-4",
                 vFaltan > 0 ? "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/50" : "bg-card")}>
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Sin resolver</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Sin resolver</p>
                 <p className={cn("text-2xl font-bold tabular-nums mt-1", vFaltan > 0 && "text-amber-700 dark:text-amber-300")}>{vFaltan}</p>
               </div>
               <div className="border rounded-lg p-4 bg-card">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Urgentes sin resolver</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Urgentes sin resolver</p>
                 <p className={cn("text-2xl font-bold tabular-nums mt-1", vUrgentesFaltan > 0 && "text-amber-700 dark:text-amber-300")}>
                   {vUrgentesFaltan}<span className="text-sm text-muted-foreground font-normal"> / {vUrgentes}</span>
                 </p>
@@ -341,7 +341,7 @@ export function PendientesUI({
               <div className="h-full bg-blue-500 transition-all" style={{ width: `${vTotal > 0 ? vEntregados / vTotal * 100 : 0}%` }} />
               <div className="h-full bg-red-500 transition-all" style={{ width: `${vTotal > 0 ? vNoRecibidos / vTotal * 100 : 0}%` }} />
             </div>
-            <div className="flex items-center gap-3 -mt-1 text-[11px] text-muted-foreground flex-wrap">
+            <div className="flex items-center gap-3 -mt-1 text-xs text-muted-foreground flex-wrap">
               <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Recibido <b className="text-emerald-700 dark:text-emerald-300">{pctRecibido}%</b></span>
               <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-500" /> Entregado <b className="text-blue-700 dark:text-blue-300">{pctEntregado}%</b></span>
               <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500" /> No recibido <b className="text-red-600 dark:text-red-300">{pctNoRecibido}%</b></span>
@@ -379,13 +379,13 @@ export function PendientesUI({
                 <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5 ml-1">
                   {(["conductor", "cliente"] as const).map(g => (
                     <button key={g} onClick={() => { setAgrupar(g); setCadeteExpandido(null); }}
-                      className={cn("text-[11px] px-2.5 py-1 rounded-md font-medium transition-colors capitalize",
+                      className={cn("text-xs px-2.5 py-1 rounded-md font-medium transition-colors capitalize",
                         agrupar === g ? "bg-background text-foreground" : "text-muted-foreground")}>
                       Por {g}
                     </button>
                   ))}
                 </div>
-                <span className="text-[11px] text-muted-foreground ml-auto">
+                <span className="text-xs text-muted-foreground ml-auto">
                   {gruposFiltrados.length} {agrupar === "conductor" ? "conductores" : "clientes"} · clic para ver los paquetes
                 </span>
               </div>
@@ -406,17 +406,17 @@ export function PendientesUI({
                         {exp ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
                         <span className="font-medium text-sm flex-1 truncate">{c.nombre}</span>
                         {c.urgentes > 0 && (
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 shrink-0">
+                          <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 shrink-0">
                             {c.urgentes} urg.
                           </span>
                         )}
                         {c.entregados > 0 && (
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-300 shrink-0">
+                          <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-300 shrink-0">
                             {c.entregados} entreg.
                           </span>
                         )}
                         {c.noRecibidos > 0 && (
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-600 dark:text-red-300 shrink-0">
+                          <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-600 dark:text-red-300 shrink-0">
                             {c.noRecibidos} no rec.
                           </span>
                         )}
@@ -430,12 +430,12 @@ export function PendientesUI({
                           <span className="text-muted-foreground">/{c.total}</span>
                         </span>
                         {faltan === 0
-                          ? <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-300 shrink-0 w-16 text-right">completo</span>
-                          : <span className="text-[11px] font-semibold text-red-600 dark:text-red-300 shrink-0 w-16 text-right">faltan {faltan}</span>}
+                          ? <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-300 shrink-0 w-16 text-right">completo</span>
+                          : <span className="text-xs font-semibold text-red-600 dark:text-red-300 shrink-0 w-16 text-right">faltan {faltan}</span>}
                         {puedeEditar && (
                           <button
                             onClick={e => { e.stopPropagation(); toggleGrupo(c.nombre, faltan > 0); }}
-                            className="text-[10px] px-2 py-1 rounded border border-border hover:bg-muted transition-colors shrink-0"
+                            className="text-xs px-2 py-1 rounded border border-border hover:bg-muted transition-colors shrink-0"
                             title={faltan > 0 ? "Marcar todos como recibidos" : "Desmarcar todos"}>
                             {faltan > 0 ? "Recibí todo" : "Desmarcar"}
                           </button>
@@ -472,10 +472,10 @@ export function PendientesUI({
                                   <span className="font-semibold">
                                     {agrupar === "conductor" ? (p.cliente ?? "—") : (p.cadete ?? "Sin asignar")}
                                   </span>
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{p.estado ?? "—"}</span>
+                                  <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{p.estado ?? "—"}</span>
                                   {p.reincidencia && !esResuelto(p.estado_recepcion) && (
                                     <span title={`Volvió a aparecer sin poder entregarse — ${p.nro_ciclo}° vez`}
-                                      className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-700 dark:text-violet-300 inline-flex items-center gap-0.5">
+                                      className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-700 dark:text-violet-300 inline-flex items-center gap-0.5">
                                       <RotateCcw className="h-2.5 w-2.5" /> volvió a salir · {p.nro_ciclo}°
                                     </span>
                                   )}
@@ -493,10 +493,10 @@ export function PendientesUI({
                                 {/* Línea 3: motivo + observación cuando no recibido */}
                                 {p.estado_recepcion === "no_recibido" && (
                                   <p className="mt-1 flex items-center gap-1.5 flex-wrap">
-                                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-500/15 text-red-600 dark:text-red-300">
+                                    <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-red-500/15 text-red-600 dark:text-red-300">
                                       {p.motivo_no_recibido ?? "No recibido"}
                                     </span>
-                                    {p.observacion && <span className="text-[11px] text-muted-foreground italic">"{p.observacion}"</span>}
+                                    {p.observacion && <span className="text-xs text-muted-foreground italic">"{p.observacion}"</span>}
                                   </p>
                                 )}
                               </div>

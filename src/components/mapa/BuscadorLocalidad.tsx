@@ -184,9 +184,9 @@ export function BuscadorLocalidad({
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{nombre}</p>
                         {contexto && (
-                          <p className="text-[11px] text-muted-foreground truncate">{contexto}</p>
+                          <p className="text-xs text-muted-foreground truncate">{contexto}</p>
                         )}
-                        <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                        <p className="text-xs text-muted-foreground/60 mt-0.5">
                           {tipoLabel(f)} · {f.geometry.type === "MultiPolygon" ? "área múltiple" : "polígono"}
                         </p>
                       </div>
@@ -196,7 +196,7 @@ export function BuscadorLocalidad({
                     <div className="flex gap-1.5 mt-2">
                       <button
                         onClick={() => agregar(f)}
-                        className="flex-1 flex items-center justify-center gap-1 text-[11px] font-medium py-1 px-2 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 transition-colors border border-blue-200 dark:border-blue-900"
+                        className="flex-1 flex items-center justify-center gap-1 text-xs font-medium py-1 px-2 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 transition-colors border border-blue-200 dark:border-blue-900"
                       >
                         <Plus className="h-3 w-3" />
                         Agregar al área
@@ -204,7 +204,7 @@ export function BuscadorLocalidad({
                       {onPolygonEliminar && (
                         <button
                           onClick={() => eliminar(f)}
-                          className="flex items-center justify-center gap-1 text-[11px] font-medium py-1 px-2 rounded-md bg-slate-50 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 hover:bg-red-50 hover:text-red-700 transition-colors border border-slate-200 dark:border-slate-700 hover:border-red-200"
+                          className="flex items-center justify-center gap-1 text-xs font-medium py-1 px-2 rounded-md bg-slate-50 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 hover:bg-red-50 hover:text-red-700 transition-colors border border-slate-200 dark:border-slate-700 hover:border-red-200"
                           title="Resta geométrica: quita la parte de esta zona que se superpone al área del recorrido. Usá Ctrl+Z para deshacer."
                         >
                           <Scissors className="h-3 w-3" />
@@ -221,7 +221,7 @@ export function BuscadorLocalidad({
       )}
 
       {!query && (
-        <p className="text-center text-[10px] text-white/75 mt-1.5 drop-shadow-sm select-none">
+        <p className="text-center text-xs text-white/75 mt-1.5 drop-shadow-sm select-none">
           Cargá o quitá el límite de una localidad automáticamente
         </p>
       )}

@@ -170,13 +170,13 @@ export function ImportarClientes({ onImportado, targetPkg = 30, fechaFija }: Pro
           <div className="flex items-center gap-2">
             <label className="text-xs font-medium">Fecha:</label>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="h-7 w-7"
+              <Button variant="ghost" size="icon" className="h-8 w-8"
                 onClick={() => setFechaImport(addDias(fechaImport, -1))}>
                 <ChevronLeft className="h-3.5 w-3.5" />
               </Button>
               <input type="date" value={fechaImport} onChange={e => setFechaImport(e.target.value)}
-                className="border rounded px-2 py-1 text-xs h-7 bg-background" />
-              <Button variant="ghost" size="icon" className="h-7 w-7" disabled={fechaImport >= hoy()}
+                className="border rounded px-2 py-1 text-xs h-8 bg-background" />
+              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={fechaImport >= hoy()}
                 onClick={() => setFechaImport(addDias(fechaImport, 1))}>
                 <ChevronRight className="h-3.5 w-3.5" />
               </Button>
@@ -196,11 +196,11 @@ export function ImportarClientes({ onImportado, targetPkg = 30, fechaFija }: Pro
         <div className="flex items-center gap-2">
           <Package className="h-4 w-4 text-amber-600 dark:text-amber-300" />
           <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Cliente manual</p>
-          <span className="text-[11px] text-amber-600/80 dark:text-amber-300">— se suma al total y sobrevive a las reimportaciones del Excel</span>
+          <span className="text-xs text-amber-600/80 dark:text-amber-300">— se suma al total y sobrevive a las reimportaciones del Excel</span>
         </div>
         <div className="flex items-end gap-2 flex-wrap">
           <div className="flex-1 min-w-[180px]">
-            <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Nombre del cliente</label>
+            <label className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Nombre del cliente</label>
             <input type="text" value={manualNombre}
               placeholder="ej: MERCADO LIBRE FLEX"
               onChange={e => setManualNombre(e.target.value)}
@@ -208,7 +208,7 @@ export function ImportarClientes({ onImportado, targetPkg = 30, fechaFija }: Pro
               className="w-full border rounded-lg px-3 py-1.5 text-sm mt-1 bg-background focus:outline-none focus:ring-2 focus:ring-amber-400" />
           </div>
           <div className="w-28">
-            <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Paquetes</label>
+            <label className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Paquetes</label>
             <input type="number" min={1} value={manualPaquetes}
               placeholder="0"
               onChange={e => setManualPaquetes(e.target.value)}
@@ -223,7 +223,7 @@ export function ImportarClientes({ onImportado, targetPkg = 30, fechaFija }: Pro
 
         {clientesManuales.length > 0 && (
           <div className="space-y-1 pt-1">
-            <p className="text-[10px] text-amber-700 dark:text-amber-300 font-medium">Manuales del {fechaImport}:</p>
+            <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">Manuales del {fechaImport}:</p>
             {clientesManuales.map(c => (
               <div key={c.id} className="flex items-center gap-2 text-xs bg-white/70 rounded-lg px-3 py-1.5">
                 <span className="flex-1 font-medium">{c.cliente}</span>

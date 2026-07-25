@@ -133,7 +133,7 @@ export function CommandPalette({ esInvitado = false }: { esInvitado?: boolean })
             placeholder="Buscar vista o acción…"
             className="flex-1 h-12 bg-transparent text-sm outline-none placeholder:text-muted-foreground/70"
           />
-          <kbd className="hidden sm:inline-flex items-center gap-1 rounded border border-border bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">ESC</kbd>
+          <kbd className="hidden sm:inline-flex items-center gap-1 rounded border border-border bg-muted/60 px-1.5 py-0.5 text-xs font-medium text-muted-foreground">ESC</kbd>
         </div>
 
         {/* Resultados */}
@@ -145,7 +145,7 @@ export function CommandPalette({ esInvitado = false }: { esInvitado?: boolean })
           ) : (
             grupos.map(([grupo, items]) => (
               <div key={grupo} className="mb-1">
-                <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">{grupo}</p>
+                <p className="px-2 py-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">{grupo}</p>
                 {items.map(({ cmd, idx }) => {
                   const Icono = cmd.icon;
                   const sel = idx === activo;
@@ -172,7 +172,7 @@ export function CommandPalette({ esInvitado = false }: { esInvitado?: boolean })
         </div>
 
         {/* Pie */}
-        <div className="flex items-center gap-3 px-4 py-2.5 border-t border-border/70 text-[10px] text-muted-foreground bg-muted/30">
+        <div className="flex items-center gap-3 px-4 py-2.5 border-t border-border/70 text-xs text-muted-foreground bg-muted/30">
           <Truck className="h-3 w-3 text-primary" />
           <span className="font-semibold">RutaMap</span>
           <span className="ml-auto flex items-center gap-2">

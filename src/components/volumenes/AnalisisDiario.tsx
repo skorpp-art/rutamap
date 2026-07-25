@@ -702,14 +702,14 @@ export function AnalisisDiario() {
                   onChange={e => setFechaOverride(e.target.value)}
                   className="text-xs border rounded-lg px-2 py-1 bg-background" />
                 {fechaOverride && previaAuto && fechaOverride !== previaAuto.fecha && (
-                  <span className="text-[10px] text-amber-600 dark:text-amber-400">
+                  <span className="text-xs text-amber-600 dark:text-amber-400">
                     (el Excel decía {previaAuto.fecha})
                   </span>
                 )}
               </div>
             )}
           </div>
-          <p className="text-[11px] text-muted-foreground -mt-1">
+          <p className="text-xs text-muted-foreground -mt-1">
             Revisá la fecha detectada antes de guardar: algunos reportes se generan de madrugada
             del día siguiente y traen la fecha corrida.
           </p>
@@ -730,7 +730,7 @@ export function AnalisisDiario() {
                   return `${camino} + ${post21Sin} post-21 = ${previa.resumen.en_camino_destinatario}`;
                 })()} />
               </div>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {previa.clientes.length} clientes · {previa.tardeZona.length} zonas con tardanza · {previa.tardeChofer.length} choferes con tardanza
               </p>
             </>
@@ -778,7 +778,7 @@ export function AnalisisDiario() {
 function MiniKpi({ label, valor }: { label: string; valor: string }) {
   return (
     <div className="bg-background border rounded-lg px-3 py-2 text-center">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="text-sm font-bold tabular-nums">{valor}</p>
     </div>
   );
@@ -930,19 +930,19 @@ function DiaView({
               <div className="space-y-2">
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                   <div className="border rounded-lg p-4 bg-card">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Total paquetes</p>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Total paquetes</p>
                     <p className="text-2xl font-bold tabular-nums mt-1">{resumen.total_paquetes.toLocaleString("es-AR")}</p>
                   </div>
                   <div className="border rounded-lg p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/50">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Entregados</p>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Entregados</p>
                     <p className="text-2xl font-bold tabular-nums mt-1 text-emerald-700 dark:text-emerald-300">{resumen.entregados.toLocaleString("es-AR")}</p>
-                    <p className="text-[11px] text-muted-foreground">{resumen.pct_exito.toFixed(1)}% del total</p>
+                    <p className="text-xs text-muted-foreground">{resumen.pct_exito.toFixed(1)}% del total</p>
                   </div>
                   <div className={cn("border rounded-lg p-4",
                     noEntregados > 0 ? "bg-red-50/50 dark:bg-red-950/20 border-red-200/60 dark:border-red-900/50" : "bg-card")}>
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">No entregados</p>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">No entregados</p>
                     <p className={cn("text-2xl font-bold tabular-nums mt-1", noEntregados > 0 && "text-red-600 dark:text-red-300")}>{noEntregados.toLocaleString("es-AR")}</p>
-                    <p className="text-[11px] text-muted-foreground">{pctNoEntregado.toFixed(1)}% del total</p>
+                    <p className="text-xs text-muted-foreground">{pctNoEntregado.toFixed(1)}% del total</p>
                   </div>
                 </div>
                 <div className="h-2 w-full rounded-full bg-muted overflow-hidden flex">
@@ -993,7 +993,7 @@ function DiaView({
             })()}
           </div>
           {resumenSemAnt && (
-            <p className="text-[11px] text-muted-foreground -mt-2">
+            <p className="text-xs text-muted-foreground -mt-2">
               ▲▼ comparado con el mismo día de la semana anterior ({resumenSemAnt.fecha})
             </p>
           )}
@@ -1005,7 +1005,7 @@ function DiaView({
               {verDetallePost21 ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
               <MapPin className="h-4 w-4 text-red-600 dark:text-red-300" />
               <p className="text-sm font-semibold">Ver detalle: paquetes post-21hs sin entregar</p>
-              <span className="text-[11px] text-muted-foreground ml-auto">dirección, cliente y chofer de cada uno</span>
+              <span className="text-xs text-muted-foreground ml-auto">dirección, cliente y chofer de cada uno</span>
             </button>
             {verDetallePost21 && (
               cargandoDetalle ? (
@@ -1021,7 +1021,7 @@ function DiaView({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold">{d.cliente ?? "—"}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{d.estado ?? "—"}</span>
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{d.estado ?? "—"}</span>
                           <span className="text-muted-foreground ml-auto shrink-0 tabular-nums">{d.hora ?? ""}</span>
                         </div>
                         <p className="text-muted-foreground mt-0.5">
@@ -1071,7 +1071,7 @@ function DiaView({
                     className="text-xs bg-transparent outline-none w-32 sm:w-40" />
                 </div>
               </SeccionHeader>
-              <p className="text-[10px] text-muted-foreground px-4 pt-2">
+              <p className="text-xs text-muted-foreground px-4 pt-2">
                 No incluye los paquetes post-21hs sin entregar (esos no vienen discriminados por cliente en el Excel) — por eso la suma no llega al total de "Demorados" de arriba.
               </p>
 
@@ -1080,7 +1080,7 @@ function DiaView({
                 <div className="m-3 rounded-lg border bg-gradient-to-br from-violet-50 to-sky-50/40 dark:from-violet-950/30 dark:to-sky-950/10 border-violet-200/70 dark:border-violet-900/50 p-3">
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <p className="text-sm font-bold flex items-center gap-1.5"><Users className="h-4 w-4 text-violet-600 dark:text-violet-300" /> {sel.cliente}</p>
-                    <button onClick={() => setClienteSel(null)} className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">Cerrar <X className="h-3 w-3" /></button>
+                    <button onClick={() => setClienteSel(null)} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">Cerrar <X className="h-3 w-3" /></button>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <MiniKpi label="Paquetes" valor={sel.cantidad.toLocaleString("es-AR")} />
@@ -1110,7 +1110,7 @@ function DiaView({
                         <td className="px-3 py-1.5">
                           <div className="flex items-center gap-1.5">
                             <BarraProp pct={c.pct_del_dia / maxPctDia * 100} tono="blue" />
-                            <span className="tabular-nums text-[10px] text-muted-foreground w-9 text-right shrink-0">{c.pct_del_dia.toFixed(1)}%</span>
+                            <span className="tabular-nums text-xs text-muted-foreground w-9 text-right shrink-0">{c.pct_del_dia.toFixed(1)}%</span>
                           </div>
                         </td>
                         <td className="px-4 py-1.5 text-right tabular-nums">
@@ -1181,19 +1181,19 @@ function KpiCard({ icon: Icon, label, valor, sub, tono, delta, onClick, hint }: 
         onClick && "cursor-pointer hover:bg-muted/40 transition-colors")}>
       <div className="flex items-center gap-1.5">
         <Icon className={cn("h-3.5 w-3.5 shrink-0", t.text)} />
-        <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground leading-tight">{label}</span>
+        <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground leading-tight">{label}</span>
       </div>
       <div className="flex items-end gap-2 mt-1.5">
         <p className={cn("text-3xl font-black tabular-nums leading-none", t.text)}>{valor}</p>
         {delta && delta.valor !== 0 && (
-          <span className={cn("text-[11px] font-semibold tabular-nums shrink-0",
+          <span className={cn("text-xs font-semibold tabular-nums shrink-0",
             deltaBueno ? "text-emerald-600 dark:text-emerald-300" : "text-red-600 dark:text-red-300")}
             title={`vs ${delta.ref}`}>
             {delta.valor > 0 ? "▲" : "▼"} {Math.abs(delta.valor).toLocaleString("es-AR", { maximumFractionDigits: 1 })}{delta.unidad ?? ""}
           </span>
         )}
       </div>
-      {sub && <p className="text-[11px] text-muted-foreground mt-1.5">{sub}</p>}
+      {sub && <p className="text-xs text-muted-foreground mt-1.5">{sub}</p>}
     </div>
   );
 }
@@ -1391,7 +1391,7 @@ function HistoricoView({
           <div className="border rounded-lg p-4 bg-card">
             <div className="flex items-baseline justify-between mb-2">
               <p className="text-xs font-bold">Evolución diaria — composición de paquetes y % de éxito</p>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Objetivo de éxito: <span className="font-semibold">{UMBRAL_EXITO_PCT}%</span>
               </p>
             </div>
@@ -1429,8 +1429,8 @@ function HistoricoView({
                 {estadosTotales.map(e => (
                   <div key={e.estado} className="px-4 py-1.5">
                     <div className="flex items-center justify-between gap-3 mb-0.5">
-                      <span className="text-[11px] truncate">{e.estado}</span>
-                      <span className="text-[11px] tabular-nums shrink-0 font-semibold">
+                      <span className="text-xs truncate">{e.estado}</span>
+                      <span className="text-xs tabular-nums shrink-0 font-semibold">
                         {e.cantidad.toLocaleString("es-AR")} · {e.pct.toFixed(1)}%
                       </span>
                     </div>
@@ -1520,14 +1520,14 @@ function HistoricoView({
                 </ResponsiveContainer>
 
                 {totalPost21NoEntregado === 0 ? (
-                  <p className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-2">
+                  <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-2">
                     ⚠ No hay direcciones de post-21hs guardadas para {clienteSel} en este rango. Esto es esperable si
                     los días cargados son anteriores al {"04/07/2026"} (fecha desde la que se empezó a guardar el
                     detalle) o si genuinamente no tuvo paquetes post-21hs sin entregar en este período. Volvé a cargar
                     un Excel de un día reciente para ver el detalle con dirección.
                   </p>
                 ) : (
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Clic en cualquier día para ver su resumen; los días con post-21hs sin entregar muestran además la
                     dirección, localidad y tracking de cada paquete.
                   </p>
@@ -1572,7 +1572,7 @@ function HistoricoView({
                           <tr>
                             <td colSpan={6} className="bg-muted/10 px-4 py-2">
                               {/* Resumen del día, siempre visible al abrir */}
-                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] pb-2 mb-1 border-b border-border/50">
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs pb-2 mb-1 border-b border-border/50">
                                 <span><b className="tabular-nums">{d.cantidad}</b> paquetes</span>
                                 <span><b className="tabular-nums text-emerald-600 dark:text-emerald-300">{Math.max(0, d.cantidad - demDia)}</b> entregados</span>
                                 <span><b className="tabular-nums text-amber-600 dark:text-amber-300">{d.en_camino_destinatario}</b> en camino</span>
@@ -1582,7 +1582,7 @@ function HistoricoView({
                               {detalleDia.length > 0 ? (
                                 <div className="space-y-1.5 py-1">
                                   {detalleDia.map((p, i) => (
-                                    <div key={p.id ?? i} className="flex items-start gap-2 text-[11px]">
+                                    <div key={p.id ?? i} className="flex items-start gap-2 text-xs">
                                       <span className="h-1.5 w-1.5 rounded-full bg-red-500 shrink-0 mt-1" />
                                       <div className="flex-1 min-w-0">
                                         <span className="text-muted-foreground">{p.direccion ?? "Sin dirección"}</span>
@@ -1590,13 +1590,13 @@ function HistoricoView({
                                         {p.localidad && <span className="text-foreground/60"> · {p.localidad}</span>}
                                         {p.chofer && <span className="text-muted-foreground/70"> · {p.chofer}</span>}
                                         {p.tracking && <span className="text-muted-foreground/60 font-mono"> · {p.tracking}</span>}
-                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground ml-2">{p.estado ?? "—"}</span>
+                                        <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground ml-2">{p.estado ?? "—"}</span>
                                       </div>
                                     </div>
                                   ))}
                                 </div>
                               ) : (
-                                <p className="text-[11px] text-muted-foreground py-1">
+                                <p className="text-xs text-muted-foreground py-1">
                                   Sin paquetes post-21hs sin entregar con dirección guardada este día.
                                   {d.en_camino_destinatario > 0 && " Los \"en camino al destinatario\" no traen dirección por cliente en el Excel."}
                                 </p>

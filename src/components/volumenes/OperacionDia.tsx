@@ -750,7 +750,7 @@ export function OperacionDia({
       <div className="px-5 py-3 border-b flex items-center gap-3 flex-wrap bg-background">
         {/* Fecha */}
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-7 w-7"
+          <Button variant="ghost" size="icon" className="h-8 w-8"
             disabled={fecha <= addDias(hoy(), -3)}
             onClick={() => setFecha(addDias(fecha, -1))}>
             <ChevronLeft className="h-3.5 w-3.5" />
@@ -758,8 +758,8 @@ export function OperacionDia({
           <input type="date" value={fecha}
             min={addDias(hoy(), -3)} max={addDias(hoy(), 3)}
             onChange={e => setFecha(e.target.value)}
-            className="border rounded px-2 py-1 text-xs h-7 bg-background" />
-          <Button variant="ghost" size="icon" className="h-7 w-7" disabled={fecha >= addDias(hoy(), 3)}
+            className="border rounded px-2 py-1 text-xs h-8 bg-background" />
+          <Button variant="ghost" size="icon" className="h-8 w-8" disabled={fecha >= addDias(hoy(), 3)}
             onClick={() => setFecha(addDias(fecha, 1))}>
             <ChevronRight className="h-3.5 w-3.5" />
           </Button>
@@ -774,7 +774,7 @@ export function OperacionDia({
               <button key={d}
                 onClick={() => setFecha(f)}
                 className={cn(
-                  "h-6 px-2 rounded text-[10px] font-medium border transition-colors",
+                  "h-6 px-2 rounded text-xs font-medium border transition-colors",
                   fecha === f
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-muted/50 text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground"
@@ -789,30 +789,30 @@ export function OperacionDia({
           {fmtFecha(fecha)}
         </span>
         {fecha < hoy() && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900 font-medium">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900 font-medium">
             Editando día pasado
           </span>
         )}
         {tipoProyeccion && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900 font-medium">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900 font-medium">
             Proyección {tipoProyeccion === "min" ? "Mínima" : tipoProyeccion === "esperado" ? "Esperada" : "Máxima"} — {pkgTotal.toLocaleString("es-AR")} paq
           </span>
         )}
 
         {/* Paquetes del día */}
         <div className="flex items-center gap-1.5 ml-2">
-          <span className="text-[10px] text-muted-foreground">Paquetes del día:</span>
+          <span className="text-xs text-muted-foreground">Paquetes del día:</span>
           <input
             type="number" min={0} value={pkgTotal || ""}
             placeholder={pkgBase > 0 ? pkgBase.toString() : "0"}
             onChange={e => setPkgTotal(parseInt(e.target.value) || 0)}
             className={cn(
-              "border rounded px-2 py-0.5 text-sm h-7 w-28 tabular-nums text-right bg-background font-semibold",
+              "border rounded px-2 py-0.5 text-sm h-8 w-28 tabular-nums text-right bg-background font-semibold",
               pkgTotal > 0 ? "border-blue-400 text-blue-700 dark:text-blue-300" : "border-border text-muted-foreground"
             )}
           />
           {pkgBase > 0 && pkgTotal !== pkgBase && (
-            <button className="text-[10px] text-blue-600 dark:text-blue-300 hover:underline"
+            <button className="text-xs text-blue-600 dark:text-blue-300 hover:underline"
               onClick={() => setPkgTotal(pkgBase)}>
               ← {pkgBase.toLocaleString("es-AR")}
             </button>
@@ -820,12 +820,12 @@ export function OperacionDia({
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => cargar(fecha)} disabled={cargando}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => cargar(fecha)} disabled={cargando}>
             <RefreshCw className={cn("h-3.5 w-3.5", cargando && "animate-spin")} />
           </Button>
           {hayEdits && (
             <Button size="sm" onClick={guardar} disabled={guardando}
-              className="h-7 gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white">
+              className="h-8 gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white">
               <Save className="h-3 w-3" />
               {guardando ? "…" : "Guardar"}
             </Button>
@@ -879,7 +879,7 @@ export function OperacionDia({
             className={cn("relative h-10 w-10 rounded-lg flex items-center justify-center transition-colors",
               panelAbierto === "sugerencias" ? "bg-amber-500 text-white" : "text-amber-600 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40")}>
             <Lightbulb className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-background tabular-nums">
+            <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center ring-2 ring-background tabular-nums">
               {sugerencias.length}
             </span>
           </button>
@@ -913,9 +913,9 @@ export function OperacionDia({
                       { label: "Piso fijos", valor: nFijos.toString(), sub: "RF activos" },
                     ].map(({ label, valor, sub, hl }) => (
                       <div key={label} className="border rounded-lg p-3 text-center bg-background">
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">{label}</p>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">{label}</p>
                         <p className={cn("text-xl font-bold tabular-nums leading-tight mt-0.5", hl ? "text-blue-700 dark:text-blue-300" : "text-foreground")}>{valor}</p>
-                        <p className="text-[10px] text-muted-foreground">{sub}</p>
+                        <p className="text-xs text-muted-foreground">{sub}</p>
                       </div>
                     ))}
                   </div>
@@ -928,7 +928,7 @@ export function OperacionDia({
                       margenHasta35 < 200 ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900" :
                       "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900"
                     )}>
-                      <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">
+                      <p className="text-xs uppercase tracking-wide font-semibold text-muted-foreground">
                         Margen hasta 40P
                       </p>
                       <p className={cn("text-xl font-bold tabular-nums",
@@ -939,7 +939,7 @@ export function OperacionDia({
                           ? `−${Math.abs(margenHasta40).toLocaleString("es-AR")} paq`
                           : `+${margenHasta40.toLocaleString("es-AR")} paq`}
                       </p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {margenHasta40 < 0
                           ? "⚠ Superado"
                           : `cap. ${capacidadMax40.toLocaleString("es-AR")} · ${pctBuffer}% libre`}
@@ -950,7 +950,7 @@ export function OperacionDia({
                   {/* Choferes y capacidad por zona */}
                   {zonasResumen.length > 0 && (
                     <div>
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-1.5">Choferes y capacidad por zona</p>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-1.5">Choferes y capacidad por zona</p>
                       <div className="border rounded-lg overflow-hidden">
                         <table className="w-full text-xs">
                           <thead className="bg-muted/30 text-muted-foreground">
@@ -966,7 +966,7 @@ export function OperacionDia({
                                 <td className="px-3 py-1.5 font-semibold">{z.zona}</td>
                                 <td className="px-2 py-1.5 text-right tabular-nums">{z.choferes}</td>
                                 <td className="px-3 py-1.5 text-right tabular-nums font-semibold text-blue-700 dark:text-blue-300">
-                                  {z.capacidad.toLocaleString("es-AR")} <span className="text-[10px] text-muted-foreground font-normal">paq</span>
+                                  {z.capacidad.toLocaleString("es-AR")} <span className="text-xs text-muted-foreground font-normal">paq</span>
                                 </td>
                               </tr>
                             ))}
@@ -975,20 +975,20 @@ export function OperacionDia({
                             <tr>
                               <td className="px-3 py-1.5">Total</td>
                               <td className="px-2 py-1.5 text-right tabular-nums">{zonasResumen.reduce((s, z) => s + z.choferes, 0)}</td>
-                              <td className="px-3 py-1.5 text-right tabular-nums text-blue-700 dark:text-blue-300">{capacidadTotalZonas.toLocaleString("es-AR")} <span className="text-[10px] text-muted-foreground font-normal">paq</span></td>
+                              <td className="px-3 py-1.5 text-right tabular-nums text-blue-700 dark:text-blue-300">{capacidadTotalZonas.toLocaleString("es-AR")} <span className="text-xs text-muted-foreground font-normal">paq</span></td>
                             </tr>
                           </tfoot>
                         </table>
                       </div>
-                      <p className="text-[10px] text-muted-foreground mt-1">Capacidad = choferes × 40 paq (máximo antes de sobrecarga).</p>
+                      <p className="text-xs text-muted-foreground mt-1">Capacidad = choferes × 40 paq (máximo antes de sobrecarga).</p>
                     </div>
                   )}
 
                   {/* Barra de banda */}
                   {promedio > 0 && (
                     <div>
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-1.5">Banda de carga</p>
-                      <div className="flex justify-between text-[10px] text-muted-foreground mb-0.5">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-1.5">Banda de carga</p>
+                      <div className="flex justify-between text-xs text-muted-foreground mb-0.5">
                         <span>20</span><span>25</span><span className="font-bold text-green-600 dark:text-green-300">30</span><span>35</span><span>40</span>
                       </div>
                       <div className="h-3 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden relative">
@@ -1007,7 +1007,7 @@ export function OperacionDia({
                 <div className="px-4 py-3 border-b flex items-center gap-2 bg-amber-50/50 dark:bg-amber-950/40">
                   <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-300 shrink-0" />
                   <span className="text-sm font-bold text-amber-800 dark:text-amber-200">Sugerencias</span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-200/70 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 tabular-nums">
+                  <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-amber-200/70 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 tabular-nums">
                     {sugerencias.length}
                   </span>
                   <button onClick={() => setPanelAbierto(null)} className="ml-auto text-muted-foreground hover:text-foreground">
@@ -1015,7 +1015,7 @@ export function OperacionDia({
                   </button>
                 </div>
                 <div className="px-4 pt-2 pb-1">
-                  <p className="text-[10px] text-amber-600/80 dark:text-amber-300/70">Cortes y pre-turnos · sobrecarga sostenida · últimos 30 días</p>
+                  <p className="text-xs text-amber-600/80 dark:text-amber-300/70">Cortes y pre-turnos · sobrecarga sostenida · últimos 30 días</p>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 pt-2 space-y-2">
                   {sugerencias.map(s => (
@@ -1029,11 +1029,11 @@ export function OperacionDia({
                             <span className="font-mono text-blue-700 dark:text-blue-300">{s.codigo}</span>
                             <span className="text-muted-foreground font-normal"> · {s.zona}</span>
                           </p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{s.motivo}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{s.motivo}</p>
                         </div>
                       </div>
                       <Button size="sm" variant="outline"
-                        className={cn("w-full h-7 gap-1 text-[10px]",
+                        className={cn("w-full h-8 gap-1 text-xs",
                           s.tipoSugerido === "pre_turno" ? "border-violet-300 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50" : "border-orange-300 dark:border-orange-800 text-orange-700 dark:text-orange-300 hover:bg-orange-50")}
                         onClick={() => { abrirSugerencia(s); setPanelAbierto(null); }}>
                         <Plus className="h-3 w-3" />
@@ -1053,7 +1053,7 @@ export function OperacionDia({
         <div className="flex gap-1">
           {["Oeste","Norte","Sur","CABA"].map(z => (
             <button key={z} onClick={() => setFiltroZona(filtroZona === z ? null : z)}
-              className={cn("text-[10px] px-2 py-0.5 rounded border transition-colors",
+              className={cn("text-xs px-2 py-0.5 rounded border transition-colors",
                 filtroZona === z ? `${ZONA_COLOR[z]} text-white border-transparent` : "border-border text-muted-foreground hover:border-blue-400")}>
               {z}
             </button>
@@ -1062,7 +1062,7 @@ export function OperacionDia({
         <div className="flex gap-1">
           {["fijo","pre_turno","corte","unificado"].map(t => (
             <button key={t} onClick={() => setFiltroTipo(filtroTipo === t ? null : t)}
-              className={cn("text-[10px] px-2 py-0.5 rounded border transition-colors",
+              className={cn("text-xs px-2 py-0.5 rounded border transition-colors",
                 filtroTipo === t ? TIPO_BADGE[t] : "border-border text-muted-foreground hover:border-blue-400")}>
               {TIPO_LABEL[t]}
             </button>
@@ -1070,7 +1070,7 @@ export function OperacionDia({
         </div>
         {/* Comodines — ver cuáles están habilitados */}
         <button onClick={() => setFiltroTipo(filtroTipo === "suplencia" ? null : "suplencia")}
-          className={cn("text-[10px] px-2 py-0.5 rounded border transition-colors flex items-center gap-1",
+          className={cn("text-xs px-2 py-0.5 rounded border transition-colors flex items-center gap-1",
             filtroTipo === "suplencia" ? TIPO_BADGE.suplencia : "border-border text-muted-foreground hover:border-blue-400")}
           title="Ver comodines habilitados">
           Comodines
@@ -1080,36 +1080,36 @@ export function OperacionDia({
           </span>
         </button>
         <button onClick={() => setSoloActivos(v => !v)}
-          className={cn("text-[10px] px-2 py-0.5 rounded border transition-colors",
+          className={cn("text-xs px-2 py-0.5 rounded border transition-colors",
             soloActivos ? "bg-blue-600 text-white border-blue-600" : "border-border text-muted-foreground")}>
           Solo activos
         </button>
         {/* Piso por tipo de día: activa la plantilla fija del esquema de una */}
         <div className="flex items-center gap-1 pl-1 border-l border-border ml-1">
-          <span className="text-[10px] text-muted-foreground">Piso:</span>
+          <span className="text-xs text-muted-foreground">Piso:</span>
           {([
             ["lun_feriado", "Lun/Fer."],
             ["mar_vie", "Mar-Vie"],
             ["sabado", "Sáb"],
           ] as [TipoDiaPlantilla, string][]).map(([tipo, lbl]) => (
             <button key={tipo} onClick={() => aplicarPiso(tipo)} disabled={guardando}
-              className="text-[10px] px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors disabled:opacity-50"
+              className="text-xs px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors disabled:opacity-50"
               title={`Aplicar el piso de recorridos de ${LABEL_PISO[tipo]}${tipo === "lun_feriado" ? " (usalo también si el día es feriado)" : ""}`}>
               {lbl}
             </button>
           ))}
         </div>
         <button onClick={limpiarRecorridos} disabled={guardando}
-          className="text-[10px] px-2 py-0.5 rounded border border-red-200 dark:border-red-900 text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors flex items-center gap-1 disabled:opacity-50"
+          className="text-xs px-2 py-0.5 rounded border border-red-200 dark:border-red-900 text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors flex items-center gap-1 disabled:opacity-50"
           title="Deshabilitar todos los recorridos de todas las zonas">
           <Trash2 className="h-3 w-3" />
           Limpiar recorridos
         </button>
-        <span className="text-[10px] text-muted-foreground ml-2">
+        <span className="text-xs text-muted-foreground ml-2">
           {nActivas}/{rutas.length} · {rutasFiltradas.length} visibles
         </span>
         <Button size="sm" variant="outline" onClick={abrirNuevo}
-          className="h-7 gap-1 text-xs">
+          className="h-8 gap-1 text-xs">
           <Plus className="h-3 w-3" />
           Agregar
         </Button>
@@ -1178,7 +1178,7 @@ export function OperacionDia({
                     <td className="px-3 py-2 text-muted-foreground max-w-[220px] truncate">{r.nombre}</td>
                     <td className="px-3 py-2 text-muted-foreground">{r.zona}</td>
                     <td className="px-3 py-2">
-                      <span className={cn("px-1.5 py-0.5 rounded border text-[10px] font-medium", TIPO_BADGE[r.tipo] ?? TIPO_BADGE.suplencia)}>
+                      <span className={cn("px-1.5 py-0.5 rounded border text-xs font-medium", TIPO_BADGE[r.tipo] ?? TIPO_BADGE.suplencia)}>
                         {TIPO_LABEL[r.tipo] ?? r.tipo}
                       </span>
                     </td>
@@ -1209,7 +1209,7 @@ export function OperacionDia({
         </span>
         {hayEdits && (
           <Button size="sm" onClick={guardar} disabled={guardando}
-            className="h-7 gap-1 text-xs bg-blue-600 hover:bg-blue-700 text-white">
+            className="h-8 gap-1 text-xs bg-blue-600 hover:bg-blue-700 text-white">
             <Save className="h-3 w-3" />
             {guardando ? "…" : "Guardar"}
           </Button>
@@ -1241,7 +1241,7 @@ export function OperacionDia({
 
             {modalRuta.modo === "nuevo" && draftsNuevos.length > 0 && (
               <div className="space-y-1.5">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
                   En la cola ({draftsNuevos.length})
                 </p>
                 <div className="space-y-1 max-h-28 overflow-y-auto">
@@ -1264,7 +1264,7 @@ export function OperacionDia({
               {/* PASO 1: Zona + Tipo → genera código automáticamente */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
+                  <label className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
                     1. Zona
                   </label>
                   <select value={modalRuta.zona}
@@ -1280,7 +1280,7 @@ export function OperacionDia({
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
+                  <label className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
                     2. Tipo
                   </label>
                   <select value={modalRuta.tipo}
@@ -1299,10 +1299,10 @@ export function OperacionDia({
 
               {/* PASO 2: Código auto-generado (editable si necesitás) */}
               <div>
-                <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold flex items-center gap-2">
+                <label className="text-xs uppercase tracking-wide text-muted-foreground font-semibold flex items-center gap-2">
                   3. Código
                   {modalRuta.modo === "nuevo" && (
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-300 font-normal normal-case bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">
+                    <span className="text-xs text-emerald-600 dark:text-emerald-300 font-normal normal-case bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">
                       Auto-generado · podés editarlo
                     </span>
                   )}
@@ -1317,7 +1317,7 @@ export function OperacionDia({
 
               {/* PASO 3: Nombre */}
               <div>
-                <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">4. Nombre</label>
+                <label className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">4. Nombre</label>
                 <input
                   type="text" value={modalRuta.nombre}
                   placeholder="ej: Villa del Parque / Devoto"
@@ -1382,19 +1382,19 @@ export function OperacionDia({
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3 text-center border rounded-lg p-3 bg-slate-50 dark:bg-slate-800/40">
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Rutas</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Rutas</p>
                 <p className="text-xl font-bold">{nActivas}</p>
-                <p className="text-[10px] text-muted-foreground">{nFijos}F · {nPreT}PT · {nCortes}C</p>
+                <p className="text-xs text-muted-foreground">{nFijos}F · {nPreT}PT · {nCortes}C</p>
               </div>
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Prom/ruta</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Prom/ruta</p>
                 <p className={`text-xl font-bold ${estadoColor}`}>{promedio > 0 ? promedio.toFixed(1) : "—"}</p>
-                <p className="text-[10px] text-muted-foreground">target {targetPkg}±5</p>
+                <p className="text-xs text-muted-foreground">target {targetPkg}±5</p>
               </div>
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Choferes</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Choferes</p>
                 <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{choferes}</p>
-                <p className="text-[10px] text-muted-foreground">@{targetPkg} pkg</p>
+                <p className="text-xs text-muted-foreground">@{targetPkg} pkg</p>
               </div>
             </div>
 
@@ -1406,7 +1406,7 @@ export function OperacionDia({
                 margenHasta35 < 200 ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900" :
                 "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900"
               )}>
-                <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-1">
+                <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-1">
                   Capacidad restante antes de superar 40 pkg/ruta
                 </p>
                 <div className="flex items-center justify-center gap-4">
@@ -1452,7 +1452,7 @@ export function OperacionDia({
             {/* Avisos de posibles duplicados / combinaciones raras */}
             {advertenciasActivas.length > 0 && (
               <div className="rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 p-3 space-y-1.5 max-h-32 overflow-y-auto">
-                <p className="text-[10px] uppercase tracking-wide font-bold text-red-700 dark:text-red-300">
+                <p className="text-xs uppercase tracking-wide font-bold text-red-700 dark:text-red-300">
                   Revisá esto antes de exportar
                 </p>
                 {advertenciasActivas.map((a, i) => (
@@ -1465,7 +1465,7 @@ export function OperacionDia({
 
             {/* Checklist final: rutas activas agrupadas por zona */}
             <div className="rounded-lg border p-3 space-y-2 max-h-40 overflow-y-auto">
-              <p className="text-[10px] uppercase tracking-wide font-bold text-muted-foreground">
+              <p className="text-xs uppercase tracking-wide font-bold text-muted-foreground">
                 Checklist final — {nActivas} recorridos activos
               </p>
               {ZONAS_OPT.map(z => {
@@ -1473,7 +1473,7 @@ export function OperacionDia({
                 if (deZona.length === 0) return null;
                 return (
                   <div key={z}>
-                    <p className="text-[10px] font-semibold flex items-center gap-1.5">
+                    <p className="text-xs font-semibold flex items-center gap-1.5">
                       <span className={cn("inline-block w-2 h-2 rounded-full", ZONA_COLOR[z])} />
                       {z} ({deZona.length})
                     </p>
