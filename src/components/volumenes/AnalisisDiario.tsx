@@ -556,15 +556,27 @@ export function AnalisisDiario() {
     // (mismo criterio que el KPI de "Demorados totales" más arriba).
     const post21SinEntregar = Math.max(0, d.post21_total - (d.post21_entregados ?? 0));
     const enCaminoAntes21 = Math.max(0, d.en_camino_destinatario - post21SinEntregar);
-    const exitosos = Math.max(0, d.total_paquetes - d.en_camino_destinatario);
+    const entregados = d.entregados ?? 0;
+    const demorados = d.en_camino_destinatario;
+    // Modo "estado": entregado vs todo el resto del día (cancelados, nadie,
+    // a retirar, etc. incluidos) — coincide con el % éxito histórico.
+    const noEntregado = Math.max(0, d.total_paquetes - entregados);
+    // Modo "demorado" (a pedido de gerencia): entregado vs demorado en
+    // sentido estricto — "en camino al destinatario" + post-21hs sin
+    // entregar. Cancelados y demás quedan fuera de este cálculo.
+    const pctExitoDemorado = (entregados + demorados) > 0
+      ? round2(entregados / (entregados + demorados) * 100) : 0;
     return {
       dia: d.fecha.slice(5),
       fechaCompleta: d.fecha,
       total: d.total_paquetes,
+      entregados,
+      noEntregado,
       pctExito: d.pct_exito,
-      exitosos,
       enCaminoAntes21,
       post21SinEntregar,
+      demorados,
+      pctExitoDemorado,
     };
   });
   const chartCliente = historicoCliente.map(d => ({
@@ -583,11 +595,12 @@ export function AnalisisDiario() {
     const post21Sin = Math.max(0, d.post21_total - (d.post21_entregados ?? 0));
     return {
       total: acc.total + d.total_paquetes,
+      entregados: acc.entregados + (d.entregados ?? 0),
       post21: acc.post21 + d.post21_total,
       enCamino: acc.enCamino + d.en_camino_destinatario,
       post21SinEntregar: acc.post21SinEntregar + post21Sin,
     };
-  }, { total: 0, post21: 0, enCamino: 0, post21SinEntregar: 0 });
+  }, { total: 0, entregados: 0, post21: 0, enCamino: 0, post21SinEntregar: 0 });
 
   return (
     <div className="h-full overflow-y-auto p-5 space-y-4">
@@ -1236,7 +1249,7 @@ function HistoricoView({
   cargando: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   chartGeneral: any[]; chartCliente: any[]; chartClientesTotales: any[];
-  totalesPeriodo: { total: number; post21: number; enCamino: number; post21SinEntregar: number };
+  totalesPeriodo: { total: number; entregados: number; post21: number; enCamino: number; post21SinEntregar: number };
   historicoCliente: HistoricoCliente[];
   tardeDetalleCliente: TardeDetalleFila[];
   estadosTotales: EstadoTotalPeriodo[];
@@ -1244,6 +1257,10 @@ function HistoricoView({
 }) {
   // Demorados totales: "total" = en camino + post-21hs sin entregar · "encamino" = solo en camino
   const [demoradosModo, setDemoradosModo] = useState<"total" | "encamino">("total");
+  // Cómo medir el % de éxito en el gráfico de evolución diaria: contra todo
+  // lo no entregado del día (estado), o solo contra lo demorado — "en camino
+  // al destinatario" + post-21hs sin entregar (definición pedida por gerencia).
+  const [modoGraficoExito, setModoGraficoExito] = useState<"estado" | "demorado">("estado");
   const [diaExpandido, setDiaExpandido] = useState<string | null>(null);
   const [descargando, setDescargando] = useState(false);
 
@@ -1288,7 +1305,7 @@ function HistoricoView({
         pieDePagina(doc, `Cliente: ${clienteSel} · Período: ${desde} a ${hasta}`);
         doc.pdf.save(`informe-${clienteSel.toLowerCase().replace(/\s+/g, "-")}-${desde}-a-${hasta}.pdf`);
       } else {
-        const exitosos = Math.max(0, totalesPeriodo.total - totalesPeriodo.enCamino);
+        const exitosos = totalesPeriodo.entregados;
         const pctExitoPeriodo = totalesPeriodo.total > 0 ? round2(exitosos / totalesPeriodo.total * 100) : 0;
         const { doc, y: y0 } = await crearDocumento("Informe de período", rangoLindo, `${desde} a ${hasta}`);
         let y = dibujarCards(doc, y0, [
@@ -1302,7 +1319,7 @@ function HistoricoView({
           [{ label: "FECHA", w: 40 }, { label: "TOTAL", w: 34, align: "right" }, { label: "ENTREGADOS", w: 34, align: "right" }, { label: "POST-21HS S/ENT.", w: 34, align: "right" }, { label: "% ÉXITO", w: 26, align: "right" }],
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           chartGeneral.map((d: any) => [
-            d.fechaCompleta, d.total.toLocaleString("es-AR"), d.exitosos.toLocaleString("es-AR"),
+            d.fechaCompleta, d.total.toLocaleString("es-AR"), d.entregados.toLocaleString("es-AR"),
             d.post21SinEntregar.toLocaleString("es-AR"), `${Number(d.pctExito).toFixed(1)}%`,
           ]));
         y += 4;
@@ -1356,15 +1373,23 @@ function HistoricoView({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <KpiCard icon={Package} label="Total paquetes del período" valor={totalesPeriodo.total.toLocaleString("es-AR")} tono="blue" />
             {(() => {
-              const exitosos = Math.max(0, totalesPeriodo.total - totalesPeriodo.enCamino);
-              const pctExitoPeriodo = totalesPeriodo.total > 0 ? round2(exitosos / totalesPeriodo.total * 100) : 0;
-              const exitoBajoUmbral = totalesPeriodo.total > 0 && pctExitoPeriodo < UMBRAL_EXITO_PCT;
+              const entregados = totalesPeriodo.entregados;
+              // Estado: entregado vs todo el resto del día (cancelados, nadie, a
+              // retirar, etc.) · Demorado: entregado vs "en camino al
+              // destinatario" + post-21hs sin entregar (definición de gerencia).
+              const base = modoGraficoExito === "estado" ? totalesPeriodo.total : entregados + totalesPeriodo.enCamino;
+              const pctExitoPeriodo = base > 0 ? round2(entregados / base * 100) : 0;
+              const exitoBajoUmbral = base > 0 && pctExitoPeriodo < UMBRAL_EXITO_PCT;
               return (
-                <KpiCard icon={exitoBajoUmbral ? AlertTriangle : CheckCircle} label="% éxito del período" valor={`${pctExitoPeriodo.toFixed(2)}%`}
+                <KpiCard icon={exitoBajoUmbral ? AlertTriangle : CheckCircle}
+                  label={modoGraficoExito === "estado" ? "% éxito del período (vs total)" : "% éxito del período (vs demorado)"}
+                  valor={`${pctExitoPeriodo.toFixed(2)}%`}
                   sub={exitoBajoUmbral
-                    ? `⚠ Debajo del objetivo (${UMBRAL_EXITO_PCT}%) — ${exitosos.toLocaleString("es-AR")} entregados`
-                    : `${exitosos.toLocaleString("es-AR")} entregados`}
-                  tono={exitoBajoUmbral ? "red" : "emerald"} />
+                    ? `⚠ Debajo del objetivo (${UMBRAL_EXITO_PCT}%) — ${entregados.toLocaleString("es-AR")} entregados — clic para cambiar la vista`
+                    : `${entregados.toLocaleString("es-AR")} entregados — clic para cambiar la vista`}
+                  tono={exitoBajoUmbral ? "red" : "emerald"}
+                  onClick={() => setModoGraficoExito(m => m === "estado" ? "demorado" : "estado")}
+                  hint="Clic para alternar entre % éxito vs total del día y % éxito vs demorado (en camino al destinatario + post-21hs sin entregar)" />
               );
             })()}
             <KpiCard icon={Clock} label="Total post-21hs" valor={totalesPeriodo.post21.toLocaleString("es-AR")}
@@ -1389,11 +1414,29 @@ function HistoricoView({
 
           {/* Evolución diaria — barras apiladas (composición real de cada día) + % de éxito */}
           <div className="border rounded-lg p-4 bg-card">
-            <div className="flex items-baseline justify-between mb-2">
-              <p className="text-xs font-bold">Evolución diaria — composición de paquetes y % de éxito</p>
-              <p className="text-xs text-muted-foreground">
-                Objetivo de éxito: <span className="font-semibold">{UMBRAL_EXITO_PCT}%</span>
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+              <p className="text-xs font-bold">
+                Evolución diaria — {modoGraficoExito === "estado" ? "entregado vs no entregado" : "entregado vs demorado"}
               </p>
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1 bg-muted/40 rounded-lg p-1">
+                  <button onClick={() => setModoGraficoExito("estado")}
+                    className={cn("text-[11px] px-2.5 py-1 rounded-md font-medium transition-colors",
+                      modoGraficoExito === "estado" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                    title="% éxito = entregados / todos los paquetes del día (incluye cancelados, nadie, a retirar, etc.)">
+                    Entregado / no entregado
+                  </button>
+                  <button onClick={() => setModoGraficoExito("demorado")}
+                    className={cn("text-[11px] px-2.5 py-1 rounded-md font-medium transition-colors",
+                      modoGraficoExito === "demorado" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                    title="% éxito = entregados / (entregados + demorados). Demorado = en camino al destinatario + post-21hs sin entregar.">
+                    Entregado / demorado
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Objetivo: <span className="font-semibold">{UMBRAL_EXITO_PCT}%</span>
+                </p>
+              </div>
             </div>
             {chartGeneral.length === 0 ? (
               <EmptyState icon={Package} title="Sin datos en este rango" />
@@ -1407,13 +1450,22 @@ function HistoricoView({
                   <Tooltip {...ct.tooltip}
                     labelFormatter={(_, p) => p?.[0]?.payload?.fechaCompleta ?? ""}
                     formatter={(value, name) =>
-                      name === "% éxito" ? [`${Number(value).toFixed(1)}%`, name] : [Number(value).toLocaleString("es-AR"), name]} />
+                      String(name).startsWith("% éxito") ? [`${Number(value).toFixed(1)}%`, name] : [Number(value).toLocaleString("es-AR"), name]} />
                   <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" iconSize={8} />
                   <ReferenceLine yAxisId="pct" y={UMBRAL_EXITO_PCT} stroke="#16a34a" strokeDasharray="4 4" strokeOpacity={0.6} />
-                  <Bar yAxisId="cant" dataKey="exitosos" name="Entregados" stackId="dia" fill="#1d4ed8" radius={[0, 0, 0, 0]} />
-                  <Bar yAxisId="cant" dataKey="enCaminoAntes21" name="En camino" stackId="dia" fill="#f59e0b" radius={[0, 0, 0, 0]} />
-                  <Bar yAxisId="cant" dataKey="post21SinEntregar" name="Post-21hs sin entregar" stackId="dia" fill="#ef4444" radius={[3, 3, 0, 0]} />
-                  <Line yAxisId="pct" type="monotone" dataKey="pctExito" name="% éxito" stroke="#16a34a" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                  <Bar yAxisId="cant" dataKey="entregados" name="Entregados" stackId="dia" fill="#1d4ed8" radius={[0, 0, 0, 0]} />
+                  {modoGraficoExito === "estado" ? (
+                    <Bar yAxisId="cant" dataKey="noEntregado" name="No entregado" stackId="dia" fill="#ef4444" radius={[3, 3, 0, 0]} />
+                  ) : (
+                    <>
+                      <Bar yAxisId="cant" dataKey="enCaminoAntes21" name="En camino" stackId="dia" fill="#f59e0b" radius={[0, 0, 0, 0]} />
+                      <Bar yAxisId="cant" dataKey="post21SinEntregar" name="Post-21hs sin entregar" stackId="dia" fill="#ef4444" radius={[3, 3, 0, 0]} />
+                    </>
+                  )}
+                  <Line yAxisId="pct" type="monotone"
+                    dataKey={modoGraficoExito === "estado" ? "pctExito" : "pctExitoDemorado"}
+                    name={modoGraficoExito === "estado" ? "% éxito (vs total)" : "% éxito (vs demorado)"}
+                    stroke="#16a34a" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
                 </ComposedChart>
               </ResponsiveContainer>
             )}

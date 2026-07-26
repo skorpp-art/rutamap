@@ -208,6 +208,7 @@ export async function getAnalisisDiarioClientes(
 export interface HistoricoDia {
   fecha: string;
   total_paquetes: number;
+  entregados: number;
   pct_exito: number;
   post21_total: number;
   post21_entregados: number;
