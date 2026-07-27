@@ -48,6 +48,15 @@ function semaforo(total: number): string {
   return "bg-muted text-muted-foreground border-border";
 }
 
+// Mismo criterio que el semáforo de la tabla, pero como color de texto — para
+// que el promedio por conductor se lea de un vistazo como carga alta o normal.
+function semaforoTexto(total: number): string | undefined {
+  if (total >= 40) return "text-red-700 dark:text-red-300";
+  if (total >= 30) return "text-amber-700 dark:text-amber-300";
+  if (total > 0) return "text-emerald-700 dark:text-emerald-300";
+  return undefined;
+}
+
 // Pill de filtro de zona (tab con cuadrito de color + contador)
 function ZonaPill({ activo, onClick, dot, label, count, icon: Icon }: {
   activo: boolean; onClick: () => void; dot: string; label: string; count: number; icon?: typeof Package;
@@ -505,6 +514,38 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
     especiales: filasParaTotal.reduce((s, f) => s + (especialesCount[f.recorrido_id] ?? 0), 0),
   }), [filasParaTotal, especialesCount]);
 
+  // Promedios del alcance elegido: siguen al filtro de zona, así que en "Todas"
+  // son del día completo y al entrar a una zona pasan a ser de esa zona sola.
+  //
+  // Por conductor se agrupa por nombre y no por fila: un mismo chofer puede
+  // tener más de un recorrido en el día (o uno de tarde y uno de pre-turno) y
+  // lo que se quiere saber es cuántos paquetes se llevó la persona. Solo entran
+  // las filas que ya tienen chofer cargado, para no diluir el promedio con
+  // recorridos a los que todavía no se les asignó nadie.
+  const promedios = useMemo(() => {
+    const porChofer = new Map<string, number>();
+    for (const f of filasParaTotal) {
+      const nombre = (f.chofer ?? "").trim();
+      if (!nombre) continue;
+      const clave = nombre.toLowerCase();
+      porChofer.set(clave, (porChofer.get(clave) ?? 0) + f.sistema + f.x_fuera);
+    }
+    const totalAsignado = [...porChofer.values()].reduce((s, v) => s + v, 0);
+    const zonas = new Set(filasParaTotal.map(f => f.zona || "Sin zona"));
+    return {
+      choferes: porChofer.size,
+      porChofer: porChofer.size > 0 ? Math.round(totalAsignado / porChofer.size) : 0,
+      zonas: zonas.size,
+      porZona: zonas.size > 0 ? Math.round(granTotal.total / zonas.size) : 0,
+      porRecorrido: filasParaTotal.length > 0 ? Math.round(granTotal.total / filasParaTotal.length) : 0,
+    };
+  }, [filasParaTotal, granTotal.total]);
+
+  // Texto del alcance, para que el promedio diga siempre sobre qué está calculado
+  const ambito = filtro === null ? "día completo"
+    : filtro === "preturno" ? "pre-turno"
+    : `zona ${filtro}`;
+
   // Recorridos del día que todavía no están en la carga del turno actual (para el selector)
   const rutasDisponibles = useMemo(() => {
     const enCarga = new Set(filasTurno.map(f => f.recorrido_id));
@@ -557,6 +598,37 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
               valor: totalPaquetesCliente.toLocaleString("es-AR"),
               sub: totalPaquetesCliente > 0 ? "Excel importado" : "sin importar",
             },
+          ]}
+        />
+
+        {/* ── Promedios del alcance elegido ──
+            Cambian solos con el filtro de zona de abajo: en "Todas" son del día
+            completo, y al entrar a una zona pasan a ser de esa zona nada más. */}
+        <StatRow
+          compact
+          labelsUpper
+          stats={[
+            {
+              label: "Prom. por conductor",
+              valor: promedios.porChofer.toLocaleString("es-AR"),
+              valorClassName: semaforoTexto(promedios.porChofer),
+              sub: promedios.choferes > 0
+                ? `${promedios.choferes} ${promedios.choferes === 1 ? "conductor" : "conductores"} · ${ambito}`
+                : "todavía sin choferes cargados",
+            },
+            filtro === null || filtro === "preturno"
+              ? {
+                  label: "Prom. por zona",
+                  valor: promedios.porZona.toLocaleString("es-AR"),
+                  sub: promedios.zonas > 0
+                    ? `${promedios.zonas} ${promedios.zonas === 1 ? "zona" : "zonas"} · ${ambito}`
+                    : "sin zonas cargadas",
+                }
+              : {
+                  label: "Prom. por recorrido",
+                  valor: promedios.porRecorrido.toLocaleString("es-AR"),
+                  sub: `${filasParaTotal.length} ${filasParaTotal.length === 1 ? "recorrido" : "recorridos"} · ${ambito}`,
+                },
           ]}
         />
 
