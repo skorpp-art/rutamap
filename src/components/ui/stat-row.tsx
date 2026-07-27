@@ -33,7 +33,8 @@ export function StatRow({
     <div
       className={cn(
         "border rounded-lg bg-card overflow-hidden grid divide-x divide-border animate-fade-up",
-        stats.length >= 5 ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
+        stats.length >= 6 ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"
+          : stats.length === 5 ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
           : stats.length === 4 ? "grid-cols-2 sm:grid-cols-4"
           : stats.length === 3 ? "grid-cols-3"
           : "grid-cols-2",
