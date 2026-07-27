@@ -649,29 +649,31 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
 
         {/* ── Acciones de armado ── */}
         {puedeEditar && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button size="sm" variant="outline" onClick={traerDeOperacion} className="h-10 gap-1.5 text-sm font-bold rounded-md">
-              <Plus className="h-4 w-4" />
+          // Una sola fila: los controles no envuelven, y si la pantalla es muy
+          // angosta la fila desliza en horizontal como la de los filtros de zona.
+          <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto no-scrollbar pb-0.5">
+            <Button size="sm" variant="outline" onClick={traerDeOperacion} className="h-8 gap-1.5 text-xs font-bold rounded-md shrink-0">
+              <Plus className="h-3.5 w-3.5" />
               Traer recorridos de Operación del Día
             </Button>
-            <Button size="sm" variant="outline" onClick={() => setModalConductores(true)} className="h-10 gap-1.5 text-sm font-bold rounded-md">
-              <Users className="h-4 w-4" />
+            <Button size="sm" variant="outline" onClick={() => setModalConductores(true)} className="h-8 gap-1.5 text-xs font-bold rounded-md shrink-0">
+              <Users className="h-3.5 w-3.5" />
               Conductores ({conductores.length})
             </Button>
-            <Button size="sm" variant="outline" onClick={() => setModalCondiciones(true)} className="h-10 gap-1.5 text-sm font-bold rounded-md">
-              <Wallet className="h-4 w-4" />
+            <Button size="sm" variant="outline" onClick={() => setModalCondiciones(true)} className="h-8 gap-1.5 text-xs font-bold rounded-md shrink-0">
+              <Wallet className="h-3.5 w-3.5" />
               Condiciones especiales ({condicionesPorCliente.length})
             </Button>
             <Button size="sm" variant={mostrarImportarClientes ? "default" : "outline"}
               onClick={() => setMostrarImportarClientes(v => !v)}
-              className={cn("h-10 gap-1.5 text-sm font-bold rounded-md", mostrarImportarClientes && "bg-blue-600 text-white hover:bg-blue-700")}>
-              <FileSpreadsheet className="h-4 w-4" />
+              className={cn("h-8 gap-1.5 text-xs font-bold rounded-md shrink-0", mostrarImportarClientes && "bg-blue-600 text-white hover:bg-blue-700")}>
+              <FileSpreadsheet className="h-3.5 w-3.5" />
               {mostrarImportarClientes ? "Cerrar" : "Paquetes por cliente (Excel)"}
             </Button>
             {rutasDisponibles.length > 0 && (
               <select value={agregandoCodigo}
                 onChange={e => { if (e.target.value) agregarRecorrido(e.target.value); }}
-                className="text-sm font-medium border rounded-md px-3 bg-background max-w-72 h-10">
+                className="text-xs font-medium border rounded-md px-2.5 bg-background max-w-64 h-8 shrink-0">
                 <option value="">+ Agregar recorrido suelto…</option>
                 {rutasDisponibles.map(r => (
                   <option key={r.recorrido_id} value={r.recorrido_id}>
@@ -680,11 +682,6 @@ export function CargaDia({ puedeEditar }: { puedeEditar: boolean }) {
                 ))}
               </select>
             )}
-            <span className="text-xs text-muted-foreground ml-auto">
-              Semáforo: <span className="text-emerald-600 font-medium">≤29</span> ·{" "}
-              <span className="text-amber-600 font-medium">30–39</span> ·{" "}
-              <span className="text-red-600 font-medium">40+</span> — se guarda solo al escribir
-            </span>
           </div>
         )}
 
