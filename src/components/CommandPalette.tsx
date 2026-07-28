@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
   Map as MapIcon, Package, Calculator, Settings2, BarChart3, CalendarRange,
-  Search, CornerDownLeft, Truck, Sun, Moon,
+  Search, CornerDownLeft, Truck, Sun, Moon, MessageCircle,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -65,6 +65,7 @@ export function CommandPalette({ esInvitado = false }: { esInvitado?: boolean })
         { id: "operacion", titulo: "Operación", grupo: "Planificación", keywords: "operacion dia recorridos cortes preturnos armar", icon: Settings2, accion: () => cerrarYNavegar("/volumenes?tab=operacion") },
         { id: "analisis", titulo: "Rendimiento de recorridos", grupo: "Planificación", keywords: "rendimiento analisis recorridos clientes historico operaciones", icon: BarChart3, accion: () => cerrarYNavegar("/volumenes?tab=analisis") },
         { id: "herramientas", titulo: "Herramientas", grupo: "Planificación", keywords: "herramientas plantillas kpis historial informe feriados", icon: CalendarRange, accion: () => cerrarYNavegar("/volumenes?tab=herramientas") },
+        { id: "alternativas", titulo: "Ir a Alternativas", grupo: "Navegación", keywords: "alternativas demoras whatsapp etiquetas redespacho no entregado direccion", icon: MessageCircle, accion: () => cerrarYNavegar("/alternativas") },
       );
     }
     const esOscuro = resolvedTheme === "dark";

@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   Map, Package, BarChart3, PackageCheck, Users, Lock, Truck, ClipboardList,
   MonitorSmartphone, LogOut, LogIn, ChevronsUpDown, PanelLeftClose, PanelLeftOpen,
-  Route as RouteIcon, ChevronDown, ChevronRight, Search,
+  Route as RouteIcon, ChevronDown, ChevronRight, Search, MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { tieneSolapa } from "@/lib/permisos";
@@ -74,6 +74,7 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
       { href: "/carga", label: "Carga del Día", icon: ClipboardList, visible: !esInvitado && tieneSolapa(perfil, "carga") },
       { href: "/volumenes", label: "Planificación", icon: Package, visible: esInvitado || tieneSolapa(perfil, "volumenes"), bloqueado: esInvitado },
       { href: "/pendientes", label: "Pendientes", icon: PackageCheck, visible: !esInvitado && tieneSolapa(perfil, "pendientes") },
+      { href: "/alternativas", label: "Alternativas", icon: MessageCircle, visible: !esInvitado && tieneSolapa(perfil, "alternativas") },
     ] },
     { key: "analisis", label: "Análisis", desc: "Resultados y desempeño", items: [
       { href: "/analisis-diario", label: "Resultados", icon: BarChart3, visible: esInvitado || tieneSolapa(perfil, "analisis"), bloqueado: esInvitado },
