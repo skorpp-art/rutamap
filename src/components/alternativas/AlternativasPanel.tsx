@@ -198,8 +198,11 @@ export function AlternativasPanel({ puedeEditar }: { puedeEditar: boolean }) {
   }
 
   return (
-    <div className="h-full overflow-hidden flex flex-col">
-      <div className="shrink-0 max-w-[1700px] w-full mx-auto px-5 pt-5 space-y-4">
+    // La página entera scrollea (como la Carga del Día) y el panel de detalle
+    // queda pegado: si el encabezado se lleva la altura, al panel no le sobran
+    // 300px con scroll adentro de scroll.
+    <div className="h-full overflow-y-auto">
+      <div className="max-w-[1700px] w-full mx-auto px-5 pt-5 space-y-4">
         <PageHeader
           titulo="Alternativas"
           desc="Casos que no se pudieron entregar: se le pide al cliente otra dirección por WhatsApp y, con la respuesta, se imprime la etiqueta de re-despacho."
@@ -282,10 +285,10 @@ export function AlternativasPanel({ puedeEditar }: { puedeEditar: boolean }) {
       </div>
 
       {/* Tabla + panel de detalle */}
-      <div className="flex-1 min-h-0 max-w-[1700px] w-full mx-auto px-5 pb-5 pt-4 grid grid-cols-1 lg:grid-cols-[1fr_370px] gap-4">
-        <div className="min-h-0 overflow-auto border rounded-lg bg-card">
+      <div className="max-w-[1700px] w-full mx-auto px-5 pb-5 pt-4 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_440px] gap-4 items-start">
+        <div className="min-w-0 overflow-x-auto border rounded-lg bg-card">
           <table className="w-full">
-            <thead className="sticky top-0 z-10">
+            <thead>
               <tr className="bg-foreground text-background">
                 {["#", "Tipo", "Cliente", "Teléfono", "Dirección original", "Conductor", "Estado", "Alternativa"].map(h => (
                   <th key={h} className="px-2.5 py-2 text-left text-xs font-bold uppercase tracking-wide whitespace-nowrap">{h}</th>
@@ -341,8 +344,14 @@ export function AlternativasPanel({ puedeEditar }: { puedeEditar: boolean }) {
           </table>
         </div>
 
-        {/* Detalle */}
-        <div className="min-h-0 border rounded-lg bg-card overflow-hidden hidden lg:block">
+        {/* Detalle: pegado al viewport, así acompaña mientras se recorre la
+            tabla y tiene alto real para trabajar. En pantallas chicas se
+            muestra debajo de la tabla, sólo cuando hay un caso elegido. */}
+        <div className={cn(
+          "border rounded-lg bg-card overflow-hidden flex flex-col",
+          "lg:sticky lg:top-4 lg:h-[calc(100vh-6rem)]",
+          !seleccionado && "hidden lg:flex"
+        )}>
           {seleccionado ? (
             <AlternativasDrawer
               caso={seleccionado}

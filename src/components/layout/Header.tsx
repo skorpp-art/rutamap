@@ -35,13 +35,14 @@ const TITULOS: { match: (p: string) => boolean; titulo: string }[] = [
   { match: p => p.startsWith("/volumenes"), titulo: "Planificación" },
   { match: p => p.startsWith("/analisis-diario"), titulo: "Resultados" },
   { match: p => p.startsWith("/pendientes"), titulo: "Pendientes" },
+  { match: p => p.startsWith("/alternativas"), titulo: "Alternativas" },
   { match: p => p.startsWith("/usuarios"), titulo: "Usuarios" },
   { match: p => p.startsWith("/descargar"), titulo: "Instalar app" },
 ];
 
 // Pantallas que ya muestran su propio título grande (PageHeader): acá la barra
 // superior no lo repite, para no leer "Pendientes" dos veces seguidas.
-const CON_TITULO_PROPIO = ["/carga", "/pendientes", "/analisis-diario", "/usuarios", "/ruta"];
+const CON_TITULO_PROPIO = ["/carga", "/pendientes", "/alternativas", "/analisis-diario", "/usuarios", "/ruta"];
 
 // Solapas de Planificación, mostradas en la barra superior
 const TABS_VOLUMENES = [

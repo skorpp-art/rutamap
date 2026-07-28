@@ -77,7 +77,9 @@ export function AlternativasDrawer({
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    // flex-1 y no h-full: en pantallas chicas el contenedor no tiene alto fijo,
+    // así el panel crece con su contenido en vez de colapsar.
+    <div className="flex flex-col flex-1 min-h-0 w-full">
       <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
         {/* Encabezado */}
         <div className="flex justify-between items-start gap-2">
@@ -134,7 +136,7 @@ export function AlternativasDrawer({
                   chofer: r?.chofer ?? borrador.chofer,
                 });
               }}
-              className="h-9 text-sm border rounded-md px-2 bg-background disabled:opacity-60"
+              className="h-10 text-sm border rounded-md px-2.5 bg-background disabled:opacity-60"
             >
               <option value="">— sin asignar —</option>
               {recorridos.map(r => (
@@ -149,7 +151,7 @@ export function AlternativasDrawer({
             <label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Conductor / Móvil</label>
             <input list="rm-conductores" value={borrador.chofer ?? ""} disabled={!puedeEditar}
               onChange={e => editar({ chofer: e.target.value })}
-              className="h-9 text-sm border rounded-md px-2 bg-background disabled:opacity-60"
+              className="h-10 text-sm border rounded-md px-2.5 bg-background disabled:opacity-60"
               placeholder="Marcelo Fernández / Móvil 3" />
             <datalist id="rm-conductores">
               {conductores.map(c => <option key={c} value={c} />)}
@@ -165,9 +167,9 @@ export function AlternativasDrawer({
               <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Respuesta del cliente</p>
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Dirección alternativa</label>
-                <textarea rows={2} value={alternativa} disabled={!puedeEditar}
+                <textarea rows={3} value={alternativa} disabled={!puedeEditar}
                   onChange={e => setAlternativa(e.target.value)}
-                  className="text-sm border rounded-md px-2 py-1.5 bg-background resize-y disabled:opacity-60"
+                  className="text-sm border rounded-md px-2.5 py-2 bg-background resize-y disabled:opacity-60 min-h-[72px]"
                   placeholder="Av. Juan de Garay 3450, San Telmo (Portería A)" />
               </div>
               <Campo label="Observación para el chofer" valor={observacion}
@@ -176,7 +178,7 @@ export function AlternativasDrawer({
               {puedeEditar && (
                 <Button size="sm" variant="outline" onClick={guardarRespuesta}
                   disabled={!alternativa.trim() || guardando}
-                  className="w-full h-9 gap-1.5 text-xs font-bold">
+                  className="w-full h-10 gap-1.5 text-sm font-bold">
                   <Save className="h-3.5 w-3.5" />
                   Guardar respuesta y preparar etiqueta
                 </Button>
@@ -198,11 +200,11 @@ export function AlternativasDrawer({
           {borrador.estado === "pendiente" && (
             <>
               <Button size="sm" onClick={() => onEnviar(borrador)}
-                className="w-full h-9 gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white">
+                className="w-full h-10 gap-1.5 text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white">
                 <MessageCircle className="h-3.5 w-3.5" /> Abrir WhatsApp y marcar enviado
               </Button>
               <Button size="sm" variant="outline" onClick={() => onEstado(borrador.id, "enviado")}
-                className="w-full h-9 gap-1.5 text-xs font-bold">
+                className="w-full h-10 gap-1.5 text-sm font-bold">
                 <Check className="h-3.5 w-3.5" /> Marcar enviado sin abrir
               </Button>
             </>
@@ -212,12 +214,12 @@ export function AlternativasDrawer({
             <>
               {!esAlt && (
                 <Button size="sm" onClick={() => onEstado(borrador.id, "cerrado")}
-                  className="w-full h-9 gap-1.5 text-xs font-bold">
+                  className="w-full h-10 gap-1.5 text-sm font-bold">
                   <Check className="h-3.5 w-3.5" /> Cerrar caso
                 </Button>
               )}
               <Button size="sm" variant="outline" onClick={() => onEnviar(borrador)}
-                className="w-full h-9 gap-1.5 text-xs font-bold">
+                className="w-full h-10 gap-1.5 text-sm font-bold">
                 <MessageCircle className="h-3.5 w-3.5" /> Re-enviar mensaje
               </Button>
             </>
@@ -226,11 +228,11 @@ export function AlternativasDrawer({
           {(borrador.estado === "alternativa" || borrador.estado === "impreso") && (
             <>
               <Button size="sm" onClick={() => onEnviar(borrador)}
-                className="w-full h-9 gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white">
+                className="w-full h-10 gap-1.5 text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white">
                 <MessageCircle className="h-3.5 w-3.5" /> Enviar confirmación al cliente
               </Button>
               <Button size="sm" variant="outline" onClick={() => onImprimir(borrador)}
-                className="w-full h-9 gap-1.5 text-xs font-bold">
+                className="w-full h-10 gap-1.5 text-sm font-bold">
                 <Printer className="h-3.5 w-3.5" /> Imprimir esta etiqueta
               </Button>
             </>
@@ -238,13 +240,13 @@ export function AlternativasDrawer({
 
           {borrador.estado === "cerrado" && (
             <Button size="sm" variant="outline" onClick={() => onEstado(borrador.id, "enviado")}
-              className="w-full h-9 gap-1.5 text-xs font-bold">
+              className="w-full h-10 gap-1.5 text-sm font-bold">
               <RotateCcw className="h-3.5 w-3.5" /> Reabrir caso
             </Button>
           )}
 
           <Button size="sm" variant="outline" onClick={() => onEliminar(borrador.id)}
-            className="w-full h-8 gap-1.5 text-xs font-bold text-destructive hover:text-destructive">
+            className="w-full h-9 gap-1.5 text-sm font-bold text-destructive hover:text-destructive">
             <Trash2 className="h-3.5 w-3.5" /> Eliminar caso
           </Button>
         </div>
@@ -262,7 +264,7 @@ function Campo({ label, valor, onChange, disabled, placeholder }: {
       <label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</label>
       <input value={valor} disabled={disabled} placeholder={placeholder}
         onChange={e => onChange(e.target.value)}
-        className="h-9 text-sm border rounded-md px-2 bg-background disabled:opacity-60" />
+        className="h-10 text-sm border rounded-md px-2.5 bg-background disabled:opacity-60" />
     </div>
   );
 }
