@@ -60,6 +60,8 @@ export interface AnalisisDiarioPayload {
   tardeZona: TardeZonaOChofer[];
   tardeChofer: TardeZonaOChofer[];
   tardeDetalle: TardeDetalleFila[];
+  /** Hoja "Detalle de Envios Dia": paquetes NO entregados del día completo. */
+  detalle: TardeDetalleFila[];
 }
 
 export async function guardarAnalisisDiario(
@@ -76,6 +78,7 @@ export async function guardarAnalisisDiario(
       p_tarde_zona: payload.tardeZona,
       p_tarde_chofer: payload.tardeChofer,
       p_tarde_detalle: payload.tardeDetalle,
+      p_detalle: payload.detalle ?? [],
     });
     if (error) return { ok: false, error: error.message };
     revalidatePath("/analisis-diario");
@@ -105,6 +108,23 @@ export async function getTardeDetalleDia(
     const supabase = await createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any).rpc("get_tarde_detalle_dia", { p_fecha: fecha });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, data: (data ?? []) as TardeDetalleFila[] };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
+/**
+ * Detalle por paquete del día completo (no entregados). Es lo que permite ver
+ * las direcciones de los "En camino al destinatario", que hasta ahora sólo
+ * existían como un total en el resumen.
+ */
+export async function getDetalleDia(
+  fecha: string
+): Promise<{ ok: boolean; data?: TardeDetalleFila[]; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("get_detalle_dia", { p_fecha: fecha });
     if (error) return { ok: false, error: error.message };
     return { ok: true, data: (data ?? []) as TardeDetalleFila[] };
   } catch (e) { return { ok: false, error: String(e) }; }

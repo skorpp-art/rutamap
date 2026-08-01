@@ -19,7 +19,7 @@ import {
   getAnalisisDiarioClientes, getAnalisisDiarioHistorico,
   getHistoricoCliente, getClientesAnalisisDiario, getClientesTotalesPeriodo,
   getEstadosTotalesPeriodo,
-  getTardeDetalleDia, getTardeDetallePeriodo,
+  getTardeDetalleDia, getTardeDetallePeriodo, getDetalleDia,
 } from "@/app/actions/analisis-diario";
 import type {
   AnalisisDiarioPayload, ResumenAnalisisDia, EstadoDia, ClienteDia,
@@ -185,6 +185,12 @@ interface ResumenRaw {
   totalPaquetes: number;
   estados: EstadoDia[];
   porCliente: { cliente: string; cantidad: number; pctDelDia: number; enCamino: number }[];
+  /**
+   * Paquetes NO entregados del día completo (hoja "Detalle de Envios Dia").
+   * null = el Excel no trae esa hoja (formato viejo); [] = la trae y no hubo
+   * ninguno. La diferencia importa para avisar al importar.
+   */
+  detalle: TardeDetalleRaw[] | null;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -202,7 +208,14 @@ function extraerResumen(XLSX: typeof import("xlsx"), wb: any): ResumenRaw | null
   if (!wb.SheetNames.includes("Resumen General")) return null;
   const resumenGeneral = parseResumenGeneral(sheetRows(XLSX, wb, "Resumen General"));
   const porCliente = wb.SheetNames.includes("Resumen por Cliente") ? parseResumenPorCliente(sheetRows(XLSX, wb, "Resumen por Cliente")) : [];
-  return { fecha: resumenGeneral.fecha, totalPaquetes: resumenGeneral.totalPaquetes, estados: resumenGeneral.estados, porCliente };
+  // "Detalle de Envios Dia" trae una fila por paquete del día completo, con las
+  // mismas columnas que "Detalle de Envios Tarde". Se guardan sólo los NO
+  // entregados: son los que importan acá y evita almacenar 10x más filas.
+  const detalle = wb.SheetNames.includes("Detalle de Envios Dia")
+    ? parseDetalleEnviosTarde(sheetRows(XLSX, wb, "Detalle de Envios Dia"))
+        .filter(d => !(d.estado ?? "").toLowerCase().startsWith("entregado"))
+    : null;
+  return { fecha: resumenGeneral.fecha, totalPaquetes: resumenGeneral.totalPaquetes, estados: resumenGeneral.estados, porCliente, detalle };
 }
 
 async function parseArchivoTarde(file: File): Promise<{ data: TardeRaw | null; warning?: string }> {
@@ -278,6 +291,12 @@ function construirPayload(tardeRaw: TardeRaw | null, resumenRaw: ResumenRaw | nu
     return { payload: null, warnings };
   }
 
+  // Sin esta hoja el día se guarda igual, pero sin las direcciones de los
+  // demorados. Conviene avisarlo al importar y no descubrirlo después.
+  if (resumenRaw.detalle === null) {
+    warnings.push("El \"Resumen de Envíos\" no trae la hoja \"Detalle de Envios Dia\": el día se guarda, pero sin las direcciones de los demorados.");
+  }
+
   const totalPaquetes = resumenRaw.totalPaquetes;
   // Contempla todas las variantes de "Entregado" (ej. "Entregado 2da Visita"),
   // no solo el estado exacto "Entregado" — antes esos paquetes quedaban
@@ -328,6 +347,11 @@ function construirPayload(tardeRaw: TardeRaw | null, resumenRaw: ResumenRaw | nu
       tardeZona: tardeRaw.tardeZona.map(z => ({ zona: z.nombre, cantidad: z.cantidad, entregados: z.entregados, pct_efectividad: z.pctEfectividad })),
       tardeChofer: tardeRaw.tardeChofer.map(c => ({ chofer: c.nombre, cantidad: c.cantidad, entregados: c.entregados, pct_efectividad: c.pctEfectividad })),
       tardeDetalle: tardeRaw.tardeDetalle.map(d => ({
+        tracking: d.tracking, hora: d.hora, estado: d.estado, zona: d.zona,
+        localidad: d.localidad, chofer: d.chofer, cliente: d.cliente,
+        destinatario: d.destinatario, direccion: d.direccion,
+      })),
+      detalle: (resumenRaw.detalle ?? []).map(d => ({
         tracking: d.tracking, hora: d.hora, estado: d.estado, zona: d.zona,
         localidad: d.localidad, chofer: d.chofer, cliente: d.cliente,
         destinatario: d.destinatario, direccion: d.direccion,
@@ -819,6 +843,14 @@ function DiaView({
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const [descargando, setDescargando] = useState(false);
 
+  // Detalle de "En camino al destinatario": las direcciones del día completo.
+  // Es independiente del post-21hs — no se suman ni se mezclan.
+  const [verEnCamino, setVerEnCamino] = useState(false);
+  const [detalleDia, setDetalleDia] = useState<TardeDetalleFila[] | null>(null);
+  const [cargandoEnCamino, setCargandoEnCamino] = useState(false);
+  const [filtroClienteEC, setFiltroClienteEC] = useState("");
+  const [filtroZonaEC, setFiltroZonaEC] = useState("");
+
   const clientesOrdenados = [...clientes].sort((a, b) => b.cantidad - a.cantidad || b.en_camino_destinatario - a.en_camino_destinatario);
   const maxPctDia = Math.max(1, ...clientes.map(c => c.pct_del_dia));
   const filtrados = clientesOrdenados.filter(c => c.cliente.toLowerCase().includes(busqueda.toLowerCase()));
@@ -838,10 +870,44 @@ function DiaView({
     }
   }
 
+  // "Demorados totales" del encabezado ya viene sumado (en camino + post-21hs
+  // sin entregar). Acá interesa sólo el componente "en camino", que es el que
+  // tiene direcciones.
+  const post21SinEntregarDia = resumen ? Math.max(0, resumen.post21_total - resumen.post21_entregados) : 0;
+  const caminoSolo = resumen ? Math.max(0, resumen.en_camino_destinatario - post21SinEntregarDia) : 0;
+
+  async function toggleEnCamino() {
+    if (verEnCamino) { setVerEnCamino(false); return; }
+    setVerEnCamino(true);
+    if (detalleDia === null) {
+      setCargandoEnCamino(true);
+      try {
+        const res = await getDetalleDia(fecha);
+        // null = no se pudo leer · [] = el día se importó sin la hoja nueva
+        setDetalleDia(res.ok ? (res.data ?? []) : []);
+      } finally { setCargandoEnCamino(false); }
+    }
+  }
+
+  // Sólo el estado literal "En camino al destinatario": deja afuera el
+  // "en camino reprogramado" y todo lo post-21hs.
+  const enCaminoFilas = (detalleDia ?? []).filter(
+    d => sinAcentos(d.estado ?? "").includes("en camino al destinatario")
+  );
+  const clientesEC = [...new Set(enCaminoFilas.map(d => d.cliente).filter(Boolean) as string[])].sort();
+  const zonasEC = [...new Set(enCaminoFilas.map(d => d.zona).filter(Boolean) as string[])].sort();
+  const enCaminoVisibles = enCaminoFilas
+    .filter(d => !filtroClienteEC || d.cliente === filtroClienteEC)
+    .filter(d => !filtroZonaEC || d.zona === filtroZonaEC);
+
   // Recargar el detalle si cambia el día mientras está abierto
   useEffect(() => {
     setDetallePost21([]);
     setVerDetallePost21(false);
+    setDetalleDia(null);
+    setVerEnCamino(false);
+    setFiltroClienteEC("");
+    setFiltroZonaEC("");
   }, [fecha]);
 
   // Informe PDF prolijo del día — de todo el día, o acotado al cliente
@@ -1010,6 +1076,84 @@ function DiaView({
               ▲▼ comparado con el mismo día de la semana anterior ({resumenSemAnt.fecha})
             </p>
           )}
+
+          {/* ── Direcciones de los "En camino al destinatario" ──
+              Independiente del post-21hs: acá no se suma nada, son sólo los
+              paquetes con ese estado literal en el Resumen de Envíos. */}
+          <div className="border-2 border-red-200 dark:border-red-900/60 rounded-lg overflow-hidden bg-card">
+            <button onClick={toggleEnCamino}
+              className="w-full flex items-center gap-2 px-4 py-3 border-b bg-red-50/70 dark:bg-red-950/25 text-left hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors">
+              {verEnCamino ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              <Truck className="h-4 w-4 text-red-600 dark:text-red-300" />
+              <p className="text-sm font-semibold">
+                Direcciones demoradas — En camino al destinatario
+                {resumen && <span className="ml-2 text-red-700 dark:text-red-300 tabular-nums">({caminoSolo})</span>}
+              </p>
+              <span className="text-xs text-muted-foreground ml-auto">sin contar el post-21hs</span>
+            </button>
+
+            {verEnCamino && (
+              cargandoEnCamino ? (
+                <p className="p-4 text-xs text-muted-foreground animate-pulse">Cargando direcciones…</p>
+              ) : detalleDia !== null && detalleDia.length === 0 ? (
+                <div className="p-4">
+                  <EmptyState icon={AlertTriangle} title="Este día se importó sin el detalle por paquete"
+                    description="La hoja “Detalle de Envios Dia” del Excel es la que trae las direcciones. Volvé a importar este día con el archivo nuevo para verlas." />
+                </div>
+              ) : enCaminoFilas.length === 0 ? (
+                <div className="p-4">
+                  <EmptyState icon={CheckCircle} title="Ningún paquete quedó en camino al destinatario"
+                    description="No hay paquetes con ese estado en este día." />
+                </div>
+              ) : (
+                <>
+                  {/* Filtros: útil cuando hay que reclamarle a un cliente o mirar una zona */}
+                  <div className="flex items-center gap-2 flex-wrap px-4 py-2.5 border-b bg-muted/20">
+                    <select value={filtroClienteEC} onChange={e => setFiltroClienteEC(e.target.value)}
+                      className="text-xs border rounded-md px-2 h-8 bg-background max-w-56">
+                      <option value="">Todos los clientes ({clientesEC.length})</option>
+                      {clientesEC.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <select value={filtroZonaEC} onChange={e => setFiltroZonaEC(e.target.value)}
+                      className="text-xs border rounded-md px-2 h-8 bg-background max-w-48">
+                      <option value="">Todas las zonas ({zonasEC.length})</option>
+                      {zonasEC.map(z => <option key={z} value={z}>{z}</option>)}
+                    </select>
+                    {(filtroClienteEC || filtroZonaEC) && (
+                      <button onClick={() => { setFiltroClienteEC(""); setFiltroZonaEC(""); }}
+                        className="text-xs text-muted-foreground hover:text-foreground underline">limpiar</button>
+                    )}
+                    <span className="text-xs text-muted-foreground ml-auto tabular-nums">
+                      {enCaminoVisibles.length} de {enCaminoFilas.length}
+                    </span>
+                  </div>
+
+                  <div className="max-h-96 overflow-y-auto divide-y">
+                    {enCaminoVisibles.map((d, i) => (
+                      <div key={d.id ?? i} className="flex items-start gap-2.5 px-4 py-2.5 text-xs">
+                        <span className="h-2 w-2 rounded-full bg-red-500 shrink-0 mt-1.5" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold">{d.destinatario ?? "—"}</span>
+                            {d.cliente && <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{d.cliente}</span>}
+                            <span className="text-muted-foreground ml-auto shrink-0 tabular-nums">{d.hora ?? ""}</span>
+                          </div>
+                          {/* La dirección es el dato que se vino a buscar: va destacada */}
+                          <p className="font-medium text-foreground mt-0.5">{d.direccion ?? "Sin dirección"}</p>
+                          <p className="text-muted-foreground mt-0.5">
+                            {d.localidad && <span>{d.localidad}</span>}
+                            {d.zona && <span className="text-muted-foreground/70"> · {d.zona}</span>}
+                            {d.chofer && <span className="text-muted-foreground/70"> · {d.chofer}</span>}
+                            {d.tracking && <span className="text-muted-foreground/50 font-mono"> · {d.tracking}</span>}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )
+            )}
+          </div>
 
           {/* Detalle de paquetes post-21hs sin entregar (dirección, cliente, chofer) */}
           <div className="border rounded-lg overflow-hidden bg-card">
