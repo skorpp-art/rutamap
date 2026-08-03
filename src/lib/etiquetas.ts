@@ -43,7 +43,7 @@ export function armarEtiqueta(c: DatosEtiqueta, porHoja: 6 | 8): string {
       <div style="background:#0F172A;padding:${f(5)} ${f(8)};display:flex;flex-direction:column;gap:${f(3)};">
         <div style="display:flex;gap:${f(6)};align-items:baseline;">
           <span style="font-size:${f(7)};font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.4px;min-width:${f(38)};flex-shrink:0;">ORIGINAL:</span>
-          <span style="font-size:${f(8.5)};font-weight:600;color:#fff;line-height:1.25;">${e(c.direccion) || "—"}</span>
+          <span style="font-size:${f(10.5)};font-weight:600;color:#fff;line-height:1.25;">${e(c.direccion) || "—"}</span>
         </div>
         <div style="display:flex;gap:${f(6)};align-items:baseline;">
           <span style="font-size:${f(7)};font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.4px;min-width:${f(38)};flex-shrink:0;">MÓVIL:</span>
