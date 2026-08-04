@@ -1,0 +1,39 @@
+-- ============================================================
+-- Choferes = rutas del dia
+-- ============================================================
+-- Antes el tablero mostraba como "choferes" el calculo teorico
+-- paquetes / 30 (por eso el 03/08 figuraban 91: 2707 / 30). La dotacion
+-- real es una por ruta que sale, asi que:
+--
+--   get_dashboard_unificado: choferes_30 / choferes_35  ->  choferes
+--     (= rutas del dia) + choferes_ref_30 (referencia de planificacion).
+--   get_historial_dias_v2:   choferes_30 -> choferes_ref_30; choferes_real
+--     sigue siendo las rutas que salieron.
+--
+-- El cuerpo completo de las dos funciones esta aplicado en la base; este
+-- archivo documenta el cambio de contrato. Ambas cambian la firma de
+-- retorno, asi que hay que soltarlas antes de recrearlas:
+--
+--   drop function if exists public.get_dashboard_unificado(integer);
+--   drop function if exists public.get_historial_dias_v2(integer);
+--
+-- Firmas nuevas:
+--
+-- get_dashboard_unificado(p_dias int) returns table(
+--   fecha date, dia_nombre text, semana_mes int, total_paquetes int,
+--   total_clientes int, rutas_activas int, rutas_fijas int, rutas_preturno int,
+--   suma_total_ops int, prom_por_ruta numeric, pct_x_fuera numeric,
+--   choferes int,            -- = rutas del dia (1 chofer por ruta)
+--   choferes_ref_30 int,     -- referencia: cuantos harian falta a 30 pkg c/u
+--   proyectado_pkg int, efectividad_pct numeric, estado text,
+--   tiene_clientes bool, tiene_ops bool)
+--
+-- get_historial_dias_v2(p_dias int) returns table(
+--   fecha date, dia_semana text, semana_mes int, total_paquetes int,
+--   total_clientes int, rutas_activas int, prom_por_ruta numeric,
+--   rutas_en_alerta int, pct_x_fuera numeric,
+--   choferes_ref_30 int,     -- referencia de planificacion
+--   choferes_real int,       -- rutas que salieron ese dia
+--   prom_por_chofer_real numeric, proyectado_pkg int, acierto_pct numeric,
+--   vs_semana_ant numeric, tiene_ops bool)
+-- ============================================================

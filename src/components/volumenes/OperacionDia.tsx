@@ -353,7 +353,11 @@ export function OperacionDia({
     }
   }
   const promedio = nActivas > 0 && pkgTotal > 0 ? pkgTotal / nActivas : 0;
-  const choferes = pkgTotal > 0 ? Math.ceil(pkgTotal / targetPkg) : nActivas;
+  // Choferes del día = rutas activas: sale un chofer por ruta. El cálculo
+  // paquetes ÷ target es solo una referencia de planificación (cuántos harían
+  // falta para ese volumen), nunca la dotación real.
+  const choferes = nActivas;
+  const choferesRef = pkgTotal > 0 ? Math.ceil(pkgTotal / targetPkg) : 0;
   const estadoColor = promedio === 0 ? "text-muted-foreground"
     : promedio > 40 || promedio < 20 ? "text-red-600 dark:text-red-300"
     : promedio > 35 || promedio < 25 ? "text-amber-600 dark:text-amber-300"
@@ -604,7 +608,7 @@ export function OperacionDia({
         : { r: 22, g: 163, b: 74 };
       const cards = [
         { label: "RUTAS ACTIVAS", valor: nActivas.toString(), sub: `${nFijos}F · ${nPreT}PT · ${nCortes}C · ${nUnificados}U`, r: 37, g: 99, b: 235 },
-        { label: "CHOFERES", valor: choferes.toString(), sub: `@ ${targetPkg} pkg/chofer`, r: 22, g: 163, b: 74 },
+        { label: "CHOFERES", valor: choferes.toString(), sub: choferesRef > 0 ? `1 por ruta · ref. @${targetPkg}: ${choferesRef}` : "1 por ruta", r: 22, g: 163, b: 74 },
         { label: "PAQUETES", valor: pkgTotal > 0 ? pkgTotal.toLocaleString("es-AR") : "—", sub: "proyectados", r: 124, g: 58, b: 237 },
         { label: "PROM/RUTA", valor: promedio > 0 ? promedio.toFixed(1) : "—", sub: `target ${targetPkg}±5`, r: promedio > 0 && promedio >= targetPkg-5 && promedio <= targetPkg+5 ? 22 : 220, g: promedio > 0 && promedio >= targetPkg-5 && promedio <= targetPkg+5 ? 163 : 38, b: promedio > 0 && promedio >= targetPkg-5 && promedio <= targetPkg+5 ? 74 : 38 },
         {
@@ -730,7 +734,7 @@ export function OperacionDia({
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(6);
         pdf.setTextColor(148, 163, 184);
-        pdf.text(`RutaMap · Logística Hogareño · Generado: ${new Date().toLocaleString("es-AR")} · ${activos.length} rutas activas · ${choferes} choferes`, M, PH - 3);
+        pdf.text(`RutaMap · Logística Hogareño · Generado: ${new Date().toLocaleString("es-AR")} · ${activos.length} rutas activas · ${choferes} choferes (1 por ruta)`, M, PH - 3);
         pdf.setTextColor(255, 255, 255);
         pdf.text(`${i} / ${totalPags}`, PW - M, PH - 3, { align: "right" });
       }
@@ -855,9 +859,9 @@ export function OperacionDia({
               valorClassName: estadoColor,
             },
             {
-              label: "Choferes necesarios",
-              valor: pkgTotal > 0 ? choferes : "—",
-              sub: `@ ${targetPkg} pkg/chofer`,
+              label: "Choferes",
+              valor: choferes > 0 ? choferes : "—",
+              sub: choferesRef > 0 ? `1 por ruta · ref. @${targetPkg}: ${choferesRef}` : "1 por ruta activa",
             },
           ]}
         />
@@ -908,7 +912,7 @@ export function OperacionDia({
                   <div className="grid grid-cols-2 gap-3">
                     {[
                       { label: "Rutas activas", valor: nActivas.toString(), sub: `${nFijos}F ${nPreT}PT ${nCortes}C ${nUnificados}U` },
-                      { label: "Choferes necesarios", valor: pkgTotal > 0 ? choferes.toString() : "—", sub: `@ ${targetPkg} pkg/chofer`, hl: true },
+                      { label: "Choferes", valor: choferes > 0 ? choferes.toString() : "—", sub: choferesRef > 0 ? `1 por ruta · ref. @${targetPkg}: ${choferesRef}` : "1 por ruta activa", hl: true },
                       { label: "Prom. pkg/ruta", valor: promedio > 0 ? promedio.toFixed(1) : "—", sub: "target 25–35" },
                       { label: "Piso fijos", valor: nFijos.toString(), sub: "RF activos" },
                     ].map(({ label, valor, sub, hl }) => (
@@ -1394,7 +1398,7 @@ export function OperacionDia({
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Choferes</p>
                 <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{choferes}</p>
-                <p className="text-xs text-muted-foreground">@{targetPkg} pkg</p>
+                <p className="text-xs text-muted-foreground">1 por ruta</p>
               </div>
             </div>
 
