@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   Upload, Package, Calendar, RefreshCw, CheckCircle2, XCircle, Search,
-  AlertTriangle, MapPin, Truck, ChevronDown, ChevronRight, RotateCcw, Trash2,
+  AlertTriangle, MapPin, Truck, ChevronDown, ChevronRight, RotateCcw, Trash2, Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -61,6 +61,9 @@ export function PendientesUI({
 
   // Modal de motivo al marcar "no recibido"
   const [motivoModal, setMotivoModal] = useState<{ p: Pendiente } | null>(null);
+  // Modal de observación al marcar "retenido"
+  const [retenerModal, setRetenerModal] = useState<{ p: Pendiente } | null>(null);
+  const [retenerTexto, setRetenerTexto] = useState("");
   const [motivoElegido, setMotivoElegido] = useState<string>(MOTIVOS_RAPIDOS[0]);
   const [observacionTexto, setObservacionTexto] = useState("");
 
@@ -82,15 +85,19 @@ export function PendientesUI({
   const vRecibidos = visibles.filter(p => p.estado_recepcion === "recibido").length;
   const vEntregados = visibles.filter(p => p.estado_recepcion === "entregado").length;
   const vNoRecibidos = visibles.filter(p => p.estado_recepcion === "no_recibido").length;
-  const vResueltos = vRecibidos + vEntregados;               // recibido + entregado = OK
+  const vRetenidos = visibles.filter(p => p.estado_recepcion === "retenido").length;
+  const vResueltos = vRecibidos + vEntregados + vRetenidos;  // recibido + entregado + retenido = fuera de la cola
   const vFaltan = vTotal - vResueltos;                       // todo lo que no está resuelto
-  const esResuelto = (e: string) => e === "recibido" || e === "entregado";
+  // Retenido = Control y Gestión lo frenó: sigue en el depósito, así que no
+  // cuenta como pendiente ni vuelve a la cola en la importación del día siguiente.
+  const esResuelto = (e: string) => e === "recibido" || e === "entregado" || e === "retenido";
   const vUrgentes = visibles.filter(p => p.urgencia === "urgente").length;
   const vUrgentesFaltan = visibles.filter(p => p.urgencia === "urgente" && !esResuelto(p.estado_recepcion)).length;
   const pctResuelto = vTotal > 0 ? Math.round(vResueltos / vTotal * 100) : 0;
   const pctRecibido = vTotal > 0 ? Math.round(vRecibidos / vTotal * 100) : 0;
   const pctEntregado = vTotal > 0 ? Math.round(vEntregados / vTotal * 100) : 0;
   const pctNoRecibido = vTotal > 0 ? Math.round(vNoRecibidos / vTotal * 100) : 0;
+  const pctRetenido = vTotal > 0 ? Math.round(vRetenidos / vTotal * 100) : 0;
 
   // Agrupación: por conductor o por cliente
   const [agrupar, setAgrupar] = useState<"conductor" | "cliente">("conductor");
@@ -100,14 +107,15 @@ export function PendientesUI({
 
   // Grupos (según agrupación) de la zona/cliente elegido
   const grupos = useMemo(() => {
-    const m = new Map<string, { total: number; recibidos: number; entregados: number; resueltos: number; noRecibidos: number; urgentes: number }>();
+    const m = new Map<string, { total: number; recibidos: number; entregados: number; resueltos: number; noRecibidos: number; retenidos: number; urgentes: number }>();
     for (const p of visibles) {
       const k = keyOf(p);
-      const g = m.get(k) ?? { total: 0, recibidos: 0, entregados: 0, resueltos: 0, noRecibidos: 0, urgentes: 0 };
+      const g = m.get(k) ?? { total: 0, recibidos: 0, entregados: 0, resueltos: 0, noRecibidos: 0, retenidos: 0, urgentes: 0 };
       g.total++;
       if (p.estado_recepcion === "recibido") { g.recibidos++; g.resueltos++; }
       if (p.estado_recepcion === "entregado") { g.entregados++; g.resueltos++; }
       if (p.estado_recepcion === "no_recibido") g.noRecibidos++;
+      if (p.estado_recepcion === "retenido") { g.retenidos++; g.resueltos++; }
       if (p.urgencia === "urgente") g.urgentes++;
       m.set(k, g);
     }
@@ -121,7 +129,7 @@ export function PendientesUI({
     if (!puedeEditar) return;
     const anterior = { estado_recepcion: p.estado_recepcion, motivo_no_recibido: p.motivo_no_recibido, observacion: p.observacion };
     setPendientes(prev => prev.map(x => x.id === p.id
-      ? { ...x, estado_recepcion: estado, motivo_no_recibido: estado === "no_recibido" ? (motivo ?? null) : null, observacion: estado === "no_recibido" ? (observacion ?? null) : null }
+      ? { ...x, estado_recepcion: estado, motivo_no_recibido: estado === "no_recibido" ? (motivo ?? null) : null, observacion: estado === "no_recibido" || estado === "retenido" ? (observacion ?? null) : null }
       : x));
     const res = await marcarPendiente(p.id, estado, motivo, observacion);
     if (!res.ok) {
@@ -137,6 +145,19 @@ export function PendientesUI({
     setMotivoModal({ p });
   }
 
+  function abrirModalRetenido(p: Pendiente) {
+    if (!puedeEditar) return;
+    setRetenerTexto(p.observacion ?? "");
+    setRetenerModal({ p });
+  }
+
+  async function confirmarRetenido() {
+    if (!retenerModal) return;
+    const { p } = retenerModal;
+    setRetenerModal(null);
+    await marcar(p, "retenido", undefined, retenerTexto.trim() || undefined);
+  }
+
   async function confirmarNoRecibido() {
     if (!motivoModal) return;
     const { p } = motivoModal;
@@ -150,7 +171,10 @@ export function PendientesUI({
   // zonas sin avisar).
   async function toggleGrupo(nombre: string, recibido: boolean) {
     if (!puedeEditar) return;
-    const ids = visibles.filter(p => keyOf(p) === nombre).map(p => p.id);
+    // Los retenidos quedan afuera del marcado masivo: los frenó Control y
+    // Gestión y no deben volver a "recibido"/"pendiente" por un clic de grupo.
+    const ids = visibles.filter(p => keyOf(p) === nombre && p.estado_recepcion !== "retenido").map(p => p.id);
+    if (ids.length === 0) { toast.info(`${nombre}: solo tiene paquetes retenidos`); return; }
     const idsSet = new Set(ids);
     const estado: EstadoRecepcion = recibido ? "recibido" : "pendiente";
     setPendientes(prev => prev.map(x => idsSet.has(x.id) ? { ...x, estado_recepcion: estado, motivo_no_recibido: null, observacion: null } : x));
@@ -215,7 +239,7 @@ export function PendientesUI({
                   className="text-xs border rounded-lg px-2 py-1.5 bg-background max-w-40">
                   {fechas.map(f => (
                     <option key={f.fecha} value={f.fecha}>
-                      {f.fecha} · {f.recibidos}/{f.total}{f.no_recibidos > 0 ? ` (${f.no_recibidos} no rec.)` : ""}
+                      {f.fecha} · {f.recibidos}/{f.total}{f.no_recibidos > 0 ? ` (${f.no_recibidos} no rec.)` : ""}{f.retenidos > 0 ? ` (${f.retenidos} reten.)` : ""}
                     </option>
                   ))}
                 </select>
@@ -280,16 +304,18 @@ export function PendientesUI({
                           : <span className="text-xs font-bold text-red-600 dark:text-red-300 tabular-nums">{faltan}</span>}
                       </div>
                       <p className="text-2xl font-bold tabular-nums">{resueltos}<span className="text-xs text-muted-foreground font-normal">/{z.total}</span></p>
-                      {(z.entregados > 0 || z.noRecibidos > 0) && (
-                        <p className="text-xs font-medium flex gap-1.5">
+                      {(z.entregados > 0 || z.noRecibidos > 0 || z.retenidos > 0) && (
+                        <p className="text-xs font-medium flex gap-1.5 flex-wrap">
                           {z.entregados > 0 && <span className="text-blue-600 dark:text-blue-300">{z.entregados} entreg.</span>}
                           {z.noRecibidos > 0 && <span className="text-red-600 dark:text-red-300">{z.noRecibidos} no rec.</span>}
+                          {z.retenidos > 0 && <span className="text-violet-600 dark:text-violet-300">{z.retenidos} reten.</span>}
                         </p>
                       )}
                       <div className="h-1 w-full rounded-full bg-muted overflow-hidden mt-1 flex">
                         <div className="h-full bg-emerald-500" style={{ width: `${z.total > 0 ? z.recibidos / z.total * 100 : 0}%` }} />
                         <div className="h-full bg-blue-500" style={{ width: `${z.total > 0 ? z.entregados / z.total * 100 : 0}%` }} />
                         <div className="h-full bg-red-500" style={{ width: `${z.total > 0 ? z.noRecibidos / z.total * 100 : 0}%` }} />
+                        <div className="h-full bg-violet-500" style={{ width: `${z.total > 0 ? z.retenidos / z.total * 100 : 0}%` }} />
                       </div>
                     </button>
                   );
@@ -298,7 +324,7 @@ export function PendientesUI({
             </div>
 
             {/* ── Contadores (de la zona elegida) ── */}
-            <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3">
               <div className="border rounded-lg p-4 bg-card">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
                   {filtroZona ? `Pendientes ${filtroZona}` : "Total pendientes"}
@@ -323,6 +349,12 @@ export function PendientesUI({
                 <p className="text-xs text-muted-foreground">{pctNoRecibido}% del total</p>
               </div>
               <div className={cn("border rounded-lg p-4",
+                vRetenidos > 0 ? "bg-violet-50/50 dark:bg-violet-950/20 border-violet-200/60 dark:border-violet-900/50" : "bg-card")}>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Retenidos</p>
+                <p className={cn("text-2xl font-bold tabular-nums mt-1", vRetenidos > 0 && "text-violet-700 dark:text-violet-300")}>{vRetenidos}</p>
+                <p className="text-xs text-muted-foreground">frenados por Control y Gestión</p>
+              </div>
+              <div className={cn("border rounded-lg p-4",
                 vFaltan > 0 ? "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/50" : "bg-card")}>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Sin resolver</p>
                 <p className={cn("text-2xl font-bold tabular-nums mt-1", vFaltan > 0 && "text-amber-700 dark:text-amber-300")}>{vFaltan}</p>
@@ -340,11 +372,13 @@ export function PendientesUI({
               <div className="h-full bg-emerald-500 transition-all" style={{ width: `${vTotal > 0 ? vRecibidos / vTotal * 100 : 0}%` }} />
               <div className="h-full bg-blue-500 transition-all" style={{ width: `${vTotal > 0 ? vEntregados / vTotal * 100 : 0}%` }} />
               <div className="h-full bg-red-500 transition-all" style={{ width: `${vTotal > 0 ? vNoRecibidos / vTotal * 100 : 0}%` }} />
+              <div className="h-full bg-violet-500 transition-all" style={{ width: `${vTotal > 0 ? vRetenidos / vTotal * 100 : 0}%` }} />
             </div>
             <div className="flex items-center gap-3 -mt-1 text-xs text-muted-foreground flex-wrap">
               <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Recibido <b className="text-emerald-700 dark:text-emerald-300">{pctRecibido}%</b></span>
               <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-500" /> Entregado <b className="text-blue-700 dark:text-blue-300">{pctEntregado}%</b></span>
               <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500" /> No recibido <b className="text-red-600 dark:text-red-300">{pctNoRecibido}%</b></span>
+              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-violet-500" /> Retenido <b className="text-violet-700 dark:text-violet-300">{pctRetenido}%</b></span>
               <span className="ml-auto font-medium">{pctResuelto}% resuelto</span>
             </div>
 
@@ -420,10 +454,16 @@ export function PendientesUI({
                             {c.noRecibidos} no rec.
                           </span>
                         )}
+                        {c.retenidos > 0 && (
+                          <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-700 dark:text-violet-300 shrink-0">
+                            {c.retenidos} reten.
+                          </span>
+                        )}
                         <div className="w-20 h-1.5 rounded-full bg-muted overflow-hidden shrink-0 hidden sm:flex">
                           <div className="h-full bg-emerald-500" style={{ width: `${c.total > 0 ? c.recibidos / c.total * 100 : 0}%` }} />
                           <div className="h-full bg-blue-500" style={{ width: `${c.total > 0 ? c.entregados / c.total * 100 : 0}%` }} />
                           <div className="h-full bg-red-500" style={{ width: `${c.total > 0 ? c.noRecibidos / c.total * 100 : 0}%` }} />
+                          <div className="h-full bg-violet-500" style={{ width: `${c.total > 0 ? c.retenidos / c.total * 100 : 0}%` }} />
                         </div>
                         <span className="text-sm tabular-nums shrink-0 w-14 text-right">
                           <span className="font-bold">{c.resueltos}</span>
@@ -463,6 +503,11 @@ export function PendientesUI({
                                   className={cn("rounded-full", puedeEditar && "cursor-pointer")}>
                                   <XCircle className={cn("h-4 w-4", p.estado_recepcion === "no_recibido" ? "text-red-500" : "text-muted-foreground/30 hover:text-red-500/70")} />
                                 </button>
+                                <button disabled={!puedeEditar} title="Retenido por Control y Gestión (no sale y deja de contar como pendiente)"
+                                  onClick={e => { e.stopPropagation(); p.estado_recepcion === "retenido" ? marcar(p, "pendiente") : abrirModalRetenido(p); }}
+                                  className={cn("rounded-full", puedeEditar && "cursor-pointer")}>
+                                  <Lock className={cn("h-4 w-4", p.estado_recepcion === "retenido" ? "text-violet-500" : "text-muted-foreground/30 hover:text-violet-500/70")} />
+                                </button>
                               </div>
                               <div className="flex-1 min-w-0">
                                 {/* Línea 1: dimensión principal (según agrupación) + estado + fecha */}
@@ -491,6 +536,14 @@ export function PendientesUI({
                                   {p.tracking && <span className="text-muted-foreground/60 font-mono"> · {p.tracking}</span>}
                                 </p>
                                 {/* Línea 3: motivo + observación cuando no recibido */}
+                                {p.estado_recepcion === "retenido" && (
+                                  <p className="mt-1 flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-700 dark:text-violet-300 inline-flex items-center gap-0.5">
+                                      <Lock className="h-2.5 w-2.5" /> Retenido
+                                    </span>
+                                    {p.observacion && <span className="text-xs text-muted-foreground italic">"{p.observacion}"</span>}
+                                  </p>
+                                )}
                                 {p.estado_recepcion === "no_recibido" && (
                                   <p className="mt-1 flex items-center gap-1.5 flex-wrap">
                                     <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-red-500/15 text-red-600 dark:text-red-300">
@@ -515,6 +568,39 @@ export function PendientesUI({
           </>
         )}
       </div>
+
+      {/* ── Modal: observación al marcar "retenido" ── */}
+      {retenerModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-background border rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <Lock className="h-6 w-6 text-violet-500 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="font-bold">Retener paquete</p>
+                <p className="text-sm text-muted-foreground mt-1 truncate">
+                  {retenerModal.p.direccion ?? retenerModal.p.tracking ?? "Paquete"}
+                  {retenerModal.p.cliente && ` · ${retenerModal.p.cliente}`}
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Queda frenado por Control y Gestión: no sale a la calle y deja de contar como
+              pendiente. Aunque el Excel lo vuelva a traer mañana, sigue figurando como retenido
+              hasta que lo desmarques.
+            </p>
+            <div>
+              <p className="text-xs font-medium mb-1.5">Motivo de la retención (opcional)</p>
+              <textarea value={retenerTexto} onChange={e => setRetenerTexto(e.target.value)}
+                placeholder="Por qué se retiene…" rows={3}
+                className="w-full text-sm rounded-lg border bg-background px-3 py-2 focus:outline-none focus:ring-1 focus:ring-violet-400 resize-none" />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setRetenerModal(null)}>Cancelar</Button>
+              <Button className="flex-1 bg-violet-600 hover:bg-violet-600/90 text-white" onClick={confirmarRetenido}>Retener</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal: motivo al marcar "no recibido" ── */}
       {motivoModal && (

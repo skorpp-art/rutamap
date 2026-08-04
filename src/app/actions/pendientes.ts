@@ -3,7 +3,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export type EstadoRecepcion = "pendiente" | "recibido" | "entregado" | "no_recibido";
+// "retenido": Control y Gestion lo frena para que no salga. Sigue en el
+// deposito, asi que no cuenta como pendiente y la importacion del dia
+// siguiente conserva la marca en vez de resetearla.
+export type EstadoRecepcion = "pendiente" | "recibido" | "entregado" | "no_recibido" | "retenido";
 
 export interface PendienteFila {
   fecha_hogareno: string | null;
@@ -52,6 +55,7 @@ export interface FechaPendiente {
   total: number;
   recibidos: number;
   no_recibidos: number;
+  retenidos: number;
 }
 
 export interface ResumenMesDia {
@@ -60,6 +64,7 @@ export interface ResumenMesDia {
   recibidos: number;
   no_recibidos: number;
   pendientes: number;
+  retenidos: number;
 }
 
 export interface MotivoNoRecibido {

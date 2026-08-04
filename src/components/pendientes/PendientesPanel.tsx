@@ -163,44 +163,48 @@ export function PendientesPanel({ puedeEditar }: { puedeEditar: boolean }) {
   }
 
   // ── Cálculos de control ──
-  // "resueltos" = recibidos + entregados (entregado cuenta como resuelto OK,
-  // no como no recibido). "faltan" = todo lo que no está resuelto.
+  // "resueltos" = recibidos + entregados + retenidos (entregado cuenta como
+  // resuelto OK, no como no recibido; retenido lo frenó Control y Gestión, así
+  // que sale de la cola de pendientes). "faltan" = todo lo que no está resuelto.
   const stats = useMemo(() => {
     const total = pendientes.length;
     const recibidos = pendientes.filter(p => p.estado_recepcion === "recibido").length;
     const entregados = pendientes.filter(p => p.estado_recepcion === "entregado").length;
     const noRecibidos = pendientes.filter(p => p.estado_recepcion === "no_recibido").length;
-    const resueltos = recibidos + entregados;
+    const retenidos = pendientes.filter(p => p.estado_recepcion === "retenido").length;
+    const resueltos = recibidos + entregados + retenidos;
     const sinMarcar = total - resueltos - noRecibidos;
     const urgentes = pendientes.filter(p => p.urgencia === "urgente").length;
-    const esResuelto = (e: string) => e === "recibido" || e === "entregado";
+    const esResuelto = (e: string) => e === "recibido" || e === "entregado" || e === "retenido";
     const urgentesFaltan = pendientes.filter(p => p.urgencia === "urgente" && !esResuelto(p.estado_recepcion)).length;
 
-    const porZona = new Map<string, { total: number; recibidos: number; entregados: number; noRecibidos: number }>();
-    const porCadete = new Map<string, { total: number; recibidos: number; entregados: number; noRecibidos: number; urgentes: number }>();
+    const porZona = new Map<string, { total: number; recibidos: number; entregados: number; noRecibidos: number; retenidos: number }>();
+    const porCadete = new Map<string, { total: number; recibidos: number; entregados: number; noRecibidos: number; retenidos: number; urgentes: number }>();
     for (const p of pendientes) {
       const z = p.macrozona || "SIN ZONA";
-      const zc = porZona.get(z) ?? { total: 0, recibidos: 0, entregados: 0, noRecibidos: 0 };
+      const zc = porZona.get(z) ?? { total: 0, recibidos: 0, entregados: 0, noRecibidos: 0, retenidos: 0 };
       zc.total++;
       if (p.estado_recepcion === "recibido") zc.recibidos++;
       if (p.estado_recepcion === "entregado") zc.entregados++;
       if (p.estado_recepcion === "no_recibido") zc.noRecibidos++;
+      if (p.estado_recepcion === "retenido") zc.retenidos++;
       porZona.set(z, zc);
 
       const c = p.cadete || "Sin asignar";
-      const cc = porCadete.get(c) ?? { total: 0, recibidos: 0, entregados: 0, noRecibidos: 0, urgentes: 0 };
+      const cc = porCadete.get(c) ?? { total: 0, recibidos: 0, entregados: 0, noRecibidos: 0, retenidos: 0, urgentes: 0 };
       cc.total++;
       if (p.estado_recepcion === "recibido") cc.recibidos++;
       if (p.estado_recepcion === "entregado") cc.entregados++;
       if (p.estado_recepcion === "no_recibido") cc.noRecibidos++;
+      if (p.estado_recepcion === "retenido") cc.retenidos++;
       if (p.urgencia === "urgente") cc.urgentes++;
       porCadete.set(c, cc);
     }
     return {
-      total, recibidos, entregados, resueltos, noRecibidos, sinMarcar, faltan: total - resueltos, urgentes, urgentesFaltan,
+      total, recibidos, entregados, resueltos, noRecibidos, retenidos, sinMarcar, faltan: total - resueltos, urgentes, urgentesFaltan,
       zonas: [...porZona.entries()].map(([zona, v]) => ({ zona, ...v })).sort((a, b) => b.total - a.total),
       cadetes: [...porCadete.entries()].map(([cadete, v]) => ({ cadete, ...v }))
-        .sort((a, b) => (b.total - (b.recibidos + b.entregados)) - (a.total - (a.recibidos + a.entregados)) || b.total - a.total),
+        .sort((a, b) => (b.total - (b.recibidos + b.entregados + b.retenidos)) - (a.total - (a.recibidos + a.entregados + a.retenidos)) || b.total - a.total),
     };
   }, [pendientes]);
 
@@ -221,7 +225,7 @@ export function PendientesPanel({ puedeEditar }: { puedeEditar: boolean }) {
 }
 
 export type PendientesStats = {
-  total: number; recibidos: number; entregados: number; resueltos: number; noRecibidos: number; sinMarcar: number; faltan: number; urgentes: number; urgentesFaltan: number;
-  zonas: { zona: string; total: number; recibidos: number; entregados: number; noRecibidos: number }[];
-  cadetes: { cadete: string; total: number; recibidos: number; entregados: number; noRecibidos: number; urgentes: number }[];
+  total: number; recibidos: number; entregados: number; resueltos: number; noRecibidos: number; retenidos: number; sinMarcar: number; faltan: number; urgentes: number; urgentesFaltan: number;
+  zonas: { zona: string; total: number; recibidos: number; entregados: number; noRecibidos: number; retenidos: number }[];
+  cadetes: { cadete: string; total: number; recibidos: number; entregados: number; noRecibidos: number; retenidos: number; urgentes: number }[];
 };
