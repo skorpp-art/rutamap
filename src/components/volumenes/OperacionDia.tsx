@@ -8,7 +8,7 @@ import {
   Save, RefreshCw, ChevronLeft, ChevronRight,
   FileDown, AlertTriangle, CheckCircle, Users, Clock,
   Plus, Pencil, X, Lightbulb, Scissors, Sunrise, Trash2, Gauge,
-  FileSpreadsheet,
+  FileSpreadsheet, ChevronDown,
 } from "lucide-react";
 import {
   getOperacionDia, inicializarOperacionDia,
@@ -21,7 +21,6 @@ import type { AnalisisRecorrido } from "@/app/actions/operaciones-diarias";
 import { crearRecorrido, actualizarCamposRecorrido, getSiguienteCodigo, eliminarRecorrido } from "@/app/actions/recorridos";
 import { ZONA_COLOR as ZONA_HEX } from "@/lib/estados";
 import { Skeleton } from "@/components/ui/skeleton";
-import { StatRow } from "@/components/ui/stat-row";
 import type { OperacionRuta } from "@/app/actions/operacion";
 import { hoyAR, addDiasAR } from "@/lib/fechas";
 
@@ -88,6 +87,9 @@ export function OperacionDia({
   const [historicoActivaciones, setHistoricoActivaciones] = useState<Record<string, Set<string>>>({});
   // Panel lateral derecho (estilo Drive): "resumen" | "sugerencias" | null
   const [panelAbierto, setPanelAbierto] = useState<"resumen" | "sugerencias" | null>(null);
+  // Menú "Piso": aplicar plantilla y limpiar. Son 1 clic al arrancar el día,
+  // así que no merecen ocupar barra propia.
+  const [menuPiso, setMenuPiso] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
   // Debounce para autoguardado al cambiar rutas ON/OFF
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -353,7 +355,11 @@ export function OperacionDia({
     }
   }
   const promedio = nActivas > 0 && pkgTotal > 0 ? pkgTotal / nActivas : 0;
-  const choferes = pkgTotal > 0 ? Math.ceil(pkgTotal / targetPkg) : nActivas;
+  // Choferes del día = rutas activas: sale un chofer por ruta. El cálculo
+  // paquetes ÷ target es solo una referencia de planificación (cuántos harían
+  // falta para ese volumen), nunca la dotación real.
+  const choferes = nActivas;
+  const choferesRef = pkgTotal > 0 ? Math.ceil(pkgTotal / targetPkg) : 0;
   const estadoColor = promedio === 0 ? "text-muted-foreground"
     : promedio > 40 || promedio < 20 ? "text-red-600 dark:text-red-300"
     : promedio > 35 || promedio < 25 ? "text-amber-600 dark:text-amber-300"
@@ -604,7 +610,7 @@ export function OperacionDia({
         : { r: 22, g: 163, b: 74 };
       const cards = [
         { label: "RUTAS ACTIVAS", valor: nActivas.toString(), sub: `${nFijos}F · ${nPreT}PT · ${nCortes}C · ${nUnificados}U`, r: 37, g: 99, b: 235 },
-        { label: "CHOFERES", valor: choferes.toString(), sub: `@ ${targetPkg} pkg/chofer`, r: 22, g: 163, b: 74 },
+        { label: "CHOFERES", valor: choferes.toString(), sub: choferesRef > 0 ? `1 por ruta · ref. @${targetPkg}: ${choferesRef}` : "1 por ruta", r: 22, g: 163, b: 74 },
         { label: "PAQUETES", valor: pkgTotal > 0 ? pkgTotal.toLocaleString("es-AR") : "—", sub: "proyectados", r: 124, g: 58, b: 237 },
         { label: "PROM/RUTA", valor: promedio > 0 ? promedio.toFixed(1) : "—", sub: `target ${targetPkg}±5`, r: promedio > 0 && promedio >= targetPkg-5 && promedio <= targetPkg+5 ? 22 : 220, g: promedio > 0 && promedio >= targetPkg-5 && promedio <= targetPkg+5 ? 163 : 38, b: promedio > 0 && promedio >= targetPkg-5 && promedio <= targetPkg+5 ? 74 : 38 },
         {
@@ -730,7 +736,7 @@ export function OperacionDia({
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(6);
         pdf.setTextColor(148, 163, 184);
-        pdf.text(`RutaMap · Logística Hogareño · Generado: ${new Date().toLocaleString("es-AR")} · ${activos.length} rutas activas · ${choferes} choferes`, M, PH - 3);
+        pdf.text(`RutaMap · Logística Hogareño · Generado: ${new Date().toLocaleString("es-AR")} · ${activos.length} rutas activas · ${choferes} choferes (1 por ruta)`, M, PH - 3);
         pdf.setTextColor(255, 255, 255);
         pdf.text(`${i} / ${totalPags}`, PW - M, PH - 3, { align: "right" });
       }
@@ -746,8 +752,8 @@ export function OperacionDia({
 
   return (
     <div className="flex flex-col h-full relative overflow-hidden" ref={reportRef}>
-      {/* ── Header / Controls ── */}
-      <div className="px-5 py-3 border-b flex items-center gap-3 flex-wrap bg-background">
+      {/* ── Barra única de control: fecha + las cifras del día + acciones ── */}
+      <div className="px-5 py-2 border-b flex items-center gap-2 flex-wrap bg-background">
         {/* Fecha */}
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" className="h-8 w-8"
@@ -765,9 +771,9 @@ export function OperacionDia({
           </Button>
         </div>
 
-        {/* Chips días recientes */}
+        {/* Chips días recientes: ayer / hoy / mañana cubren el 95% de los saltos */}
         <div className="flex items-center gap-1">
-          {[-2, -1, 0, 1, 2].map(d => {
+          {[-1, 0, 1].map(d => {
             const f = addDias(hoy(), d);
             const lbl = d === 0 ? "Hoy" : d === -1 ? "Ayer" : d === 1 ? "Mañana" : new Date(f + "T12:00:00").toLocaleDateString("es-AR", { weekday: "short" });
             return (
@@ -785,41 +791,86 @@ export function OperacionDia({
           })}
         </div>
 
-        <span className="text-xs text-muted-foreground capitalize hidden sm:inline">
-          {fmtFecha(fecha)}
-        </span>
         {fecha < hoy() && (
           <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900 font-medium">
             Editando día pasado
           </span>
         )}
-        {tipoProyeccion && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900 font-medium">
-            Proyección {tipoProyeccion === "min" ? "Mínima" : tipoProyeccion === "esperado" ? "Esperada" : "Máxima"} — {pkgTotal.toLocaleString("es-AR")} paq
-          </span>
-        )}
 
-        {/* Paquetes del día */}
-        <div className="flex items-center gap-1.5 ml-2">
-          <span className="text-xs text-muted-foreground">Paquetes del día:</span>
-          <input
-            type="number" min={0} value={pkgTotal || ""}
-            placeholder={pkgBase > 0 ? pkgBase.toString() : "0"}
-            onChange={e => setPkgTotal(parseInt(e.target.value) || 0)}
-            className={cn(
-              "border rounded px-2 py-0.5 text-sm h-8 w-28 tabular-nums text-right bg-background font-semibold",
-              pkgTotal > 0 ? "border-blue-400 text-blue-700 dark:text-blue-300" : "border-border text-muted-foreground"
+        {/* ── Las 3 cifras que se miran todo el día, en la misma línea ── */}
+        <div className="flex items-center gap-3 pl-3 ml-1 border-l border-border">
+          <span className="flex items-baseline gap-1" title={`${nFijos} fijos · ${nPreT} pre-turno · ${nCortes} cortes · ${nUnificados} unificados — 1 chofer por ruta`}>
+            <b className="text-base font-bold tabular-nums leading-none">{nActivas}</b>
+            <span className="text-xs text-muted-foreground">/{rutas.length} rutas</span>
+          </span>
+          <span className="flex items-center gap-1"
+            title={tipoProyeccion ? `Proyección ${tipoProyeccion === "min" ? "mínima" : tipoProyeccion === "esperado" ? "esperada" : "máxima"}` : "Paquetes del día"}>
+            <input
+              type="number" min={0} value={pkgTotal || ""}
+              placeholder={pkgBase > 0 ? pkgBase.toString() : "0"}
+              onChange={e => setPkgTotal(parseInt(e.target.value) || 0)}
+              className={cn(
+                "border rounded px-1.5 text-sm h-7 w-[74px] tabular-nums text-right bg-background font-bold",
+                pkgTotal > 0 ? "border-blue-400 text-blue-700 dark:text-blue-300" : "border-border text-muted-foreground"
+              )}
+            />
+            <span className="text-xs text-muted-foreground">paq</span>
+            {pkgBase > 0 && pkgTotal !== pkgBase && (
+              <button className="text-xs text-blue-600 dark:text-blue-300 hover:underline"
+                title={`Volver al importado (${pkgBase.toLocaleString("es-AR")})`}
+                onClick={() => setPkgTotal(pkgBase)}>
+                ←{pkgBase.toLocaleString("es-AR")}
+              </button>
             )}
-          />
-          {pkgBase > 0 && pkgTotal !== pkgBase && (
-            <button className="text-xs text-blue-600 dark:text-blue-300 hover:underline"
-              onClick={() => setPkgTotal(pkgBase)}>
-              ← {pkgBase.toLocaleString("es-AR")}
-            </button>
+          </span>
+          <span className="flex items-baseline gap-1" title="Promedio de paquetes por ruta — objetivo 25 a 35">
+            <b className={cn("text-base font-bold tabular-nums leading-none", estadoColor)}>
+              {promedio > 0 ? promedio.toFixed(1) : "—"}
+            </b>
+            <span className="text-xs text-muted-foreground">pkg/ruta</span>
+          </span>
+          {promedio > 0 && (
+            <span className={cn("text-xs font-semibold px-1.5 py-0.5 rounded-full",
+              promedio > 40 || promedio < 20 ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300"
+              : promedio > 35 || promedio < 25 ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300"
+              : "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300")}>
+              {estadoLabel.replace(/^[^A-Za-zÁÉÍÓÚ]+/, "")}
+            </span>
           )}
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1.5">
+          {/* Piso del día + limpiar: un clic al arrancar, sin barra propia */}
+          <div className="relative">
+            <button onClick={() => setMenuPiso(v => !v)} disabled={guardando}
+              className="h-8 px-2.5 rounded border text-xs font-medium text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors disabled:opacity-50 flex items-center gap-1"
+              title="Aplicar el piso de recorridos del tipo de día">
+              Piso
+              <ChevronDown className="h-3 w-3" />
+            </button>
+            {menuPiso && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setMenuPiso(false)} />
+                <div className="absolute right-0 top-9 z-50 w-56 rounded-lg border bg-background shadow-lg p-1">
+                  {([
+                    ["lun_feriado", "Lunes / Feriado"],
+                    ["mar_vie", "Martes a Viernes"],
+                    ["sabado", "Sábado"],
+                  ] as [TipoDiaPlantilla, string][]).map(([tipo, lbl]) => (
+                    <button key={tipo} onClick={() => { setMenuPiso(false); aplicarPiso(tipo); }} disabled={guardando}
+                      className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 disabled:opacity-50">
+                      {lbl}
+                    </button>
+                  ))}
+                  <div className="h-px bg-border my-1" />
+                  <button onClick={() => { setMenuPiso(false); limpiarRecorridos(); }} disabled={guardando}
+                    className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-300 flex items-center gap-1.5 disabled:opacity-50">
+                    <Trash2 className="h-3 w-3" /> Limpiar todos los recorridos
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => cargar(fecha)} disabled={cargando}>
             <RefreshCw className={cn("h-3.5 w-3.5", cargando && "animate-spin")} />
           </Button>
@@ -831,36 +882,6 @@ export function OperacionDia({
             </Button>
           )}
         </div>
-      </div>
-
-      {/* ── Métricas del día (compactas: el listado necesita el alto) ── */}
-      <div className="px-5 py-2.5 border-b bg-background shrink-0">
-        <StatRow
-          compact
-          stats={[
-            {
-              label: "Rutas activas hoy",
-              valor: nActivas,
-              sub: `de ${rutas.length} · ${nFijos}F ${nPreT}PT ${nCortes}C`,
-            },
-            {
-              label: "Paquetes del día",
-              valor: pkgTotal > 0 ? pkgTotal.toLocaleString("es-AR") : "—",
-              sub: pkgBase > 0 ? `importado ${pkgBase.toLocaleString("es-AR")}` : "sin importar",
-            },
-            {
-              label: "Prom. pkg/ruta",
-              valor: promedio > 0 ? promedio.toFixed(1) : "—",
-              sub: `objetivo 25–35 · ${estadoLabel}`,
-              valorClassName: estadoColor,
-            },
-            {
-              label: "Choferes necesarios",
-              valor: pkgTotal > 0 ? choferes : "—",
-              sub: `@ ${targetPkg} pkg/chofer`,
-            },
-          ]}
-        />
       </div>
 
       {/* ── Rail lateral derecho (estilo Drive) ── */}
@@ -908,7 +929,7 @@ export function OperacionDia({
                   <div className="grid grid-cols-2 gap-3">
                     {[
                       { label: "Rutas activas", valor: nActivas.toString(), sub: `${nFijos}F ${nPreT}PT ${nCortes}C ${nUnificados}U` },
-                      { label: "Choferes necesarios", valor: pkgTotal > 0 ? choferes.toString() : "—", sub: `@ ${targetPkg} pkg/chofer`, hl: true },
+                      { label: "Choferes", valor: choferes > 0 ? choferes.toString() : "—", sub: choferesRef > 0 ? `1 por ruta · ref. @${targetPkg}: ${choferesRef}` : "1 por ruta activa", hl: true },
                       { label: "Prom. pkg/ruta", valor: promedio > 0 ? promedio.toFixed(1) : "—", sub: "target 25–35" },
                       { label: "Piso fijos", valor: nFijos.toString(), sub: "RF activos" },
                     ].map(({ label, valor, sub, hl }) => (
@@ -1084,32 +1105,11 @@ export function OperacionDia({
             soloActivos ? "bg-blue-600 text-white border-blue-600" : "border-border text-muted-foreground")}>
           Solo activos
         </button>
-        {/* Piso por tipo de día: activa la plantilla fija del esquema de una */}
-        <div className="flex items-center gap-1 pl-1 border-l border-border ml-1">
-          <span className="text-xs text-muted-foreground">Piso:</span>
-          {([
-            ["lun_feriado", "Lun/Fer."],
-            ["mar_vie", "Mar-Vie"],
-            ["sabado", "Sáb"],
-          ] as [TipoDiaPlantilla, string][]).map(([tipo, lbl]) => (
-            <button key={tipo} onClick={() => aplicarPiso(tipo)} disabled={guardando}
-              className="text-xs px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors disabled:opacity-50"
-              title={`Aplicar el piso de recorridos de ${LABEL_PISO[tipo]}${tipo === "lun_feriado" ? " (usalo también si el día es feriado)" : ""}`}>
-              {lbl}
-            </button>
-          ))}
-        </div>
-        <button onClick={limpiarRecorridos} disabled={guardando}
-          className="text-xs px-2 py-0.5 rounded border border-red-200 dark:border-red-900 text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors flex items-center gap-1 disabled:opacity-50"
-          title="Deshabilitar todos los recorridos de todas las zonas">
-          <Trash2 className="h-3 w-3" />
-          Limpiar recorridos
-        </button>
-        <span className="text-xs text-muted-foreground ml-2">
+        <span className="text-xs text-muted-foreground ml-auto">
           {nActivas}/{rutas.length} · {rutasFiltradas.length} visibles
         </span>
         <Button size="sm" variant="outline" onClick={abrirNuevo}
-          className="h-8 gap-1 text-xs">
+          className="h-7 gap-1 text-xs">
           <Plus className="h-3 w-3" />
           Agregar
         </Button>
@@ -1394,7 +1394,7 @@ export function OperacionDia({
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Choferes</p>
                 <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{choferes}</p>
-                <p className="text-xs text-muted-foreground">@{targetPkg} pkg</p>
+                <p className="text-xs text-muted-foreground">1 por ruta</p>
               </div>
             </div>
 

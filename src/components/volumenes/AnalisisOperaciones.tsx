@@ -55,7 +55,7 @@ function TooltipUnif({ active, payload, label }: any) {
       {d?.total_paquetes > 0 && <p>Paquetes: <b>{d.total_paquetes.toLocaleString("es-AR")}</b></p>}
       {d?.rutas_activas > 0 && <p>Rutas: <b>{d.rutas_activas}</b> ({d.rutas_fijas}F {d.rutas_preturno}PT)</p>}
       {d?.prom_por_ruta > 0 && <p>Prom/ruta: <b className={colorProm(d.prom_por_ruta)}>{d.prom_por_ruta}</b></p>}
-      {d?.choferes_30 > 0 && <p>Choferes @30: <b>{d.choferes_30}</b></p>}
+      {d?.choferes > 0 && <p>Choferes: <b>{d.choferes}</b> <span className="text-muted-foreground">(1 por ruta)</span></p>}
       <p className="text-xs text-muted-foreground flex gap-1">
         {d?.tiene_clientes && <span className="text-blue-600 dark:text-blue-300">● Clientes</span>}
         {d?.tiene_ops && <span className="text-green-600 dark:text-green-300">● Operaciones</span>}
@@ -266,7 +266,7 @@ export function AnalisisOperaciones() {
       dia: d.fecha.slice(5),
       paquetes: d.total_paquetes || undefined,
       promedio: d.prom_por_ruta > 0 ? d.prom_por_ruta : undefined,
-      choferes: d.choferes_30 || undefined,
+      choferes: d.choferes || undefined,
     }));
 
   const tieneClientes = dashboard.some(d => d.tiene_clientes);
@@ -406,7 +406,7 @@ export function AnalisisOperaciones() {
                       )}
                       {tieneOps && (
                         <>
-                          <Bar yAxisId="left" dataKey="choferes" name="Choferes @30" fill="url(#gradChoferes)" radius={[4,4,0,0]} maxBarSize={28} />
+                          <Bar yAxisId="left" dataKey="choferes" name="Choferes (1 por ruta)" fill="url(#gradChoferes)" radius={[4,4,0,0]} maxBarSize={28} />
                           <Line yAxisId="right" type="monotone" dataKey="promedio" stroke="#1d4ed8" strokeWidth={2.5} name="Prom pkg/ruta" dot={{ r: 3.5, fill: "#1d4ed8", strokeWidth: 0 }} activeDot={{ r: 5 }} connectNulls />
                           <ReferenceLine yAxisId="right" y={30} stroke={PALETA.verde} strokeDasharray="5 4" strokeWidth={1.25} />
                           <ReferenceLine yAxisId="right" y={40} stroke={PALETA.rojo} strokeDasharray="3 4" strokeWidth={1} strokeOpacity={0.5} />
@@ -483,7 +483,7 @@ export function AnalisisOperaciones() {
                                 ) : <span className="text-muted-foreground/40">—</span>}
                               </td>
                               <td className="px-3 py-1.5 text-right tabular-nums text-blue-700 dark:text-blue-300 font-semibold">
-                                {d.choferes_30 > 0 ? d.choferes_30 : "—"}
+                                {d.choferes > 0 ? d.choferes : "—"}
                               </td>
                               <td className="px-3 py-1.5">
                                 <span className={cn("text-xs px-1.5 py-0.5 rounded-full font-medium",

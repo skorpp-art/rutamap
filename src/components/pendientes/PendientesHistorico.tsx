@@ -50,10 +50,12 @@ export function PendientesHistorico() {
     const recibidos = dias.reduce((s, d) => s + d.recibidos, 0);
     const noRecibidos = dias.reduce((s, d) => s + d.no_recibidos, 0);
     const pendientes = dias.reduce((s, d) => s + d.pendientes, 0);
+    const retenidos = dias.reduce((s, d) => s + d.retenidos, 0);
     return {
-      total, recibidos, noRecibidos, pendientes,
+      total, recibidos, noRecibidos, pendientes, retenidos,
       pctRecibido: total > 0 ? Math.round(recibidos / total * 100) : 0,
       pctNoRecibido: total > 0 ? Math.round(noRecibidos / total * 100) : 0,
+      pctRetenido: total > 0 ? Math.round(retenidos / total * 100) : 0,
     };
   }, [dias]);
 
@@ -81,7 +83,7 @@ export function PendientesHistorico() {
       ) : (
         <>
           {/* Tarjetas acumuladas del mes */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
             <div className="border rounded-lg p-4 bg-card">
               <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Total del mes</p>
               <p className="text-2xl font-bold tabular-nums mt-1">{totales.total}</p>
@@ -96,6 +98,11 @@ export function PendientesHistorico() {
               <p className={cn("text-2xl font-bold tabular-nums mt-1", totales.noRecibidos > 0 && "text-red-600 dark:text-red-300")}>{totales.noRecibidos}</p>
               <p className="text-xs text-muted-foreground">{totales.pctNoRecibido}% del total</p>
             </div>
+            <div className={cn("border rounded-lg p-4", totales.retenidos > 0 && "bg-violet-50/50 dark:bg-violet-950/20 border-violet-200/60 dark:border-violet-900/50")}>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Retenidos</p>
+              <p className={cn("text-2xl font-bold tabular-nums mt-1", totales.retenidos > 0 && "text-violet-700 dark:text-violet-300")}>{totales.retenidos}</p>
+              <p className="text-xs text-muted-foreground">{totales.pctRetenido}% del total</p>
+            </div>
             <div className="border rounded-lg p-4 bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/50">
               <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">Sin marcar</p>
               <p className="text-2xl font-bold tabular-nums mt-1 text-amber-700 dark:text-amber-300">{totales.pendientes}</p>
@@ -108,11 +115,13 @@ export function PendientesHistorico() {
             <div className="h-3 w-full rounded-full bg-muted overflow-hidden flex">
               <div className="h-full bg-emerald-500" style={{ width: `${totales.pctRecibido}%` }} title={`Recibidos: ${totales.recibidos}`} />
               <div className="h-full bg-red-500" style={{ width: `${totales.pctNoRecibido}%` }} title={`No recibidos: ${totales.noRecibidos}`} />
+              <div className="h-full bg-violet-500" style={{ width: `${totales.pctRetenido}%` }} title={`Retenidos: ${totales.retenidos}`} />
               <div className="h-full bg-muted-foreground/20" title={`Sin marcar: ${totales.pendientes}`} />
             </div>
             <div className="flex items-center gap-4 mt-1.5 text-xs text-muted-foreground">
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />Recibido ({totales.pctRecibido}%)</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500" />No recibido ({totales.pctNoRecibido}%)</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-violet-500" />Retenido ({totales.pctRetenido}%)</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-muted-foreground/30" />Sin marcar</span>
             </div>
           </div>
@@ -129,6 +138,7 @@ export function PendientesHistorico() {
                   <div className="flex-1 h-4 rounded bg-muted overflow-hidden flex" style={{ maxWidth: "100%" }}>
                     <div className="h-full bg-emerald-500" style={{ width: `${d.total > 0 ? d.recibidos / maxDia * 100 : 0}%` }} />
                     <div className="h-full bg-red-500" style={{ width: `${d.total > 0 ? d.no_recibidos / maxDia * 100 : 0}%` }} />
+                    <div className="h-full bg-violet-500" style={{ width: `${d.total > 0 ? d.retenidos / maxDia * 100 : 0}%` }} />
                     <div className="h-full bg-muted-foreground/20" style={{ width: `${d.total > 0 ? d.pendientes / maxDia * 100 : 0}%` }} />
                   </div>
                   <span className="w-24 shrink-0 text-right tabular-nums text-muted-foreground">{d.recibidos}/{d.total}</span>

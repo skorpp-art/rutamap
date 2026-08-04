@@ -325,7 +325,7 @@ export function HistorialDias() {
                         ) : <span className="text-muted-foreground/30">—</span>}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums text-blue-700 dark:text-blue-300 font-semibold">
-                        {d.choferes_real != null ? d.choferes_real : (d.choferes_30 > 0 ? `~${d.choferes_30}` : "—")}
+                        {d.choferes_real != null ? d.choferes_real : "—"}
                       </td>
                       <td className={cn("px-3 py-2 text-right tabular-nums", colorProm(Number(d.prom_por_chofer_real ?? 0)))}>
                         {d.prom_por_chofer_real != null ? d.prom_por_chofer_real : "—"}

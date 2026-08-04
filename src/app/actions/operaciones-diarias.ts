@@ -109,8 +109,11 @@ export interface DashboardUnificado {
   suma_total_ops: number;
   prom_por_ruta: number;
   pct_x_fuera: number;
-  choferes_30: number;
-  choferes_35: number;
+  // Choferes reales del día = rutas que salieron (1 chofer por ruta).
+  choferes: number;
+  // Referencia de planificación (cuántos harían falta a 30 pkg c/u). No es la
+  // dotación real: por eso nunca se muestra como "choferes del día".
+  choferes_ref_30: number;
   proyectado_pkg: number | null;
   efectividad_pct: number | null;
   estado: string;
@@ -175,7 +178,7 @@ export interface HistorialDiaV2 {
   prom_por_ruta: number;
   rutas_en_alerta: number;
   pct_x_fuera: number;
-  choferes_30: number;
+  choferes_ref_30: number;
   choferes_real: number | null;
   prom_por_chofer_real: number | null;
   proyectado_pkg: number | null;
