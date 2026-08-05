@@ -15,6 +15,10 @@
 -- PT-NO-02: da el total de 55 que declara la propia hoja y coincide
 -- con lo que ya tenia la plantilla.
 --
+-- Ajuste posterior al esquema, pedido por operaciones: en MARTESVIERNES
+-- sale CE-CA-03 (Corte Nuñez) y entra RF-CA-07 (Núñez / Belgrano). El
+-- total de martes a viernes sigue siendo 55.
+--
 -- Reemplaza la plantilla completa. Idempotente.
 -- ============================================================
 
@@ -96,7 +100,6 @@ insert into _piso(tipo_dia, codigo) values
 ('lun_feriado','RF-SU-12'),
 ('lun_feriado','RF-SU-13'),
 ('lun_feriado','RF-SU-14'),
-('mar_vie','CE-CA-03'),
 ('mar_vie','CE-SU-02'),
 ('mar_vie','PT-NO-01'),
 ('mar_vie','PT-NO-02'),
@@ -108,6 +111,7 @@ insert into _piso(tipo_dia, codigo) values
 ('mar_vie','RF-CA-04'),
 ('mar_vie','RF-CA-05'),
 ('mar_vie','RF-CA-06'),
+('mar_vie','RF-CA-07'),
 ('mar_vie','RF-CA-08'),
 ('mar_vie','RF-CA-09'),
 ('mar_vie','RF-CA-10'),
@@ -220,3 +224,16 @@ from _piso p
 join recorridos r on r.codigo = p.codigo;
 
 commit;
+
+-- ============================================================
+-- Edicion del piso desde la app
+-- ============================================================
+-- Este archivo deja de ser la unica forma de tocar la plantilla: desde
+-- Operacion del Dia, el menu "Piso" permite guardar los recorridos
+-- activos como piso de un tipo de dia. Sigue sirviendo para recargar
+-- todo de cero desde el esquema.
+--
+-- guardar_plantilla_operacion(p_tipo_dia, p_recorrido_ids): reemplaza el
+--   piso de ese tipo de dia. Guardia es_editor(); rechaza un piso vacio.
+-- get_plantillas_conteo(): cuantos recorridos tiene cada piso.
+-- ============================================================

@@ -13,7 +13,7 @@ import {
 import {
   getOperacionDia, inicializarOperacionDia,
   guardarOperacionBulk, getTotalPaquetesFecha,
-  aplicarPlantillaOperacion,
+  aplicarPlantillaOperacion, guardarPlantillaOperacion, getPlantillasConteo,
 } from "@/app/actions/operacion";
 import type { TipoDiaPlantilla } from "@/app/actions/operacion";
 import { getAnalisisRecorridos, getCoactivacionesHistoricas } from "@/app/actions/operaciones-diarias";
@@ -90,6 +90,8 @@ export function OperacionDia({
   // Menú "Piso": aplicar plantilla y limpiar. Son 1 clic al arrancar el día,
   // así que no merecen ocupar barra propia.
   const [menuPiso, setMenuPiso] = useState(false);
+  // Cuántos recorridos tiene guardado hoy el piso de cada tipo de día.
+  const [conteoPisos, setConteoPisos] = useState<Record<string, number>>({});
   const reportRef = useRef<HTMLDivElement>(null);
   // Debounce para autoguardado al cambiar rutas ON/OFF
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -245,6 +247,11 @@ export function OperacionDia({
 
   useEffect(() => { cargar(fecha); }, [fecha, cargar]);
 
+  // Conteo de cada piso, para mostrarlo en el menú.
+  useEffect(() => {
+    getPlantillasConteo().then(r => { if (r.ok && r.data) setConteoPisos(r.data); });
+  }, []);
+
   // Al cambiar de fecha (o desmontar), cancelar cualquier autosave pendiente:
   // un timer de la fecha anterior no debe guardar sobre los datos de la nueva.
   useEffect(() => {
@@ -333,6 +340,7 @@ export function OperacionDia({
 
   // Cálculos en tiempo real
   const activas = rutasConEdits.filter(r => r.activo);
+  const hayEdits = Object.keys(editados).length > 0;
   const nActivas = activas.length;
   const nFijos = activas.filter(r => r.tipo === "fijo").length;
   const nPreT = activas.filter(r => r.tipo === "pre_turno").length;
@@ -510,6 +518,7 @@ export function OperacionDia({
   const LABEL_PISO: Record<TipoDiaPlantilla, string> = {
     lun_feriado: "Lunes / Feriado", mar_vie: "Martes a Viernes", sabado: "Sábado",
   };
+  const PISOS = Object.entries(LABEL_PISO) as [TipoDiaPlantilla, string][];
   async function aplicarPiso(tipoDia: TipoDiaPlantilla) {
     if (!confirm(`¿Aplicar el piso de "${LABEL_PISO[tipoDia]}"? Se activan los recorridos base de ese día y se desactiva el resto. Los ajustes que hayas hecho a mano se reemplazan.`)) return;
     setGuardando(true);
@@ -519,6 +528,28 @@ export function OperacionDia({
       setEditados({});
       toast.success(`Piso "${LABEL_PISO[tipoDia]}" aplicado — ${res.afectados ?? 0} recorridos ajustados`);
       await cargar(fecha);
+    } finally { setGuardando(false); }
+  }
+
+  // Guardar el piso: lo que está activo en pantalla pasa a ser la plantilla de
+  // ese tipo de día, así el cambio queda en automático para los próximos.
+  async function guardarPiso(tipoDia: TipoDiaPlantilla) {
+    const ids = activas.map(r => r.recorrido_id);
+    if (ids.length === 0) { toast.error("No hay recorridos activos para guardar como piso"); return; }
+    const actual = conteoPisos[tipoDia];
+    if (!confirm(
+      `¿Guardar los ${ids.length} recorridos activos como piso de "${LABEL_PISO[tipoDia]}"?\n\n` +
+      (actual ? `Reemplaza el piso actual (${actual} recorridos). ` : "") +
+      `A partir de ahora el botón "${LABEL_PISO[tipoDia]}" va a activar estos.` +
+      (hayEdits ? "\n\nIncluye los cambios del día que todavía no guardaste." : "")
+    )) return;
+    setGuardando(true);
+    try {
+      const res = await guardarPlantillaOperacion(tipoDia, ids);
+      if (!res.ok) { toast.error("No se pudo guardar el piso", { description: res.error }); return; }
+      toast.success(`Piso "${LABEL_PISO[tipoDia]}" actualizado — ${res.guardados ?? ids.length} recorridos`);
+      const c = await getPlantillasConteo();
+      if (c.ok && c.data) setConteoPisos(c.data);
     } finally { setGuardando(false); }
   }
 
@@ -748,8 +779,6 @@ export function OperacionDia({
     }
   }
 
-  const hayEdits = Object.keys(editados).length > 0;
-
   return (
     <div className="flex flex-col h-full relative overflow-hidden" ref={reportRef}>
       {/* ── Barra única de control: fecha + las cifras del día + acciones ── */}
@@ -851,15 +880,31 @@ export function OperacionDia({
             {menuPiso && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setMenuPiso(false)} />
-                <div className="absolute right-0 top-9 z-50 w-56 rounded-lg border bg-background shadow-lg p-1">
-                  {([
-                    ["lun_feriado", "Lunes / Feriado"],
-                    ["mar_vie", "Martes a Viernes"],
-                    ["sabado", "Sábado"],
-                  ] as [TipoDiaPlantilla, string][]).map(([tipo, lbl]) => (
+                <div className="absolute right-0 top-9 z-50 w-72 rounded-lg border bg-background shadow-lg p-1">
+                  <p className="text-xs font-semibold text-muted-foreground px-2 pt-1 pb-1">Aplicar el piso del día</p>
+                  {PISOS.map(([tipo, lbl]) => (
                     <button key={tipo} onClick={() => { setMenuPiso(false); aplicarPiso(tipo); }} disabled={guardando}
-                      className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 disabled:opacity-50">
-                      {lbl}
+                      className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 disabled:opacity-50 flex items-center gap-2">
+                      <span className="flex-1">{lbl}</span>
+                      {conteoPisos[tipo] > 0 && (
+                        <span className="text-xs text-muted-foreground tabular-nums">{conteoPisos[tipo]}</span>
+                      )}
+                    </button>
+                  ))}
+                  <div className="h-px bg-border my-1" />
+                  <p className="text-xs font-semibold text-muted-foreground px-2 pb-1">
+                    Guardar los {activas.length} activos como piso de…
+                  </p>
+                  {PISOS.map(([tipo, lbl]) => (
+                    <button key={tipo} onClick={() => { setMenuPiso(false); guardarPiso(tipo); }} disabled={guardando}
+                      className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-blue-50 dark:hover:bg-blue-950/40 text-blue-700 dark:text-blue-300 disabled:opacity-50 flex items-center gap-2">
+                      <Save className="h-3 w-3 shrink-0" />
+                      <span className="flex-1">{lbl}</span>
+                      {conteoPisos[tipo] > 0 && (
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          {conteoPisos[tipo]} → {activas.length}
+                        </span>
+                      )}
                     </button>
                   ))}
                   <div className="h-px bg-border my-1" />
