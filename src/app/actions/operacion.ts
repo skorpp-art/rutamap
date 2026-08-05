@@ -47,6 +47,37 @@ export async function aplicarPlantillaOperacion(
   } catch (e) { return { ok: false, error: String(e) }; }
 }
 
+// Guarda el piso de un tipo de día con los recorridos indicados: reemplaza la
+// plantilla completa de ese tipo. Es lo que deja el cambio "en automático"
+// para los próximos días.
+export async function guardarPlantillaOperacion(
+  tipoDia: TipoDiaPlantilla, recorridoIds: string[]
+): Promise<{ ok: boolean; guardados?: number; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("guardar_plantilla_operacion", {
+      p_tipo_dia: tipoDia, p_recorrido_ids: recorridoIds,
+    });
+    if (error) return { ok: false, error: error.message };
+    revalidatePath("/volumenes");
+    return { ok: true, guardados: data as number };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
+// Cuántos recorridos tiene hoy el piso de cada tipo de día.
+export async function getPlantillasConteo(): Promise<{ ok: boolean; data?: Record<string, number>; error?: string }> {
+  try {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("get_plantillas_conteo");
+    if (error) return { ok: false, error: error.message };
+    const m: Record<string, number> = {};
+    for (const r of (data ?? []) as { tipo_dia: string; cantidad: number }[]) m[r.tipo_dia] = Number(r.cantidad);
+    return { ok: true, data: m };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
 // Obtener operación del día
 export async function getOperacionDia(
   fecha: string
