@@ -1,0 +1,52 @@
+-- ============================================================
+-- Deposito: copia de datos desde la app logistica-hogareno
+-- ============================================================
+-- Se ejecuto una sola vez, el 09/08/2026. Queda documentado para saber
+-- que entro, que quedo afuera y por que.
+--
+-- La copia se hizo base a base con la extension http (PostgREST del
+-- proyecto de origen), sin exportar archivos. La extension se apago al
+-- terminar: no queda encendida.
+--
+-- RESULTADO
+--   clientes activos ............  100
+--   bultos en deposito ..........  122
+--   bultos en papelera ..........   24  (ultimos 30 dias)
+--   remitos .....................  569  (2.454 bultos adentro)
+--   numerador de remitos ........  593
+--
+-- QUE QUEDO AFUERA Y POR QUE
+--
+-- 1. Los 2.454 bultos ya retirados no se copiaron como bultos: se
+--    convirtieron en 569 remitos, con sus lineas congeladas adentro. Los
+--    que tenian numero de remito se agruparon por numero; los anteriores
+--    al numerador, por cliente y fecha de retiro.
+--
+-- 2. La papelera solo trae los ultimos 30 dias (24 bultos). Los 56
+--    borrados mas viejos se descartaron: la papelera sirve para deshacer
+--    un error reciente, no como archivo.
+--
+-- 3. Nueve clientes que estaban en la papelera hacia mas de 30 dias no
+--    se copiaron, y con ellos se fueron 3 bultos que figuraban en
+--    deposito: 1 de "DOMESTICABLE" y 2 de "sda" (una carga de prueba).
+--    Por eso en deposito hay 122 y no 125. Si alguno hace falta, se
+--    vuelve a cargar a mano.
+--
+-- 4. Dos remitos quedaron sin cliente asociado por lo mismo, pero
+--    conservan el nombre impreso: el documento se reimprime igual.
+--
+-- CORRECCIONES APLICADAS EN LA COPIA
+--
+-- - Las fechas de ingreso imposibles (0001-01-01, 0026-05-05 y
+--   22026-04-17, cargadas por error) se reemplazaron por la fecha de
+--   creacion del registro, que si es confiable.
+-- - El numerador arranca desde el mayor numero ya emitido, para que el
+--   proximo remito no repita uno viejo.
+--
+-- PENDIENTE EN EL ORIGEN
+--
+-- El proyecto logistica-hogareno tiene politicas que le dan a anon
+-- acceso total a clients y bultos: con la clave publica del frontend
+-- alcanza para leer y escribir clientes y direcciones. Aca eso quedo
+-- cerrado, pero esa app sigue en uso y conviene arreglarlo o apagarla.
+-- ============================================================
