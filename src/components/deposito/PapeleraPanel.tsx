@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { depositoClient } from "@/lib/supabase/deposito";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { DIAS_PAPELERA } from "@/types/deposito.types";
 
 interface ItemBorrado {
   id: string;
@@ -23,11 +24,16 @@ export function PapeleraPanel({ puedeEditar }: { puedeEditar: boolean }) {
     setCargando(true);
     try {
       const supabase = depositoClient();
+      // La papelera es para deshacer un error reciente, no un archivo: se
+      // muestra sólo la última ventana de días y lo anterior se puede purgar.
+      const limite = new Date(Date.now() - DIAS_PAPELERA * 86_400_000).toISOString();
       const [{ data: clientes }, { data: bultos }] = await Promise.all([
         supabase.from("clients").select("id, name, deleted_at")
-          .not("deleted_at", "is", null).order("deleted_at", { ascending: false }),
+          .not("deleted_at", "is", null).gte("deleted_at", limite)
+          .order("deleted_at", { ascending: false }),
         supabase.from("bultos").select("id, description, barcode, deleted_at, clients(name)")
-          .not("deleted_at", "is", null).order("deleted_at", { ascending: false }),
+          .not("deleted_at", "is", null).gte("deleted_at", limite)
+          .order("deleted_at", { ascending: false }),
       ]);
 
       const todos: ItemBorrado[] = [
@@ -72,6 +78,28 @@ export function PapeleraPanel({ puedeEditar }: { puedeEditar: boolean }) {
     cargar();
   }
 
+  // Purga lo que ya salió de la ventana: son cosas que nadie va a restaurar y
+  // que sólo ocupan lugar.
+  async function vaciarViejo() {
+    if (!puedeEditar) return;
+    if (!confirm(
+      `¿Eliminar definitivamente todo lo que se borró hace más de ${DIAS_PAPELERA} días?\n\n` +
+      "No se puede deshacer. Lo de la ventana actual queda intacto."
+    )) return;
+    const supabase = depositoClient();
+    const limite = new Date(Date.now() - DIAS_PAPELERA * 86_400_000).toISOString();
+    const [rb, rc] = await Promise.all([
+      supabase.from("bultos").delete().not("deleted_at", "is", null).lt("deleted_at", limite),
+      supabase.from("clients").delete().not("deleted_at", "is", null).lt("deleted_at", limite),
+    ]);
+    if (rb.error || rc.error) {
+      toast.error("No se pudo vaciar", { description: (rb.error ?? rc.error)?.message });
+      return;
+    }
+    toast.success("Papelera vaciada");
+    cargar();
+  }
+
   async function borrarDefinitivo(item: ItemBorrado) {
     if (!puedeEditar) return;
     if (!confirm(
@@ -102,6 +130,15 @@ export function PapeleraPanel({ puedeEditar }: { puedeEditar: boolean }) {
             className="p-2 rounded-lg border hover:bg-muted/40 transition-colors" title="Actualizar">
             <RefreshCw className={cn("h-4 w-4 text-muted-foreground", cargando && "animate-spin")} />
           </button>
+          <span className="text-xs text-muted-foreground">
+            Se guardan los últimos {DIAS_PAPELERA} días.
+          </span>
+          {puedeEditar && (
+            <button onClick={vaciarViejo}
+              className="text-xs px-2.5 py-1.5 rounded-lg border hover:bg-muted transition-colors ml-auto">
+              Vaciar lo anterior a {DIAS_PAPELERA} días
+            </button>
+          )}
           {!puedeEditar && (
             <span className="text-xs text-muted-foreground">Solo lectura: no podés restaurar ni eliminar.</span>
           )}
@@ -109,7 +146,7 @@ export function PapeleraPanel({ puedeEditar }: { puedeEditar: boolean }) {
 
         {items.length === 0 && !cargando ? (
           <EmptyState icon={Trash2} title="La papelera está vacía"
-            description="Lo que elimines desde Clientes o desde el detalle de un bulto va a aparecer acá." />
+            description={`Lo que elimines va a aparecer acá y se puede restaurar durante ${DIAS_PAPELERA} días.`} />
         ) : (
           <div className="border rounded-lg bg-card divide-y">
             {items.map(item => (

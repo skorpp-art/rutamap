@@ -163,26 +163,31 @@ export function ClienteFicha({ clienteId, puedeEditar }: { clienteId: string; pu
     } finally { setProcesando(false); }
   }
 
-  // ── Devolución con remito ───────────────────────────────────────────────────
-  // Marca los bultos como retirados, les pone número de remito y lo imprime.
-  // Diferencia con la app de origen: allá esta misma acción además los mandaba
-  // a la papelera, así que una devolución normal terminaba pareciendo un
-  // borrado (por eso hoy la papelera tiene 2.500 bultos que nadie eliminó).
+  // ── Salida con remito ───────────────────────────────────────────────────────
+  // Lo que queda guardado es el remito, con sus líneas congeladas adentro; los
+  // bultos salen de la tabla, que pasa a representar sólo lo que hay
+  // físicamente en el galpón.
+  //
+  // En la app de origen esta acción marcaba los bultos como retirados y además
+  // como borrados, así que cada devolución terminaba en la papelera: por eso
+  // había 2.454 bultos ahí que nadie eliminó.
   async function devolver(ids: string[]) {
     if (ids.length === 0) return;
     const lista = bultos.filter(b => ids.includes(b.id));
+    const nombreCliente = cliente?.nombre_fantasia
+      ? `${cliente.nombre_fantasia} (${cliente.name})`
+      : cliente?.name ?? "Cliente";
+
     if (!confirm(
       `¿Registrar la salida de ${lista.length} bulto${lista.length > 1 ? "s" : ""} de ${cliente?.nombre_fantasia || cliente?.name}?\n\n` +
-      "Se marcan como retirados, se numera el remito y se abre para imprimir."
+      "Se emite el remito y esos bultos dejan de figurar en el depósito. El remito queda en el historial."
     )) return;
 
     setProcesando(true);
     try {
       const supabase = depositoClient();
 
-      // Numerador de remitos. Es un contador de una sola fila: si dos personas
-      // cierran una devolución al mismo tiempo podrían leer el mismo número, así
-      // que se relee después de escribir para avisar en vez de duplicar en silencio.
+      // Numerador de remitos: una sola fila con el último número usado.
       const { data: contador } = await supabase
         .from("doc_counter").select("last_number").eq("id", 1).single();
       const numero = (contador?.last_number ?? 0) + 1;
@@ -190,23 +195,38 @@ export function ClienteFicha({ clienteId, puedeEditar }: { clienteId: string; pu
         .from("doc_counter").update({ last_number: numero }).eq("id", 1);
       if (errNum) { toast.error("No se pudo numerar el remito", { description: errNum.message }); return; }
 
-      const { error } = await supabase.from("bultos").update({
-        status: "returned",
-        actual_return_date: hoyAR(),
-        remito_number: numero,
-        updated_at: new Date().toISOString(),
-      }).in("id", ids);
-      if (error) { toast.error("No se pudo registrar la salida", { description: error.message }); return; }
-
-      imprimirRemito({
-        cliente: cliente?.nombre_fantasia
-          ? `${cliente.nombre_fantasia} (${cliente.name})`
-          : cliente?.name ?? "Cliente",
-        fecha: hoyAR(),
+      const fecha = hoyAR();
+      const { error: errRemito } = await supabase.from("remitos").insert({
         numero,
-        bultos: lista,
+        client_id: clienteId,
+        cliente_nombre: nombreCliente,
+        fecha,
+        cantidad: lista.length,
+        lineas: lista.map(b => ({
+          tracking: b.tracking_id ?? b.barcode,
+          descripcion: b.description,
+          ingreso: b.entry_date,
+          destino: b.destination_address,
+          localidad: b.destination_locality,
+          estado: b.status,
+        })),
       });
-      toast.success(`Remito N° ${String(numero).padStart(4, "0")} generado`);
+      if (errRemito) {
+        toast.error("No se pudo emitir el remito", { description: errRemito.message });
+        return;
+      }
+
+      // Recién ahora se sacan los bultos: si falla el remito, no se pierde nada.
+      const { error } = await supabase.from("bultos").delete().in("id", ids);
+      if (error) {
+        toast.error("El remito quedó emitido, pero los bultos siguen en el depósito", {
+          description: error.message,
+        });
+        return;
+      }
+
+      imprimirRemito({ cliente: nombreCliente, fecha, numero, bultos: lista });
+      toast.success(`Remito N° ${String(numero).padStart(4, "0")} emitido`);
       cargar();
     } finally { setProcesando(false); }
   }

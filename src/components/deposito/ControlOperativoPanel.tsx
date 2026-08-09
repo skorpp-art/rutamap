@@ -13,7 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { hoyAR } from "@/lib/fechas";
 import {
   ESTADO_BULTO_LABEL, estaEnDeposito, fechaVerosimil,
-  type EstadoBulto,
+  type EstadoBulto, type Remito,
 } from "@/types/deposito.types";
 
 const POR_PAGINA = 25;
@@ -55,6 +55,7 @@ function primerDiaDelMes(): string {
 
 export function ControlOperativoPanel() {
   const [bultos, setBultos] = useState<FilaBulto[]>([]);
+  const [remitos, setRemitos] = useState<Remito[]>([]);
   const [cargando, setCargando] = useState(true);
   const [vista, setVista] = useState<"metricas" | "bultos">("metricas");
 
@@ -69,10 +70,14 @@ export function ControlOperativoPanel() {
     setCargando(true);
     try {
       const supabase = depositoClient();
-      const { data } = await supabase
-        .from("bultos").select("*, clients(name)")
-        .order("entry_date", { ascending: false });
+      const [{ data }, { data: rs }] = await Promise.all([
+        supabase.from("bultos").select("*, clients(name)")
+          .order("entry_date", { ascending: false }),
+        supabase.from("remitos").select("id, numero, client_id, cliente_nombre, fecha, cantidad")
+          .order("fecha", { ascending: false }),
+      ]);
       setBultos((data ?? []) as unknown as FilaBulto[]);
+      setRemitos((rs ?? []) as Remito[]);
     } finally { setCargando(false); }
   }, []);
 
@@ -80,23 +85,14 @@ export function ControlOperativoPanel() {
 
   // ── Métricas del período ────────────────────────────────────────────────────
   const metricas = useMemo(() => {
-    const retirados = bultos.filter(b =>
-      b.status === "returned" && b.actual_return_date
-      && b.actual_return_date >= desde && b.actual_return_date <= hasta);
-
     // Una "salida" es un remito, no un bulto: si un cliente se lleva 12 bultos
-    // juntos, eso es una sola operación. Los remitos viejos no tienen número,
-    // así que ahí se agrupa por cliente + fecha.
-    const porFecha = new Map<string, Set<string>>();
-    for (const b of retirados) {
-      const f = b.actual_return_date!;
-      const clave = b.remito_number != null ? `r${b.remito_number}` : `${b.client_id}-${f}`;
-      if (!porFecha.has(f)) porFecha.set(f, new Set());
-      porFecha.get(f)!.add(clave);
-    }
-    const salidasPorFecha = [...porFecha.entries()]
-      .map(([fecha, set]) => ({ fecha, cantidad: set.size }));
-    const totalSalidas = salidasPorFecha.reduce((s, d) => s + d.cantidad, 0);
+    // juntos, eso es una sola operación.
+    const delPeriodo = remitos.filter(r => r.fecha >= desde && r.fecha <= hasta);
+    const porFecha = new Map<string, number>();
+    for (const r of delPeriodo) porFecha.set(r.fecha, (porFecha.get(r.fecha) ?? 0) + 1);
+    const salidasPorFecha = [...porFecha.entries()].map(([fecha, cantidad]) => ({ fecha, cantidad }));
+    const totalSalidas = delPeriodo.length;
+    const bultosRetirados = delPeriodo.reduce((s, r) => s + r.cantidad, 0);
 
     // Días hábiles transcurridos del rango (no cuenta el futuro).
     const finEfectivo = hasta > hoyAR() ? hoyAR() : hasta;
@@ -135,7 +131,7 @@ export function ControlOperativoPanel() {
     }
 
     return {
-      bultosRetirados: retirados.length,
+      bultosRetirados,
       totalSalidas,
       promedioDiario: habiles > 0 ? (totalSalidas / habiles).toFixed(1) : "0",
       habiles,
@@ -147,7 +143,7 @@ export function ControlOperativoPanel() {
       criticos: criticos.length,
       criticosPorCliente: [...criticosPorCliente.values()].sort((a, b) => b.cantidad - a.cantidad).slice(0, 6),
     };
-  }, [bultos, desde, hasta]);
+  }, [bultos, remitos, desde, hasta]);
 
   // ── Listado ────────────────────────────────────────────────────────────────
   const filtrados = useMemo(() => {

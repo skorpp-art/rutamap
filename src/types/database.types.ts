@@ -201,6 +201,36 @@ export type Database = {
           updated_at?: string;
         };
       };
+      remitos: {
+        Row: {
+          id: string;
+          numero: number | null;
+          client_id: string | null;
+          cliente_nombre: string;
+          fecha: string;
+          cantidad: number;
+          lineas: unknown;
+          creado_por: string | null;
+          creado_en: string;
+        };
+        Insert: {
+          id?: string;
+          numero?: number | null;
+          client_id?: string | null;
+          cliente_nombre: string;
+          fecha: string;
+          cantidad?: number;
+          lineas?: unknown;
+          creado_por?: string | null;
+        };
+        Update: {
+          numero?: number | null;
+          cliente_nombre?: string;
+          fecha?: string;
+          cantidad?: number;
+          lineas?: unknown;
+        };
+      };
       doc_counter: {
         Row: { id: number; last_number: number };
         Insert: { id?: number; last_number?: number };

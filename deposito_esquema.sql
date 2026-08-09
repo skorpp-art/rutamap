@@ -125,3 +125,42 @@ $function$;
 
 revoke execute on function public.get_oldest_stock(integer), public.get_top_clients(integer) from anon, public;
 grant execute on function public.get_oldest_stock(integer), public.get_top_clients(integer) to authenticated;
+
+-- ============================================================
+-- Remitos: se guarda el documento, no los paquetes
+-- ============================================================
+-- Al retirar bultos del deposito se emite un remito y los bultos salen de
+-- la tabla: lo que queda registrado es el documento, con sus lineas
+-- congeladas adentro. Asi "bultos" representa solo lo que hay
+-- fisicamente en el galpon.
+--
+-- El nombre del cliente se guarda copiado dentro del remito porque el
+-- documento tiene que poder reimprimirse igual aunque despues se
+-- renombre o se elimine el cliente.
+create table if not exists public.remitos (
+  id uuid primary key default gen_random_uuid(),
+  numero integer,
+  client_id uuid references public.clients(id) on delete set null,
+  cliente_nombre text not null,
+  fecha date not null,
+  cantidad integer not null default 0,
+  -- [{tracking, descripcion, ingreso, destino, localidad, estado}]
+  lineas jsonb not null default '[]'::jsonb,
+  creado_por uuid,
+  creado_en timestamptz default now()
+);
+
+create index if not exists remitos_fecha_idx on public.remitos(fecha desc);
+create index if not exists remitos_client_idx on public.remitos(client_id);
+create unique index if not exists remitos_numero_idx on public.remitos(numero) where numero is not null;
+create index if not exists remitos_lineas_idx on public.remitos using gin (lineas jsonb_path_ops);
+
+alter table public.remitos enable row level security;
+
+drop policy if exists remitos_select on public.remitos;
+drop policy if exists remitos_write on public.remitos;
+create policy remitos_select on public.remitos for select to authenticated using (true);
+create policy remitos_write  on public.remitos for all    to authenticated using (es_editor()) with check (es_editor());
+
+revoke all on public.remitos from anon;
+grant select, insert, update, delete on public.remitos to authenticated;

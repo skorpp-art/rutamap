@@ -24,7 +24,7 @@ interface Actividad {
   accion: string;
   detalle: string;
   fecha: string;
-  status: EstadoBulto;
+  esSalida: boolean;
 }
 
 interface RetiroHoy {
@@ -135,21 +135,36 @@ export function ControlGeneralPanel() {
         ? Math.round(validas.reduce((a, f) => a + diasDesde(f), 0) / validas.length)
         : 0);
 
-      // Últimos movimientos
-      const { data: recientes } = await supabase
-        .from("bultos")
-        .select("id, tracking_id, description, status, actual_return_date, entry_date, updated_at")
-        .is("deleted_at", null)
-        .order("updated_at", { ascending: false }).limit(8);
-      setActividad((recientes ?? []).map(b => ({
-        id: b.id as string,
-        accion: b.status === "returned" ? "Retirado"
-          : b.status === "stored" ? "Ingresado"
-          : ESTADO_BULTO_LABEL[b.status as EstadoBulto] ?? (b.status as string),
-        detalle: (b.tracking_id as string) || (b.description as string) || "Sin identificar",
-        fecha: (b.actual_return_date as string) || (b.entry_date as string),
-        status: b.status as EstadoBulto,
-      })));
+      // Últimos movimientos: ingresos de bultos y salidas con remito, mezclados
+      // por fecha. Las salidas ya no viven en la tabla de bultos: viven en el
+      // remito que se emitió.
+      const [{ data: recientes }, { data: salidas }] = await Promise.all([
+        supabase.from("bultos")
+          .select("id, tracking_id, description, status, entry_date, updated_at")
+          .is("deleted_at", null)
+          .order("updated_at", { ascending: false }).limit(6),
+        supabase.from("remitos").select("id, numero, cliente_nombre, fecha, cantidad")
+          .order("fecha", { ascending: false }).limit(6),
+      ]);
+
+      setActividad([
+        ...(recientes ?? []).map(b => ({
+          id: b.id as string,
+          accion: b.status === "stored" ? "Ingresado"
+            : ESTADO_BULTO_LABEL[b.status as EstadoBulto] ?? (b.status as string),
+          detalle: (b.tracking_id as string) || (b.description as string) || "Sin identificar",
+          fecha: b.entry_date as string,
+          esSalida: false,
+        })),
+        ...(salidas ?? []).map(r => ({
+          id: r.id as string,
+          accion: "Salida",
+          detalle: `${r.cliente_nombre as string} · ${r.cantidad} bulto${(r.cantidad as number) !== 1 ? "s" : ""}`
+            + (r.numero != null ? ` · remito ${String(r.numero as number).padStart(4, "0")}` : ""),
+          fecha: r.fecha as string,
+          esSalida: true,
+        })),
+      ].sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, 8));
     } finally { setCargando(false); }
   }, []);
 
@@ -283,7 +298,7 @@ export function ControlGeneralPanel() {
               <p className="text-sm font-semibold">Últimos movimientos</p>
               <Link href="/deposito/historial"
                 className="text-xs text-blue-600 dark:text-blue-300 hover:underline ml-auto inline-flex items-center gap-0.5">
-                Historial <ArrowRight className="h-3 w-3" />
+                Remitos <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
             {actividad.length === 0 ? (
@@ -293,8 +308,8 @@ export function ControlGeneralPanel() {
                 {actividad.map(a => (
                   <div key={a.id} className="px-4 py-2.5 text-xs flex items-center gap-2">
                     <span className={cn("font-semibold px-1.5 py-0.5 rounded shrink-0",
-                      a.status === "returned" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-                      : a.status === "stored" ? "bg-blue-500/15 text-blue-700 dark:text-blue-300"
+                      a.esSalida ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                      : a.accion === "Ingresado" ? "bg-blue-500/15 text-blue-700 dark:text-blue-300"
                       : "bg-muted text-muted-foreground")}>
                       {a.accion}
                     </span>

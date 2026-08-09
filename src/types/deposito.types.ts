@@ -70,6 +70,34 @@ export interface Bulto {
   updated_at: string;
 }
 
+// ─── Remito ───────────────────────────────────────────────────────────────────
+// El documento que se emite cuando el cliente retira bultos del depósito. Se
+// guarda el documento, no los paquetes: las líneas quedan congeladas adentro y
+// los bultos salen de la tabla, que así representa sólo lo que hay físicamente.
+export interface LineaRemito {
+  tracking: string | null;
+  descripcion: string | null;
+  ingreso: string | null;
+  destino: string | null;
+  localidad: string | null;
+  estado: string | null;
+}
+
+export interface Remito {
+  id: string;
+  numero: number | null;
+  client_id: string | null;
+  cliente_nombre: string;
+  fecha: string;
+  cantidad: number;
+  lineas: LineaRemito[];
+  creado_en: string;
+}
+
+// La papelera es una red de seguridad para deshacer un error del día, no un
+// archivo histórico: lo anterior a esto se puede purgar.
+export const DIAS_PAPELERA = 30;
+
 export interface TopCliente {
   id: string;
   name: string;

@@ -82,7 +82,7 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
       { href: "/deposito/clientes", label: "Clientes", icon: Users, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
       { href: "/deposito/directorio", label: "Directorio", icon: FolderOpen, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
       { href: "/deposito/control", label: "Control operativo", icon: Boxes, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
-      { href: "/deposito/historial", label: "Historial", icon: History, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
+      { href: "/deposito/historial", label: "Remitos", icon: History, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
       { href: "/deposito/papelera", label: "Papelera", icon: Trash2, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
     ] },
     { key: "analisis", label: "Análisis", desc: "Resultados y desempeño", items: [

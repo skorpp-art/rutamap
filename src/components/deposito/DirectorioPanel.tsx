@@ -21,10 +21,9 @@ type ClienteDirectorio = ClienteDeposito & {
 
 interface RetiroReciente {
   id: string;
-  entry_date: string;
-  actual_return_date: string | null;
-  tracking_id: string | null;
-  description: string | null;
+  numero: number | null;
+  fecha: string;
+  cantidad: number;
 }
 
 const norm = (s: string) =>
@@ -64,8 +63,9 @@ export function DirectorioPanel({ puedeEditar }: { puedeEditar: boolean }) {
         supabase.from("clients").select("*").is("deleted_at", null).order("name"),
         supabase.from("bultos").select("client_id")
           .is("deleted_at", null).neq("status", "returned"),
-        supabase.from("bultos").select("client_id")
-          .eq("status", "returned").gte("actual_return_date", hace30),
+        // Los retiros salen de los remitos emitidos, que es el registro que
+        // queda: los bultos retirados ya no viven en la tabla.
+        supabase.from("remitos").select("client_id, cantidad").gte("fecha", hace30),
       ]);
 
       const contar = (filas: { client_id: string }[] | null) => {
@@ -74,7 +74,10 @@ export function DirectorioPanel({ puedeEditar }: { puedeEditar: boolean }) {
         return m;
       };
       const stock = contar(enStock as { client_id: string }[] | null);
-      const salidas = contar(devueltos as { client_id: string }[] | null);
+      const salidas: Record<string, number> = {};
+      for (const r of (devueltos ?? []) as { client_id: string | null; cantidad: number }[]) {
+        if (r.client_id) salidas[r.client_id] = (salidas[r.client_id] ?? 0) + r.cantidad;
+      }
 
       setClientes(((cs ?? []) as ClienteDeposito[]).map(c => ({
         ...c,
@@ -102,11 +105,10 @@ export function DirectorioPanel({ puedeEditar }: { puedeEditar: boolean }) {
     setRetiros([]);
     const supabase = depositoClient();
     const hace30 = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
-    const { data } = await supabase.from("bultos")
-      .select("id, entry_date, actual_return_date, tracking_id, description")
-      .eq("client_id", c.id).eq("status", "returned")
-      .gte("actual_return_date", hace30)
-      .order("actual_return_date", { ascending: false });
+    const { data } = await supabase.from("remitos")
+      .select("id, numero, fecha, cantidad")
+      .eq("client_id", c.id).gte("fecha", hace30)
+      .order("fecha", { ascending: false });
     setRetiros((data ?? []) as RetiroReciente[]);
   }
 
@@ -121,7 +123,7 @@ export function DirectorioPanel({ puedeEditar }: { puedeEditar: boolean }) {
       "Email": c.email ?? "",
       "Notas": c.notes ?? "",
       "En depósito": c.en_stock,
-      "Retiros (30 días)": c.retiros_30d,
+      "Bultos retirados (30 días)": c.retiros_30d,
     }));
     const ws = XLSX.utils.json_to_sheet(filas);
     ws["!cols"] = [{ wch: 5 }, { wch: 25 }, { wch: 25 }, { wch: 32 },
@@ -275,7 +277,7 @@ export function DirectorioPanel({ puedeEditar }: { puedeEditar: boolean }) {
                     <th className="px-3 py-2 font-medium text-muted-foreground">Contacto</th>
                     <th className="px-3 py-2 font-medium text-muted-foreground">Dirección</th>
                     <th className="px-3 py-2 font-medium text-muted-foreground text-right">En depósito</th>
-                    <th className="px-3 py-2 font-medium text-muted-foreground text-right">Retiros 30d</th>
+                    <th className="px-3 py-2 font-medium text-muted-foreground text-right">Retirados 30d</th>
                     <th className="px-3 py-2" />
                   </tr>
                 </thead>
@@ -362,20 +364,20 @@ export function DirectorioPanel({ puedeEditar }: { puedeEditar: boolean }) {
               </div>
 
               <div>
-                <p className="text-xs font-semibold mb-1.5">Retiros del último mes</p>
+                <p className="text-xs font-semibold mb-1.5">Remitos del último mes</p>
                 {retiros.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">Sin retiros en los últimos 30 días.</p>
+                  <p className="text-xs text-muted-foreground">Sin salidas en los últimos 30 días.</p>
                 ) : (
                   <div className="border rounded-lg divide-y">
                     {retiros.map(r => (
                       <div key={r.id} className="px-3 py-2 text-xs flex items-center gap-2">
-                        <span className="font-mono text-muted-foreground/80 shrink-0">
-                          {r.tracking_id || "—"}
+                        <span className="font-semibold shrink-0">
+                          {r.numero != null ? `N° ${String(r.numero).padStart(4, "0")}` : "Sin número"}
                         </span>
-                        <span className="truncate flex-1">{r.description || "Sin descripción"}</span>
-                        <span className="text-muted-foreground shrink-0 tabular-nums">
-                          {fmt(r.actual_return_date)}
+                        <span className="text-muted-foreground flex-1">
+                          {r.cantidad} bulto{r.cantidad !== 1 ? "s" : ""}
                         </span>
+                        <span className="text-muted-foreground shrink-0 tabular-nums">{fmt(r.fecha)}</span>
                       </div>
                     ))}
                   </div>
