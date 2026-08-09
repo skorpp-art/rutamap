@@ -6,6 +6,7 @@ import {
   Map, Package, BarChart3, PackageCheck, Users, Lock, Truck, ClipboardList,
   MonitorSmartphone, LogOut, LogIn, ChevronsUpDown, PanelLeftClose, PanelLeftOpen,
   Route as RouteIcon, ChevronDown, ChevronRight, Search, MessageCircle,
+  Boxes, Warehouse, History, FolderOpen, Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { tieneSolapa } from "@/lib/permisos";
@@ -75,6 +76,14 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
       { href: "/volumenes", label: "Planificación", icon: Package, visible: esInvitado || tieneSolapa(perfil, "volumenes"), bloqueado: esInvitado },
       { href: "/pendientes", label: "Pendientes", icon: PackageCheck, visible: !esInvitado && tieneSolapa(perfil, "pendientes") },
       { href: "/alternativas", label: "Alternativas", icon: MessageCircle, visible: !esInvitado && tieneSolapa(perfil, "alternativas") },
+    ] },
+    { key: "deposito", label: "Depósito", desc: "Guarda de bultos por cliente", items: [
+      { href: "/deposito", label: "Control general", icon: Warehouse, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
+      { href: "/deposito/clientes", label: "Clientes", icon: Users, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
+      { href: "/deposito/directorio", label: "Directorio", icon: FolderOpen, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
+      { href: "/deposito/control", label: "Control operativo", icon: Boxes, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
+      { href: "/deposito/historial", label: "Historial", icon: History, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
+      { href: "/deposito/papelera", label: "Papelera", icon: Trash2, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
     ] },
     { key: "analisis", label: "Análisis", desc: "Resultados y desempeño", items: [
       { href: "/analisis-diario", label: "Resultados", icon: BarChart3, visible: esInvitado || tieneSolapa(perfil, "analisis"), bloqueado: esInvitado },

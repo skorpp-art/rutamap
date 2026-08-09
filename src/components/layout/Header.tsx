@@ -42,7 +42,7 @@ const TITULOS: { match: (p: string) => boolean; titulo: string }[] = [
 
 // Pantallas que ya muestran su propio título grande (PageHeader): acá la barra
 // superior no lo repite, para no leer "Pendientes" dos veces seguidas.
-const CON_TITULO_PROPIO = ["/carga", "/pendientes", "/alternativas", "/analisis-diario", "/usuarios", "/ruta"];
+const CON_TITULO_PROPIO = ["/carga", "/pendientes", "/alternativas", "/analisis-diario", "/usuarios", "/ruta", "/deposito"];
 
 // Solapas de Planificación, mostradas en la barra superior
 const TABS_VOLUMENES = [

@@ -1,0 +1,87 @@
+// ─── Depósito: guarda de bultos ───────────────────────────────────────────────
+// Tipos de la app de depósito que se integra a RutaMap. Los nombres de tablas y
+// columnas quedan en inglés, como en el origen, para que el traspaso sea
+// mecánico y no haya que reescribir cada consulta.
+
+export type EstadoBulto =
+  | "stored"            // guardado en el depósito
+  | "scheduled_return"  // con retiro agendado
+  | "returned"          // ya retirado
+  | "deleted"           // borrado (papelera)
+  | "cancelled"         // cancelado
+  | "duplicate"         // duplicado
+  | "cambio"            // cambio
+  | "devolucion"        // devolución
+  | "rechazado"         // rechazado por el destinatario
+  | "ficha";            // ficha administrativa
+
+export const ESTADO_BULTO_LABEL: Record<EstadoBulto, string> = {
+  stored: "Guardado",
+  scheduled_return: "Retiro agendado",
+  returned: "Retirado",
+  deleted: "Eliminado",
+  cancelled: "Cancelado",
+  duplicate: "Duplicado",
+  cambio: "Cambio",
+  devolucion: "Devolución",
+  rechazado: "Rechazado",
+  ficha: "Ficha",
+};
+
+// Estados que siguen ocupando lugar en el depósito.
+export const ESTADOS_EN_STOCK: EstadoBulto[] = ["stored", "scheduled_return"];
+
+export interface ClienteDeposito {
+  id: string;
+  name: string;
+  nombre_fantasia: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  notes: string | null;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Bulto {
+  id: string;
+  client_id: string;
+  description: string | null;
+  barcode: string | null;
+  tracking_id: string | null;
+  status: EstadoBulto;
+  entry_date: string;
+  scheduled_return_date: string | null;
+  actual_return_date: string | null;
+  destination_address: string | null;
+  destination_locality: string | null;
+  remito_number: number | null;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TopCliente {
+  id: string;
+  name: string;
+  notes: string | null;
+  bultos_count: number;
+}
+
+export interface StockAntiguo {
+  id: string;
+  client_name: string;
+  entry_date: string;
+}
+
+// En el origen se cargaron fechas imposibles (0001-01-01, 0026-05-05 y hasta
+// 22026-04-17). No rompen la app pero ensucian cualquier cálculo de antigüedad,
+// así que se filtran en vez de mostrarlas como si fueran stock viejo.
+export function fechaVerosimil(iso: string | null | undefined): boolean {
+  if (!iso) return false;
+  const t = new Date(iso).getTime();
+  if (isNaN(t)) return false;
+  const anio = new Date(iso).getFullYear();
+  return anio >= 2020 && anio <= new Date().getFullYear() + 1;
+}

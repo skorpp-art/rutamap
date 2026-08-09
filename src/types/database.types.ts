@@ -115,6 +115,97 @@ export type Database = {
           realizado_en?: string;
         };
       };
+      // ── Depósito (guarda de bultos) ──────────────────────────────────────
+      // Nombres en inglés, como en la app de origen, para que el traspaso de
+      // las pantallas sea mecánico.
+      clients: {
+        Row: {
+          id: string;
+          name: string;
+          nombre_fantasia: string | null;
+          phone: string | null;
+          email: string | null;
+          address: string | null;
+          notes: string | null;
+          deleted_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          nombre_fantasia?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          address?: string | null;
+          notes?: string | null;
+          deleted_at?: string | null;
+        };
+        Update: {
+          name?: string;
+          nombre_fantasia?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          address?: string | null;
+          notes?: string | null;
+          deleted_at?: string | null;
+          updated_at?: string;
+        };
+      };
+      bultos: {
+        Row: {
+          id: string;
+          client_id: string;
+          description: string | null;
+          barcode: string | null;
+          tracking_id: string | null;
+          status: string;
+          entry_date: string;
+          scheduled_return_date: string | null;
+          actual_return_date: string | null;
+          destination_address: string | null;
+          destination_locality: string | null;
+          remito_number: number | null;
+          deleted_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          description?: string | null;
+          barcode?: string | null;
+          tracking_id?: string | null;
+          status?: string;
+          entry_date?: string;
+          scheduled_return_date?: string | null;
+          actual_return_date?: string | null;
+          destination_address?: string | null;
+          destination_locality?: string | null;
+          remito_number?: number | null;
+          deleted_at?: string | null;
+        };
+        Update: {
+          client_id?: string;
+          description?: string | null;
+          barcode?: string | null;
+          tracking_id?: string | null;
+          status?: string;
+          entry_date?: string;
+          scheduled_return_date?: string | null;
+          actual_return_date?: string | null;
+          destination_address?: string | null;
+          destination_locality?: string | null;
+          remito_number?: number | null;
+          deleted_at?: string | null;
+          updated_at?: string;
+        };
+      };
+      doc_counter: {
+        Row: { id: number; last_number: number };
+        Insert: { id?: number; last_number?: number };
+        Update: { last_number?: number };
+      };
     };
     Functions: {
       recorridos_geojson: {
