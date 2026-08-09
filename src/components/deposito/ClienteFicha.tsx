@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { hoyAR } from "@/lib/fechas";
 import { imprimirRemito } from "@/lib/deposito/remito";
 import {
-  ESTADO_BULTO_LABEL, ESTADOS_EN_STOCK, fechaVerosimil,
+  ESTADO_BULTO_LABEL, estaEnDeposito, fechaVerosimil,
   type Bulto, type ClienteDeposito, type EstadoBulto,
 } from "@/types/deposito.types";
 
@@ -87,14 +87,14 @@ export function ClienteFicha({ clienteId, puedeEditar }: { clienteId: string; pu
   const visibles = useMemo(() => {
     const q = norm(busqueda);
     return bultos
-      .filter(b => !soloEnStock || ESTADOS_EN_STOCK.includes(b.status))
+      .filter(b => !soloEnStock || estaEnDeposito(b.status))
       .filter(b => !q
         || norm(b.tracking_id ?? "").includes(q)
         || norm(b.description ?? "").includes(q)
         || norm(b.destination_address ?? "").includes(q));
   }, [bultos, busqueda, soloEnStock]);
 
-  const enStock = bultos.filter(b => ESTADOS_EN_STOCK.includes(b.status)).length;
+  const enStock = bultos.filter(b => estaEnDeposito(b.status)).length;
 
   function abrirNuevo() {
     setEditando(null);

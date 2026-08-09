@@ -12,7 +12,7 @@ import { depositoClient } from "@/lib/supabase/deposito";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
-import { ESTADOS_EN_STOCK, type ClienteDeposito } from "@/types/deposito.types";
+import type { ClienteDeposito } from "@/types/deposito.types";
 
 type ClienteDirectorio = ClienteDeposito & {
   en_stock: number;
@@ -63,7 +63,7 @@ export function DirectorioPanel({ puedeEditar }: { puedeEditar: boolean }) {
       const [{ data: cs }, { data: enStock }, { data: devueltos }] = await Promise.all([
         supabase.from("clients").select("*").is("deleted_at", null).order("name"),
         supabase.from("bultos").select("client_id")
-          .is("deleted_at", null).in("status", ESTADOS_EN_STOCK),
+          .is("deleted_at", null).neq("status", "returned"),
         supabase.from("bultos").select("client_id")
           .eq("status", "returned").gte("actual_return_date", hace30),
       ]);

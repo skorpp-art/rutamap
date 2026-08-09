@@ -28,7 +28,15 @@ export const ESTADO_BULTO_LABEL: Record<EstadoBulto, string> = {
   ficha: "Ficha",
 };
 
-// Estados que siguen ocupando lugar en el depósito.
+// Qué cuenta como "está en el depósito". Es una definición del negocio, no una
+// obviedad: un bulto cancelado, en cambio, en devolución o rechazado sigue
+// físicamente en el galpón ocupando lugar. Lo único que ya no está es lo que se
+// retiró ("returned") y lo que se eliminó.
+export function estaEnDeposito(status: EstadoBulto | string): boolean {
+  return status !== "returned" && status !== "deleted";
+}
+
+// Estados de un bulto que está guardado a la espera de salir.
 export const ESTADOS_EN_STOCK: EstadoBulto[] = ["stored", "scheduled_return"];
 
 export interface ClienteDeposito {

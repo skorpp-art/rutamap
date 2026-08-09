@@ -13,7 +13,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { hoyAR } from "@/lib/fechas";
-import { ESTADOS_EN_STOCK, type ClienteDeposito } from "@/types/deposito.types";
+import type { ClienteDeposito } from "@/types/deposito.types";
 
 type ClienteConStock = ClienteDeposito & { en_stock: number };
 
@@ -72,11 +72,11 @@ export function ClientesPanel({ puedeEditar }: { puedeEditar: boolean }) {
       const supabase = depositoClient();
       const [{ data }, { data: enStock }] = await Promise.all([
         supabase.from("clients").select("*").is("deleted_at", null).order("name"),
-        // Solo lo que ocupa lugar hoy. En la app de origen se contaban todos los
-        // bultos no borrados, así que un cliente sin nada guardado igual figuraba
-        // con decenas de bultos (los que ya se había llevado).
+        // Lo que el cliente tiene hoy en el depósito: todo lo que no retiró ni
+        // se eliminó. Antes se contaban también los bultos ya retirados, así que
+        // un cliente sin nada guardado igual figuraba con decenas.
         supabase.from("bultos").select("client_id")
-          .is("deleted_at", null).in("status", ESTADOS_EN_STOCK),
+          .is("deleted_at", null).neq("status", "returned"),
       ]);
 
       const conteo: Record<string, number> = {};

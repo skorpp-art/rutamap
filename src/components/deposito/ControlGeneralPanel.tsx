@@ -12,7 +12,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { hoyAR } from "@/lib/fechas";
 import {
-  ESTADOS_EN_STOCK, ESTADO_BULTO_LABEL, fechaVerosimil,
+  ESTADO_BULTO_LABEL, fechaVerosimil,
   type EstadoBulto, type TopCliente, type StockAntiguo,
 } from "@/types/deposito.types";
 
@@ -76,11 +76,10 @@ export function ControlGeneralPanel() {
         { count: nStock }, { count: nClientes }, { count: nPapelera },
         { data: top }, { data: antiguos },
       ] = await Promise.all([
-        // "Stock" es lo que ocupa lugar hoy: guardado o con retiro agendado. La
-        // app de origen contaba todos los bultos no borrados, así que sumaba
-        // también los ya retirados y el número no era stock real.
+        // En depósito = todo lo que no se retiró ni se eliminó. Incluye
+        // cancelados, cambios y devoluciones: siguen físicamente en el galpón.
         supabase.from("bultos").select("*", { count: "exact", head: true })
-          .is("deleted_at", null).in("status", ESTADOS_EN_STOCK),
+          .is("deleted_at", null).neq("status", "returned"),
         supabase.from("clients").select("*", { count: "exact", head: true })
           .is("deleted_at", null),
         supabase.from("bultos").select("*", { count: "exact", head: true })
@@ -112,7 +111,7 @@ export function ControlGeneralPanel() {
       const { data: vjs, count: nViejos } = await supabase
         .from("bultos")
         .select("id, entry_date, tracking_id, description, clients(name)", { count: "exact" })
-        .is("deleted_at", null).in("status", ESTADOS_EN_STOCK)
+        .is("deleted_at", null).neq("status", "returned")
         .lte("entry_date", limiteViejo)
         .gte("entry_date", "2020-01-01")
         .order("entry_date").limit(6);
@@ -128,7 +127,7 @@ export function ControlGeneralPanel() {
       // fecha creíble (hay cargas viejas con fechas imposibles).
       const { data: enStock } = await supabase
         .from("bultos").select("entry_date")
-        .is("deleted_at", null).in("status", ESTADOS_EN_STOCK);
+        .is("deleted_at", null).neq("status", "returned");
       const validas = (enStock ?? [])
         .map(b => b.entry_date as string)
         .filter(fechaVerosimil);
@@ -157,7 +156,7 @@ export function ControlGeneralPanel() {
   useEffect(() => { cargar(); }, [cargar]);
 
   const tarjetas = [
-    { label: "En depósito", valor: stock, icon: Package, sub: "guardados y agendados",
+    { label: "En depósito", valor: stock, icon: Package, sub: "sin retirar",
       color: "text-blue-700 dark:text-blue-300", href: "/deposito/control" },
     { label: "Clientes", valor: clientes, icon: Users, sub: "activos",
       color: "text-emerald-700 dark:text-emerald-300", href: "/deposito/clientes" },
