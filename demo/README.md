@@ -22,9 +22,15 @@ El demo **no es otro repositorio**: es el mismo código apuntando a otra base.
     NEXT_PUBLIC_SUPABASE_ANON_KEY=<clave del proyecto rutamap-demo>
     NEXT_PUBLIC_EMPRESA=Logística Pampa
     NEXT_PUBLIC_EMPRESA_SIGLA=LP
+    NEXT_PUBLIC_DEMO=1
 
 `NEXT_PUBLIC_EMPRESA` es lo que sale en el membrete de los remitos y documentos
 impresos. En producción no se define y queda "Logística Hogareño".
+
+`NEXT_PUBLIC_DEMO=1` enciende una franja amarilla fija arriba de todo que avisa
+que los datos son ficticios. No se puede cerrar, a propósito: así nadie puede
+sacar una captura del demo y hacerla pasar por una operación real. En producción
+no se define y la franja no existe.
 
 ## Los scripts
 
