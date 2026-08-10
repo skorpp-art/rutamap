@@ -142,7 +142,7 @@ insert into analisis_diario_detalle (fecha, tracking, hora, estado, zona, locali
 select
   a.fecha,
   'DM' || lpad((random() * 99999999)::bigint::text, 8, '0'),
-  (time '18:00' + (random() * interval '5 hours'))::time,
+  ((time '18:00' + (random() * interval '5 hours'))::time)::text,
   (array['En camino al destinatario','Nadie en el domicilio','Direccion incorrecta','Rechazado por el destinatario'])[1 + floor(random() * 4)],
   l.zona, l.nombre,
   (select chofer from carga_dia c where c.fecha = a.fecha and c.chofer is not null
@@ -319,8 +319,11 @@ select r.numero, r.client_id, r.cliente_nombre, r.fecha, r.cantidad,
 from _rem r
 left join lateral (select jsonb_agg(linea) as lineas from _lin where rem = r.id) l on true;
 
--- El numerador sigue donde quedo el ultimo remito.
-update doc_counter set last_number = coalesce((select max(numero) from remitos), 0) where id = 1;
+-- El numerador sigue donde quedo el ultimo remito. Se inserta la fila
+-- porque doc_counter viene vacia: el esquema trae la tabla, no sus datos.
+insert into doc_counter (id, last_number)
+values (1, coalesce((select max(numero) from remitos), 0))
+on conflict (id) do update set last_number = excluded.last_number;
 
 commit;
 

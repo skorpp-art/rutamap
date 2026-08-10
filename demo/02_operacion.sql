@@ -41,7 +41,7 @@ do $$
 declare
   d date;
   dow int;
-  tipo_dia text;
+  v_tipo_dia text;  -- con prefijo: 'tipo_dia' choca con la columna de plantilla_operacion
   total_dia int;
   factor numeric;
   r record;
@@ -75,9 +75,9 @@ begin
 
     total_dia := round(1700 * factor);
 
-    tipo_dia := case when dow = 1 then 'lun_feriado'
-                     when dow = 6 then 'sabado'
-                     else 'mar_vie' end;
+    v_tipo_dia := case when dow = 1 then 'lun_feriado'
+                       when dow = 6 then 'sabado'
+                       else 'mar_vie' end;
 
     -- ── Volumen por cliente ──
     insert into clientes_diarios (fecha, cliente, paquetes, manual)
@@ -96,7 +96,7 @@ begin
     insert into operacion_dia (fecha, recorrido_id, activo)
     select d, r2.id,
            exists (select 1 from plantilla_operacion p
-                   where p.tipo_dia = tipo_dia and p.recorrido_id = r2.id)
+                   where p.tipo_dia = v_tipo_dia and p.recorrido_id = r2.id)
            or (r2.tipo = 'suplencia' and random() < 0.10)
     from recorridos r2;
 
