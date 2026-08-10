@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { CommandPalette } from "@/components/CommandPalette";
+import { BannerDemo } from "@/components/layout/BannerDemo";
 
 export default async function MapaLayout({
   children,
@@ -30,6 +31,7 @@ export default async function MapaLayout({
     <div className="flex h-full">
       <Sidebar perfil={perfil} esInvitado={!user} />
       <div className="flex flex-col flex-1 min-w-0 h-full">
+        <BannerDemo />
         <Header perfil={perfil} esInvitado={!user} />
         <main className="flex-1 overflow-hidden bg-muted/40">{children}</main>
       </div>
