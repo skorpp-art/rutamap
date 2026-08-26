@@ -84,6 +84,24 @@ async function nombresPorId(
   return new Map((data ?? []).map((p: { id: string; nombre: string }) => [p.id, p.nombre]));
 }
 
+/**
+ * Nombres de la cartera de clientes (la del Depósito), para autocompletar el
+ * alta de casos y evitar que cada uno tipee el nombre a su manera.
+ */
+export async function getNombresClientes(): Promise<Res<string[]>> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("clients")
+      .select("name")
+      .is("deleted_at", null)
+      .order("name");
+    if (error) return { ok: false, error: error.message };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return { ok: true, data: ((data ?? []) as any[]).map(c => c.name as string) };
+  } catch (e) { return fallo(e); }
+}
+
 /** Área del usuario en sesión: define qué es "en mi cancha". */
 export async function getAreaUsuario(): Promise<Res<{ area: string; puedeGestionar: boolean }>> {
   try {
