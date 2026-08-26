@@ -48,6 +48,23 @@ export const ESTADOS: EstadoCaso[] = [
   "pendiente_cliente", "entregado", "cancelado",
 ];
 
+// Las etiquetas que se usaban en el Excel para anotar qué se hizo con cada
+// paquete. Se ofrecen como atajos: un clic las mete en el cuadro de texto de
+// la nota (plan de acción, observación o reintento) en vez de tipearlas cada
+// vez. No reemplazan el texto libre, lo completan.
+export const PLANES_ACCION = [
+  "Salen mañana", "Sale en recorrido por la mañana", "Moto Personalizada",
+  "Recorrido C/ Suplente", "Recorrido C/ Titular",
+  "Especial Post 12hs", "Preturno C/ Suplente", "Preturno C/ Titular",
+  "Extraviado/Roto", "Cambio/Devolucion Retirado",
+  "No vino el chofer", "No llego reposicion", "Direccion alternativa conseguida",
+  "Repetido", "Rechazado", "Devuelto al cliente", "Sin devoluciones",
+  "Pendiente de respuesta chofer", "Reprogramado en deposito", "En deposito",
+  "Retiro de paquete", "Alternativa solicitada", "Devolucion armada",
+  "Paquete cruzado", "Figura a retirar", "Cliente brindo direccion correcta",
+  "RETENER", "A la espera respuesta de cliente",
+];
+
 export const TIPOS_INCIDENCIA = [
   "Dirección incorrecta",
   "Ausente",

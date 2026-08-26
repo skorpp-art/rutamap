@@ -12,7 +12,7 @@ import {
   type Caso, type EstadoCaso, type EventoCaso,
 } from "@/app/actions/casos";
 import {
-  AREA_LABEL, ESTADOS, ESTADO_INFO, antesDelCorte, fechaHoraCorta,
+  AREA_LABEL, ESTADOS, ESTADO_INFO, PLANES_ACCION, antesDelCorte, fechaHoraCorta,
 } from "./comun";
 
 const ICONO_EVENTO = {
@@ -86,6 +86,10 @@ export function CasoDetalle({
     setTexto("");
     await cargar();
     onCambio();
+  }
+
+  function agregarEtiqueta(etiqueta: string) {
+    setTexto(t => (t.trim() ? `${t.trim()}; ${etiqueta}` : etiqueta));
   }
 
   async function mover(estado: EstadoCaso) {
@@ -184,6 +188,15 @@ export function CasoDetalle({
                 <Button size="icon" onClick={enviarNota} disabled={enviando || !texto.trim()}>
                   {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </Button>
+              </div>
+              {/* Etiquetas del Excel: un clic las suma al texto, no lo pisan. */}
+              <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                {PLANES_ACCION.map(p => (
+                  <button key={p} type="button" onClick={() => agregarEtiqueta(p)}
+                    className="px-2 py-0.5 rounded-full text-xs bg-muted text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+                    {p}
+                  </button>
+                ))}
               </div>
               {/* El comentario escrito arriba viaja con el cambio de estado: así
                   no hay que anotarlo dos veces. */}
