@@ -7,6 +7,7 @@ export const SOLAPAS = [
   { key: "pendientes", label: "Pendientes", href: "/pendientes" },
   { key: "alternativas", label: "Alternativas", href: "/alternativas" },
   { key: "deposito", label: "Depósito", href: "/deposito" },
+  { key: "casos", label: "Casos", href: "/casos" },
 ] as const;
 
 export type SolapaKey = (typeof SOLAPAS)[number]["key"];

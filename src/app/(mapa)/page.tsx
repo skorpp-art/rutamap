@@ -17,6 +17,7 @@ export default async function InicioPage() {
     .single<{ rol: string; solapas: string[] | null; puede_editar: boolean | null }>();
 
   if (tieneSolapa(perfil, "pendientes")) redirect("/pendientes");
+  if (tieneSolapa(perfil, "casos")) redirect("/casos");
   if (tieneSolapa(perfil, "deposito")) redirect("/deposito");
   if (tieneSolapa(perfil, "alternativas")) redirect("/alternativas");
   redirect("/ruta");
