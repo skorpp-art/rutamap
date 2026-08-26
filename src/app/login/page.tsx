@@ -1,5 +1,6 @@
 import { Truck } from "lucide-react";
 import { LoginForm } from "@/components/auth/LoginForm";
+import { EMPRESA } from "@/lib/marca";
 
 export default function LoginPage() {
   return (
@@ -17,7 +18,7 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold text-white tracking-tight">
             Ruta<span className="text-blue-300">Map</span>
           </h1>
-          <p className="text-xs text-white/40 -mt-0.5">Logística Hogareño</p>
+          <p className="text-xs text-white/40 -mt-0.5">{EMPRESA}</p>
         </div>
       </div>
 

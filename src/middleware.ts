@@ -1,16 +1,18 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Solo estas rutas requieren sesión. Todo lo demás (incluido el mapa "/") es público.
-const RUTAS_PROTEGIDAS = ["/volumenes", "/usuarios", "/pendientes"];
+// Todas las secciones requieren sesión: al sacar el mapa, la app dejó de tener
+// pantallas públicas. La raíz se compara aparte porque con startsWith
+// coincidiría con cualquier ruta.
+const RUTAS_PROTEGIDAS = ["/pendientes", "/alternativas", "/casos", "/deposito", "/ruta", "/usuarios", "/descargar"];
 const RUTAS_AUTH = ["/login", "/registro"];
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  const esRutaProtegida = RUTAS_PROTEGIDAS.some((r) => path.startsWith(r));
+  const esRutaProtegida = path === "/" || RUTAS_PROTEGIDAS.some((r) => path.startsWith(r));
   const esRutaAuth = RUTAS_AUTH.some((r) => path.startsWith(r));
 
-  // Rutas públicas (no protegidas ni de auth): no hace falta resolver la sesión
+  // Recursos que no son secciones (estáticos, service worker): sin sesión
   if (!esRutaProtegida && !esRutaAuth) {
     return NextResponse.next({ request });
   }
@@ -44,7 +46,7 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Sin sesión en una ruta protegida (volúmenes) → redirigir a login
+  // Sin sesión en una sección → al login, recordando a dónde iba
   if (!user && esRutaProtegida) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -52,26 +54,29 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Con sesión en página de login/registro → ir al mapa
+  // Con sesión en login/registro → a la app
   if (user && esRutaAuth) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);
   }
 
-  // Todo lo demás (mapa "/") es público — invitados pueden ver
   return supabaseResponse;
 }
 
 export const config = {
   // El middleware SOLO corre en las rutas que necesitan resolver sesión
-  // (protegidas + auth). Todo lo demás —mapa público, /sw.js, estáticos,
-  // payloads RSC— no lo invoca: menos ejecuciones y menos exposición a
-  // fallas de provisioning del edge runtime.
+  // (las secciones + auth). Los estáticos, /sw.js y los payloads RSC no lo
+  // invocan: menos ejecuciones y menos exposición a fallas del edge runtime.
   matcher: [
-    "/volumenes/:path*",
-    "/usuarios/:path*",
+    "/",
     "/pendientes/:path*",
+    "/alternativas/:path*",
+    "/casos/:path*",
+    "/deposito/:path*",
+    "/ruta/:path*",
+    "/usuarios/:path*",
+    "/descargar/:path*",
     "/login/:path*",
     "/registro/:path*",
   ],

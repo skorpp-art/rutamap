@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import {
-  Map, Package, BarChart3, PackageCheck, Users, Lock, Truck, ClipboardList,
-  MonitorSmartphone, LogOut, LogIn, ChevronsUpDown, PanelLeftClose, PanelLeftOpen,
-  Route as RouteIcon, ChevronDown, ChevronRight, Search, MessageCircle,
-  Boxes, Warehouse, History, FolderOpen, Trash2,
+  PackageCheck, Users, Lock, MonitorSmartphone, LogOut, LogIn, ChevronsUpDown,
+  PanelLeftClose, PanelLeftOpen, Route as RouteIcon, ChevronDown, ChevronRight,
+  Search, MessageCircle, Boxes, ClipboardList, Warehouse, History, FolderOpen, Trash2, Truck,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { tieneSolapa } from "@/lib/permisos";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -26,7 +26,7 @@ interface SidebarProps {
 interface ItemNav {
   href: string;
   label: string;
-  icon: typeof Map;
+  icon: LucideIcon;
   visible: boolean;
   bloqueado?: boolean;
 }
@@ -71,11 +71,10 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
   }
 
   const grupos: GrupoNav[] = [
-    { key: "operacion", label: "Operación diaria", desc: "Cargar, planificar y controlar", items: [
-      { href: "/carga", label: "Carga del Día", icon: ClipboardList, visible: !esInvitado && tieneSolapa(perfil, "carga") },
-      { href: "/volumenes", label: "Planificación", icon: Package, visible: esInvitado || tieneSolapa(perfil, "volumenes"), bloqueado: esInvitado },
+    { key: "operacion", label: "Operación diaria", desc: "Controlar lo que vuelve y lo que falta", items: [
       { href: "/pendientes", label: "Pendientes", icon: PackageCheck, visible: !esInvitado && tieneSolapa(perfil, "pendientes") },
       { href: "/alternativas", label: "Alternativas", icon: MessageCircle, visible: !esInvitado && tieneSolapa(perfil, "alternativas") },
+      { href: "/casos", label: "Casos", icon: ClipboardList, visible: !esInvitado && tieneSolapa(perfil, "casos") },
     ] },
     { key: "deposito", label: "Depósito", desc: "Guarda de bultos por cliente", items: [
       { href: "/deposito", label: "Control general", icon: Warehouse, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
@@ -84,12 +83,6 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
       { href: "/deposito/control", label: "Control operativo", icon: Boxes, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
       { href: "/deposito/historial", label: "Remitos", icon: History, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
       { href: "/deposito/papelera", label: "Papelera", icon: Trash2, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
-    ] },
-    { key: "analisis", label: "Análisis", desc: "Resultados y desempeño", items: [
-      { href: "/analisis-diario", label: "Resultados", icon: BarChart3, visible: esInvitado || tieneSolapa(perfil, "analisis"), bloqueado: esInvitado },
-    ] },
-    { key: "mapa", label: "Mapa", desc: "Zonas y recorridos en el mapa", items: [
-      { href: "/", label: "Mapa", icon: Map, visible: tieneSolapa(perfil, "mapa") || esInvitado },
     ] },
     { key: "campo", label: "Campo", desc: "Herramienta para el chofer", items: [
       { href: "/ruta", label: "Mi ruta", icon: RouteIcon, visible: !esInvitado },

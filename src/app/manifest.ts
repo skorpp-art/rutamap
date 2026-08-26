@@ -4,11 +4,11 @@ import type { MetadataRoute } from "next";
 // es el requisito para empaquetar la app como APK (TWA vía PWABuilder).
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "RutaMap — Logística Hogareño",
+    name: "RutaMap",
     short_name: "RutaMap",
-    description: "Gestión de recorridos, carga diaria y control de pendientes — Logística Hogareño",
+    description: "Control de pendientes, alternativas de entrega y depósito de bultos",
     id: "/",
-    start_url: "/carga",
+    start_url: "/pendientes",
     scope: "/",
     display: "standalone",
     orientation: "any",
@@ -22,9 +22,9 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icon-512-maskable.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
     shortcuts: [
-      { name: "Carga del Día", url: "/carga", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
       { name: "Pendientes", url: "/pendientes", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
-      { name: "Mapa", url: "/", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
+      { name: "Depósito", url: "/deposito", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
+      { name: "Alternativas", url: "/alternativas", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
     ],
   };
 }
