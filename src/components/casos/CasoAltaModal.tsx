@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  buscarSimilares, crearCaso, type CasoSimilar, type EstadoCaso,
+  buscarSimilares, crearCaso, getNombresClientes, type CasoSimilar, type EstadoCaso,
 } from "@/app/actions/casos";
 import { ESTADO_INFO, TIPOS_INCIDENCIA, fechaHoraCorta } from "./comun";
 
@@ -41,10 +41,19 @@ export function CasoAltaModal({
   const [f, setF] = useState({ ...VACIO });
   const [similares, setSimilares] = useState<CasoSimilar[]>([]);
   const [guardando, setGuardando] = useState(false);
+  const [clientes, setClientes] = useState<string[]>([]);
 
   useEffect(() => {
     if (abierto) { setF({ ...VACIO, ejecutivo: ejecutivoSugerido }); setSimilares([]); }
   }, [abierto, ejecutivoSugerido]);
+
+  // Cartera del Depósito: así el cliente se elige de una lista en vez de
+  // tipearse distinto cada vez.
+  useEffect(() => {
+    if (abierto && clientes.length === 0) {
+      getNombresClientes().then(r => { if (r.ok) setClientes(r.data); });
+    }
+  }, [abierto, clientes.length]);
 
   // Búsqueda de parecidos mientras se escribe, con un respiro para no consultar
   // en cada tecla.
@@ -85,8 +94,12 @@ export function CasoAltaModal({
         <div className="space-y-3 mt-3">
           <div>
             <Label htmlFor="c-cliente">Cliente *</Label>
-            <Input id="c-cliente" value={f.cliente} autoFocus
+            <Input id="c-cliente" value={f.cliente} autoFocus list="c-cliente-lista"
+              placeholder="Buscar en la cartera o escribir uno nuevo…"
               onChange={e => setF({ ...f, cliente: e.target.value })} />
+            <datalist id="c-cliente-lista">
+              {clientes.map(c => <option key={c} value={c} />)}
+            </datalist>
           </div>
 
           <div>
