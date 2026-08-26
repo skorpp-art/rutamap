@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
-  Map as MapIcon, Package, Calculator, Settings2, BarChart3, CalendarRange,
+  PackageCheck, Warehouse, Users, Boxes, History, Route as RouteIcon,
   Search, CornerDownLeft, Truck, Sun, Moon, MessageCircle,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -55,17 +55,16 @@ export function CommandPalette({ esInvitado = false }: { esInvitado?: boolean })
   }, [router]);
 
   const comandos = useMemo<Comando[]>(() => {
-    const base: Comando[] = [
-      { id: "mapa", titulo: "Ir al Mapa", grupo: "Navegación", keywords: "mapa map recorridos zonas geometria", icon: MapIcon, accion: () => cerrarYNavegar("/") },
-    ];
+    const base: Comando[] = [];
     if (!esInvitado) {
       base.push(
-        { id: "vol", titulo: "Ir a Planificación", grupo: "Navegación", keywords: "planificacion volumenes paquetes choferes", icon: Package, accion: () => cerrarYNavegar("/volumenes") },
-        { id: "proyeccion", titulo: "Proyección", grupo: "Planificación", keywords: "proyeccion calculadora choferes estimar", icon: Calculator, accion: () => cerrarYNavegar("/volumenes?tab=proyeccion") },
-        { id: "operacion", titulo: "Operación", grupo: "Planificación", keywords: "operacion dia recorridos cortes preturnos armar", icon: Settings2, accion: () => cerrarYNavegar("/volumenes?tab=operacion") },
-        { id: "analisis", titulo: "Rendimiento de recorridos", grupo: "Planificación", keywords: "rendimiento analisis recorridos clientes historico operaciones", icon: BarChart3, accion: () => cerrarYNavegar("/volumenes?tab=analisis") },
-        { id: "herramientas", titulo: "Herramientas", grupo: "Planificación", keywords: "herramientas plantillas kpis historial informe feriados", icon: CalendarRange, accion: () => cerrarYNavegar("/volumenes?tab=herramientas") },
+        { id: "pendientes", titulo: "Ir a Pendientes", grupo: "Navegación", keywords: "pendientes recepcion bultos recibido retenido", icon: PackageCheck, accion: () => cerrarYNavegar("/pendientes") },
         { id: "alternativas", titulo: "Ir a Alternativas", grupo: "Navegación", keywords: "alternativas demoras whatsapp etiquetas redespacho no entregado direccion", icon: MessageCircle, accion: () => cerrarYNavegar("/alternativas") },
+        { id: "deposito", titulo: "Ir al Depósito", grupo: "Navegación", keywords: "deposito guarda bultos stock galpon", icon: Warehouse, accion: () => cerrarYNavegar("/deposito") },
+        { id: "dep-clientes", titulo: "Clientes del depósito", grupo: "Depósito", keywords: "clientes cuentas fichas bultos", icon: Users, accion: () => cerrarYNavegar("/deposito/clientes") },
+        { id: "dep-control", titulo: "Control operativo", grupo: "Depósito", keywords: "control operativo metricas salidas stock antiguo", icon: Boxes, accion: () => cerrarYNavegar("/deposito/control") },
+        { id: "dep-remitos", titulo: "Remitos emitidos", grupo: "Depósito", keywords: "remitos historial salidas documentos reimprimir", icon: History, accion: () => cerrarYNavegar("/deposito/historial") },
+        { id: "ruta", titulo: "Mi ruta", grupo: "Navegación", keywords: "ruta chofer paradas campo", icon: RouteIcon, accion: () => cerrarYNavegar("/ruta") },
       );
     }
     const esOscuro = resolvedTheme === "dark";

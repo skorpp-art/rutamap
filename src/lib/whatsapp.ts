@@ -1,3 +1,6 @@
+// El nombre de la empresa sale de la variable de entorno: cada instalación
+// (y el demo) firma los mensajes con su propia marca.
+import { EMPRESA } from "@/lib/marca";
 // ─── Mensajes y armado de links de WhatsApp ─────────────────────────────────
 // Vive aparte de la UI para poder ajustar los textos sin tocar la pantalla.
 
@@ -8,7 +11,6 @@ export interface DatosMensaje {
   observacion?: string | null;
 }
 
-const EMPRESA = "Logística Hogareño";
 
 /** Vía 1 — no se pudo entregar: se le pide al cliente una alternativa. */
 export function msgAlternativa(c: DatosMensaje): string {

@@ -1,3 +1,4 @@
+import { EMPRESA } from "@/lib/marca";
 // ─── Etiquetas de re-despacho ───────────────────────────────────────────────
 // El chofer recibe el paquete con esta etiqueta pegada: lo que tiene que leer
 // de un vistazo es la dirección NUEVA, así que es lo único en cuerpo grande.
@@ -99,7 +100,7 @@ export function imprimirEtiquetas(casos: DatosEtiqueta[], porHoja: 6 | 8): boole
   if (!win) return false;
 
   win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
-<title>Etiquetas — Logística Hogareño</title>
+<title>Etiquetas — ${EMPRESA}</title>
 <style>
 @page{size:A4;margin:8mm;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}

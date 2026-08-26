@@ -4,10 +4,6 @@
 // rol (como funcionaba hasta ahora). El maestro siempre ve y edita todo.
 
 export const SOLAPAS = [
-  { key: "mapa", label: "Mapa", href: "/" },
-  { key: "volumenes", label: "Planificación", href: "/volumenes" },
-  { key: "analisis", label: "Resultados", href: "/analisis-diario" },
-  { key: "carga", label: "Carga del Día", href: "/carga" },
   { key: "pendientes", label: "Pendientes", href: "/pendientes" },
   { key: "alternativas", label: "Alternativas", href: "/alternativas" },
   { key: "deposito", label: "Depósito", href: "/deposito" },
@@ -25,7 +21,7 @@ interface PerfilPermisos {
 const ROLES_EDITORES = ["maestro", "supervisor", "coordinador"];
 
 export function tieneSolapa(perfil: PerfilPermisos | null, solapa: SolapaKey): boolean {
-  if (!perfil) return solapa === "mapa"; // invitados solo ven el mapa
+  if (!perfil) return false; // sin sesión no hay secciones visibles
   if (perfil.rol === "maestro") return true;
   if (perfil.solapas == null) return true; // sin restricción asignada: ve todo (comportamiento histórico)
   return perfil.solapas.includes(solapa);

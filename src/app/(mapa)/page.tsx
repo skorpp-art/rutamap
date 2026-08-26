@@ -1,50 +1,23 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { VistaMapaClient } from "@/components/mapa/VistaMapaClient";
-import { getCargaDia } from "@/app/actions/carga-dia";
-import { hoyAR } from "@/lib/fechas";
-import type { RecorridoGeo } from "@/types/database.types";
+import { tieneSolapa } from "@/lib/permisos";
 
-export interface ChoferHoy { chofer: string; turno: string; }
-
-export default async function MapaPage() {
+/**
+ * Inicio. Antes acá vivía el mapa de recorridos; al sacarlo, la raíz pasa a ser
+ * un desvío a la primera sección que el usuario tenga habilitada, para que
+ * después de iniciar sesión caiga en algo útil en vez de una pantalla vacía.
+ */
+export default async function InicioPage() {
   const supabase = await createClient();
-
-  // Invitados y roles de solo lectura (gerencia/asesor) ven sin editar;
-  // solo maestro/supervisor/coordinador pueden modificar recorridos.
   const { data: { user } } = await supabase.auth.getUser();
-  let puedeEditar = false;
-  if (user) {
-    const { data: perfil } = await supabase
-      .from("perfiles").select("rol").eq("id", user.id).single<{ rol: string }>();
-    puedeEditar = ["maestro", "supervisor", "coordinador"].includes(perfil?.rol ?? "");
-  }
+  if (!user) redirect("/login");
 
-  const { data, error } = await supabase.rpc("get_recorridos_con_geojson");
+  const { data: perfil } = await supabase
+    .from("perfiles").select("rol, solapas, puede_editar").eq("id", user.id)
+    .single<{ rol: string; solapas: string[] | null; puede_editar: boolean | null }>();
 
-  if (error) {
-    console.error("Error cargando recorridos:", error.message);
-  }
-
-  const recorridos: RecorridoGeo[] = (data as unknown as RecorridoGeo[]) ?? [];
-
-  // Conductor asignado hoy a cada recorrido (por código), desde Carga del Día.
-  // Un recorrido aparece una sola vez en la carga del día (el turno según su
-  // tipo), así que un pre-turno trae su chofer de pre-turno automáticamente.
-  // Solo para usuarios con sesión: quién maneja cada recorrido es información
-  // interna y el invitado no tiene acceso a la Carga del Día.
-  const choferesHoy: Record<string, ChoferHoy> = {};
-  if (user) {
-    const cargaRes = await getCargaDia(hoyAR());
-    if (cargaRes.ok) {
-      for (const f of cargaRes.data ?? []) {
-        if (f.chofer && f.chofer.trim()) choferesHoy[f.codigo] = { chofer: f.chofer.trim(), turno: f.turno };
-      }
-    }
-  }
-
-  return (
-    <div className="h-full w-full overflow-hidden">
-      <VistaMapaClient recorridos={recorridos} puedeEditar={puedeEditar} choferesHoy={choferesHoy} />
-    </div>
-  );
+  if (tieneSolapa(perfil, "pendientes")) redirect("/pendientes");
+  if (tieneSolapa(perfil, "deposito")) redirect("/deposito");
+  if (tieneSolapa(perfil, "alternativas")) redirect("/alternativas");
+  redirect("/ruta");
 }

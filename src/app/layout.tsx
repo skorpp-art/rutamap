@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "RutaMap — Gestión de Recorridos de Reparto",
   description:
-    "Visualizá, dibujá y exportá zonas de reparto para Mercado Envíos Flex — Logística Hogareño",
+    "Control de pendientes, alternativas de entrega y depósito de bultos",
   applicationName: "RutaMap",
   // La app ya está en español: desactivar la traducción automática del
   // navegador (Google Translate), que al mutar el DOM rompe React con una
