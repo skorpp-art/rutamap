@@ -4,9 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { Zona, TipoRecorrido } from "@/types/database.types";
 
-// El mapa es público: la UI oculta los botones de edición para invitados, pero
-// las server actions son endpoints invocables directamente. Toda acción que
-// modifica recorridos exige sesión acá, además de lo que imponga RLS.
+// Las server actions son endpoints invocables directamente incluso sin pasar
+// por la UI. Toda acción que modifica recorridos exige sesión acá, además de
+// lo que imponga RLS.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function clienteAutenticado(): Promise<{ supabase: any; error?: string }> {
   const supabase = await createClient();
@@ -30,7 +30,7 @@ export async function actualizarAreaRecorrido(
       p_area_geojson: geojsonStr,
     });
     if (error) return { ok: false, error: error.message };
-    revalidatePath("/");
+    revalidatePath("/mapa");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: String(e) };
@@ -50,7 +50,7 @@ export async function actualizarTrazaRecorrido(
       p_traza_geojson: geojsonStr,
     });
     if (error) return { ok: false, error: error.message };
-    revalidatePath("/");
+    revalidatePath("/mapa");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: String(e) };
@@ -84,7 +84,7 @@ export async function crearRecorrido(
       p_descripcion: datos.descripcion ?? null,
     });
     if (error) return { ok: false, error: error.message };
-    revalidatePath("/");
+    revalidatePath("/mapa");
     return { ok: true, id: data as string };
   } catch (e) {
     return { ok: false, error: String(e) };
@@ -109,7 +109,7 @@ export async function actualizarCamposRecorrido(
       p_descripcion: datos.descripcion ?? null,
     });
     if (error) return { ok: false, error: error.message };
-    revalidatePath("/");
+    revalidatePath("/mapa");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: String(e) };
@@ -129,7 +129,7 @@ export async function toggleActivoRecorrido(
       p_activo: activo,
     });
     if (error) return { ok: false, error: error.message };
-    revalidatePath("/");
+    revalidatePath("/mapa");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: String(e) };
@@ -145,7 +145,7 @@ export async function eliminarRecorrido(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any).rpc("eliminar_recorrido", { p_id: id });
     if (error) return { ok: false, error: error.message };
-    revalidatePath("/");
+    revalidatePath("/mapa");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: String(e) };
@@ -181,7 +181,7 @@ export async function duplicarRecorrido(
       p_nuevo_codigo: nuevoCodigo.trim().toUpperCase(),
     });
     if (error) return { ok: false, error: error.message };
-    revalidatePath("/");
+    revalidatePath("/mapa");
     return { ok: true, nuevoId: data as string };
   } catch (e) {
     return { ok: false, error: String(e) };
