@@ -23,7 +23,7 @@ import { actualizarAreaRecorrido, actualizarTrazaRecorrido } from "@/app/actions
 import { getCalorRecorridos, type CalorRecorrido } from "@/app/actions/mapa-datos";
 import { PALETA } from "@/lib/estados";
 import type { ModoEdicion } from "./MapaLeaflet";
-import type { RecorridoGeo, Zona } from "@/types/database.types";
+import type { RecorridoGeo, TipoRecorrido, Zona } from "@/types/database.types";
 import { hoyAR } from "@/lib/fechas";
 
 // ── Calor de volumen: color por promedio de paquetes del recorrido ──────────
@@ -623,11 +623,23 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
     });
   }, []);
 
-  const mostrarZonaEnMapa = useCallback((zona: Zona) => {
+  // Los chips de zona y tipo del panel lateral son toggles: activarlos suma
+  // esos recorridos al mapa, desactivarlos los saca. El activo nunca se
+  // esconde (recorridosParaMapa lo fuerza aparte).
+  const mostrarZonaEnMapa = useCallback((zona: Zona, activada: boolean) => {
     const ids = recorridos.filter((r) => r.zona === zona).map((r) => r.id);
     setVisibles((prev) => {
       const next = new Set(prev);
-      ids.forEach((id) => next.add(id));
+      ids.forEach((id) => (activada ? next.add(id) : next.delete(id)));
+      return next;
+    });
+  }, [recorridos]);
+
+  const mostrarTipoEnMapa = useCallback((tipo: TipoRecorrido, activada: boolean) => {
+    const ids = recorridos.filter((r) => r.tipo === tipo).map((r) => r.id);
+    setVisibles((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => (activada ? next.add(id) : next.delete(id)));
       return next;
     });
   }, [recorridos]);
@@ -680,6 +692,7 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
         visibles={visibles}
         onToggleVisible={toggleVisible}
         onMostrarZona={mostrarZonaEnMapa}
+        onMostrarTipo={mostrarTipoEnMapa}
         onOcultarTodo={ocultarTodo}
         onMostrarTodo={mostrarTodo}
         puedeEditar={puedeEditar}

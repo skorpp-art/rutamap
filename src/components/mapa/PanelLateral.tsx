@@ -17,7 +17,8 @@ interface PanelLateralProps {
   onSelectRecorrido: (id: string) => void;
   visibles: Set<string>;
   onToggleVisible: (id: string) => void;
-  onMostrarZona: (zona: Zona) => void;
+  onMostrarZona: (zona: Zona, activada: boolean) => void;
+  onMostrarTipo: (tipo: TipoRecorrido, activada: boolean) => void;
   onOcultarTodo: () => void;
   onMostrarTodo: (ids?: string[]) => void;
   puedeEditar?: boolean;
@@ -59,6 +60,7 @@ export function PanelLateral({
   visibles,
   onToggleVisible,
   onMostrarZona,
+  onMostrarTipo,
   onOcultarTodo,
   onMostrarTodo,
   puedeEditar = true,
@@ -71,20 +73,23 @@ export function PanelLateral({
   const [mostrarOrden, setMostrarOrden] = useState(false);
 
   function toggleZona(zona: Zona) {
+    const activada = !zonasActivas.has(zona);
     setZonasActivas((prev) => {
       const next = new Set(prev);
-      next.has(zona) ? next.delete(zona) : next.add(zona);
+      activada ? next.add(zona) : next.delete(zona);
       return next;
     });
-    onMostrarZona(zona);
+    onMostrarZona(zona, activada);
   }
 
   function toggleTipo(tipo: TipoRecorrido) {
+    const activada = !tiposActivos.has(tipo);
     setTiposActivos((prev) => {
       const next = new Set(prev);
-      next.has(tipo) ? next.delete(tipo) : next.add(tipo);
+      activada ? next.add(tipo) : next.delete(tipo);
       return next;
     });
+    onMostrarTipo(tipo, activada);
   }
 
   const filtrados = ordenarRecorridos(
