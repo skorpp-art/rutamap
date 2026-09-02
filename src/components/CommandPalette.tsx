@@ -7,6 +7,7 @@ import {
   PackageCheck, Warehouse, Users, Boxes, History, Route as RouteIcon,
   Search, CornerDownLeft, Truck, Sun, Moon, MessageCircle,
   ClipboardList,
+  Map as MapIcon,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -60,6 +61,7 @@ export function CommandPalette({ esInvitado = false }: { esInvitado?: boolean })
     if (!esInvitado) {
       base.push(
         { id: "pendientes", titulo: "Ir a Pendientes", grupo: "Navegación", keywords: "pendientes recepcion bultos recibido retenido", icon: PackageCheck, accion: () => cerrarYNavegar("/pendientes") },
+        { id: "mapa", titulo: "Ir al Mapa", grupo: "Navegación", keywords: "mapa recorridos zonas geojson cobertura", icon: MapIcon, accion: () => cerrarYNavegar("/mapa") },
         { id: "alternativas", titulo: "Ir a Alternativas", grupo: "Navegación", keywords: "alternativas demoras whatsapp etiquetas redespacho no entregado direccion", icon: MessageCircle, accion: () => cerrarYNavegar("/alternativas") },
         { id: "casos", titulo: "Ir a Casos", grupo: "Navegación", keywords: "casos incidencias reclamos asesoria coordinacion excel seguimiento", icon: ClipboardList, accion: () => cerrarYNavegar("/casos") },
         { id: "deposito", titulo: "Ir al Depósito", grupo: "Navegación", keywords: "deposito guarda bultos stock galpon", icon: Warehouse, accion: () => cerrarYNavegar("/deposito") },
