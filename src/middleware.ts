@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // Todas las secciones requieren sesión: al sacar el mapa, la app dejó de tener
 // pantallas públicas. La raíz se compara aparte porque con startsWith
 // coincidiría con cualquier ruta.
-const RUTAS_PROTEGIDAS = ["/pendientes", "/alternativas", "/casos", "/deposito", "/ruta", "/usuarios", "/descargar"];
+const RUTAS_PROTEGIDAS = ["/mapa", "/pendientes", "/alternativas", "/casos", "/deposito", "/ruta", "/usuarios", "/descargar"];
 const RUTAS_AUTH = ["/login", "/registro"];
 
 export async function middleware(request: NextRequest) {
@@ -70,6 +70,7 @@ export const config = {
   // invocan: menos ejecuciones y menos exposición a fallas del edge runtime.
   matcher: [
     "/",
+    "/mapa/:path*",
     "/pendientes/:path*",
     "/alternativas/:path*",
     "/casos/:path*",
