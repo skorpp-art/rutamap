@@ -17,8 +17,14 @@ interface PanelLateralProps {
   onSelectRecorrido: (id: string) => void;
   visibles: Set<string>;
   onToggleVisible: (id: string) => void;
-  onMostrarZona: (zona: Zona, activada: boolean) => void;
-  onMostrarTipo: (tipo: TipoRecorrido, activada: boolean) => void;
+  // Los filtros de zona y tipo viven en el padre: el mapa necesita saber
+  // cuáles están activos para mostrar la MISMA intersección (zona Y tipo)
+  // que ve esta lista, en vez de la unión de cada uno por separado.
+  zonasActivas: Set<Zona>;
+  onToggleZona: (zona: Zona) => void;
+  tiposActivos: Set<TipoRecorrido>;
+  onToggleTipo: (tipo: TipoRecorrido) => void;
+  onLimpiarFiltros: () => void;
   onOcultarTodo: () => void;
   onMostrarTodo: (ids?: string[]) => void;
   puedeEditar?: boolean;
@@ -59,38 +65,19 @@ export function PanelLateral({
   onSelectRecorrido,
   visibles,
   onToggleVisible,
-  onMostrarZona,
-  onMostrarTipo,
+  zonasActivas,
+  onToggleZona,
+  tiposActivos,
+  onToggleTipo,
+  onLimpiarFiltros,
   onOcultarTodo,
   onMostrarTodo,
   puedeEditar = true,
 }: PanelLateralProps) {
   const [busqueda, setBusqueda] = useState("");
-  const [zonasActivas, setZonasActivas] = useState<Set<Zona>>(new Set());
-  const [tiposActivos, setTiposActivos] = useState<Set<TipoRecorrido>>(new Set());
   const [soloActivos, setSoloActivos] = useState(true);
   const [orden, setOrden] = useState<Orden>("codigo");
   const [mostrarOrden, setMostrarOrden] = useState(false);
-
-  function toggleZona(zona: Zona) {
-    const activada = !zonasActivas.has(zona);
-    setZonasActivas((prev) => {
-      const next = new Set(prev);
-      activada ? next.add(zona) : next.delete(zona);
-      return next;
-    });
-    onMostrarZona(zona, activada);
-  }
-
-  function toggleTipo(tipo: TipoRecorrido) {
-    const activada = !tiposActivos.has(tipo);
-    setTiposActivos((prev) => {
-      const next = new Set(prev);
-      activada ? next.add(tipo) : next.delete(tipo);
-      return next;
-    });
-    onMostrarTipo(tipo, activada);
-  }
 
   const filtrados = ordenarRecorridos(
     recorridos.filter((r) => {
@@ -207,7 +194,7 @@ export function PanelLateral({
           {ZONAS.map((zona) => (
             <button
               key={zona}
-              onClick={() => toggleZona(zona)}
+              onClick={() => onToggleZona(zona)}
               className={cn(
                 "text-xs px-1.5 py-0.5 rounded border transition-colors",
                 zonasActivas.has(zona)
@@ -225,7 +212,7 @@ export function PanelLateral({
           {TIPOS.map((tipo) => (
             <button
               key={tipo}
-              onClick={() => toggleTipo(tipo)}
+              onClick={() => onToggleTipo(tipo)}
               className={cn(
                 "text-xs px-1.5 py-0.5 rounded border transition-colors",
                 tiposActivos.has(tipo)
@@ -264,8 +251,7 @@ export function PanelLateral({
               className="ml-auto h-5 text-xs px-1.5 text-muted-foreground"
               onClick={() => {
                 setBusqueda("");
-                setZonasActivas(new Set());
-                setTiposActivos(new Set());
+                onLimpiarFiltros();
                 setSoloActivos(true);
               }}
             >

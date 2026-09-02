@@ -218,6 +218,12 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
   const [recorridoActivoId, setRecorridoActivoId] = useState<string | null>(null);
   const [modoEdicion, setModoEdicion] = useState<ModoEdicion>(null);
   const [visibles, setVisibles] = useState<Set<string>>(new Set());
+  // Filtros de zona/tipo del panel lateral. Viven acá (y no en PanelLateral)
+  // porque el mapa necesita la MISMA intersección (zona Y tipo) que ve la
+  // lista — antes cada chip sumaba sus recorridos por separado y el mapa
+  // terminaba mostrando la unión de todo, no lo filtrado.
+  const [zonasActivas, setZonasActivas] = useState<Set<Zona>>(new Set());
+  const [tiposActivos, setTiposActivos] = useState<Set<TipoRecorrido>>(new Set());
   const [modoPluma, setModoPluma] = useState<"agregar" | "quitar" | null>(null);
   const [modoEditarNodos, setModoEditarNodos] = useState(false);
   const [geometriaTemporal, setGeometriaTemporal] = useState<string | null>(null);
@@ -281,8 +287,15 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
           };
         });
     }
-    return recorridosDisplay.filter((r) => r.id === recorridoActivoId || visibles.has(r.id));
-  }, [recorridosDisplay, recorridoActivoId, visibles, mostrarCalor, calorMap]);
+    const filtroActivo = zonasActivas.size > 0 || tiposActivos.size > 0;
+    return recorridosDisplay.filter((r) =>
+      r.id === recorridoActivoId ||
+      visibles.has(r.id) ||
+      (filtroActivo &&
+        (zonasActivas.size === 0 || zonasActivas.has(r.zona)) &&
+        (tiposActivos.size === 0 || tiposActivos.has(r.tipo)))
+    );
+  }, [recorridosDisplay, recorridoActivoId, visibles, mostrarCalor, calorMap, zonasActivas, tiposActivos]);
 
   // ── Cargar datos de calor al activar ────────────────────────────────────────
   useEffect(() => {
@@ -623,26 +636,26 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
     });
   }, []);
 
-  // Los chips de zona y tipo del panel lateral son toggles: activarlos suma
-  // esos recorridos al mapa, desactivarlos los saca. El activo nunca se
-  // esconde (recorridosParaMapa lo fuerza aparte).
-  const mostrarZonaEnMapa = useCallback((zona: Zona, activada: boolean) => {
-    const ids = recorridos.filter((r) => r.zona === zona).map((r) => r.id);
-    setVisibles((prev) => {
+  const toggleZonaFiltro = useCallback((zona: Zona) => {
+    setZonasActivas((prev) => {
       const next = new Set(prev);
-      ids.forEach((id) => (activada ? next.add(id) : next.delete(id)));
+      next.has(zona) ? next.delete(zona) : next.add(zona);
       return next;
     });
-  }, [recorridos]);
+  }, []);
 
-  const mostrarTipoEnMapa = useCallback((tipo: TipoRecorrido, activada: boolean) => {
-    const ids = recorridos.filter((r) => r.tipo === tipo).map((r) => r.id);
-    setVisibles((prev) => {
+  const toggleTipoFiltro = useCallback((tipo: TipoRecorrido) => {
+    setTiposActivos((prev) => {
       const next = new Set(prev);
-      ids.forEach((id) => (activada ? next.add(id) : next.delete(id)));
+      next.has(tipo) ? next.delete(tipo) : next.add(tipo);
       return next;
     });
-  }, [recorridos]);
+  }, []);
+
+  const limpiarFiltrosZonaTipo = useCallback(() => {
+    setZonasActivas(new Set());
+    setTiposActivos(new Set());
+  }, []);
 
   const mostrarTodo = useCallback((ids?: string[]) => {
     // Si llegan IDs (los filtrados del panel), mostrar solo esos. Si no, todos.
@@ -691,8 +704,11 @@ export function VistaMapaClient({ recorridos, puedeEditar = true, choferesHoy = 
         onSelectRecorrido={seleccionarRecorrido}
         visibles={visibles}
         onToggleVisible={toggleVisible}
-        onMostrarZona={mostrarZonaEnMapa}
-        onMostrarTipo={mostrarTipoEnMapa}
+        zonasActivas={zonasActivas}
+        onToggleZona={toggleZonaFiltro}
+        tiposActivos={tiposActivos}
+        onToggleTipo={toggleTipoFiltro}
+        onLimpiarFiltros={limpiarFiltrosZonaTipo}
         onOcultarTodo={ocultarTodo}
         onMostrarTodo={mostrarTodo}
         puedeEditar={puedeEditar}
