@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { getPerfilActual } from "@/lib/perfil";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { CommandPalette } from "@/components/CommandPalette";
@@ -9,33 +9,20 @@ export default async function MapaLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // Todas las pantallas requieren sesión: cada page.tsx redirige al login si
-  // no hay usuario. Antes el mapa "/" era público para invitados.
-  let perfil = null;
-  if (user) {
-    const { data } = await supabase
-      .from("perfiles")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-    perfil = data;
-  }
+  // El perfil trae también la empresa y sus módulos: la barra lateral los
+  // necesita para saber qué solapas mostrar. Cada page.tsx redirige al login
+  // si no hay sesión.
+  const perfil = await getPerfilActual();
 
   return (
     <div className="flex h-full">
-      <Sidebar perfil={perfil} esInvitado={!user} />
+      <Sidebar perfil={perfil} />
       <div className="flex flex-col flex-1 min-w-0 h-full">
         <BannerDemo />
-        <Header perfil={perfil} esInvitado={!user} />
+        <Header perfil={perfil} />
         <main className="flex-1 overflow-hidden bg-muted/40">{children}</main>
       </div>
-      <CommandPalette esInvitado={!user} />
+      <CommandPalette perfil={perfil} />
     </div>
   );
 }

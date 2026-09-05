@@ -1,28 +1,25 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { tieneSolapa } from "@/lib/permisos";
+import { getPerfilActual } from "@/lib/perfil";
+import { primeraSolapa } from "@/lib/permisos";
 
 /**
- * Inicio. Antes acá vivía el mapa de recorridos; al sacarlo, la raíz pasa a ser
- * un desvío a la primera sección que el usuario tenga habilitada, para que
- * después de iniciar sesión caiga en algo útil en vez de una pantalla vacía.
+ * Inicio: manda a cada uno a la primera sección que tenga disponible.
+ *
+ * "Disponible" ahora depende de dos cosas: que la empresa tenga el módulo
+ * contratado y que la persona lo tenga asignado. Por eso el orden lo decide
+ * primeraSolapa() y no una lista escrita acá: si el plan de la empresa cambia,
+ * el destino cambia solo.
  */
 export default async function InicioPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const perfil = await getPerfilActual();
+  if (!perfil) redirect("/login");
 
-  const { data: perfil } = await supabase
-    .from("perfiles").select("rol, solapas, puede_editar").eq("id", user.id)
-    .single<{ rol: string; solapas: string[] | null; puede_editar: boolean | null }>();
+  // Se registró pero todavía no lo habilitaron: sala de espera.
+  if (perfil.estado !== "activo" || !perfil.empresa) redirect("/bienvenida");
 
-  if (tieneSolapa(perfil, "pendientes")) redirect("/pendientes");
-  if (tieneSolapa(perfil, "mapa")) redirect("/mapa");
-  if (tieneSolapa(perfil, "casos")) redirect("/casos");
-  if (tieneSolapa(perfil, "deposito")) redirect("/deposito");
-  if (tieneSolapa(perfil, "alternativas")) redirect("/alternativas");
-  if (tieneSolapa(perfil, "carga")) redirect("/carga");
-  if (tieneSolapa(perfil, "volumenes")) redirect("/volumenes");
-  if (tieneSolapa(perfil, "analisis")) redirect("/analisis-diario");
-  redirect("/ruta");
+  if (perfil.es_superadmin) redirect("/admin");
+
+  const destino = primeraSolapa(perfil);
+  if (!destino) redirect("/bienvenida");
+  redirect(destino);
 }

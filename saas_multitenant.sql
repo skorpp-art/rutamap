@@ -1,0 +1,236 @@
+-- ============================================================
+-- RutaMap como SaaS: una base, muchas empresas
+-- ============================================================
+-- Hasta acá RutaMap era la app de UNA empresa: cualquiera con sesión
+-- veía todo. Este cambio la convierte en un servicio donde cada empresa
+-- cliente ve exclusivamente sus datos, y donde el superadmin (Lucas)
+-- administra quién entra y con qué plan.
+--
+-- Está aplicado en el proyecto pkdkelrqtwjepksqzedh. Este archivo es la
+-- referencia de qué se hizo y, sobre todo, POR QUÉ.
+--
+--
+-- ── LA IDEA CENTRAL ────────────────────────────────────────────────────
+--
+-- Cada fila de cada tabla lleva un empresa_id, y nadie puede ver ni
+-- tocar filas de otra empresa. Suena simple; lo difícil es que no haya
+-- NINGUNA rendija, porque una sola rendija es un cliente viendo los
+-- datos de otro.
+--
+--
+-- ── LAS TRES CAPAS DE AISLAMIENTO ──────────────────────────────────────
+--
+-- 1. La columna
+--    Las 32 tablas de negocio tienen empresa_id NOT NULL con
+--    DEFAULT empresa_actual(). El default no es cosmético: hace que los
+--    INSERT que ya viven dentro de ~123 funciones sigan andando sin
+--    tocarlos, marcando la fila con la empresa de quien escribe. Y el
+--    NOT NULL hace que, si alguien sin empresa activa intenta escribir,
+--    falle en vez de crear una fila huérfana.
+--
+-- 2. Las políticas
+--    Las 62 políticas que ya existían se envolvieron con
+--    "empresa_id = empresa_actual() and (<lo que decía antes>)". Así los
+--    permisos DENTRO de una empresa quedaron intactos —quién puede
+--    editar qué no cambió— y lo único que se sumó fue la frontera.
+--
+-- 3. Las funciones
+--    Esta era la capa que faltaba y la más peligrosa. Había ~123
+--    funciones SECURITY DEFINER que la app llama por RPC; ninguna
+--    filtraba por empresa y, al ser propiedad de "postgres" (que tiene
+--    BYPASSRLS), salteaban las políticas por completo: un
+--    "select * from recorridos" adentro de cualquiera de ellas habría
+--    devuelto los recorridos de todas las empresas.
+--
+--    No se reescribieron una por una. Son 94 KB de PL/pgSQL y ese es
+--    justo el trabajo donde un olvido no se nota al probar (todo anda)
+--    pero es una fuga de datos. En su lugar, las funciones pasaron a ser
+--    propiedad de un rol nuevo, rutamap_rpc, que NO tiene BYPASSRLS.
+--    Siguen siendo SECURITY DEFINER —necesitan escribir donde el usuario
+--    común no puede— pero ahora las políticas se les aplican, y el
+--    filtro por empresa vale para las 123 sin tocar su código.
+--
+--    Si a alguna le falta un permiso, falla con "permission denied" en
+--    vez de devolver datos de otro cliente en silencio. Es el modo
+--    correcto de fallar.
+--
+--
+-- ── LO QUE APARECIÓ AL PROBARLO ────────────────────────────────────────
+--
+-- El cambio de dueño rompió cuatro cosas que sólo se vieron al ejecutar
+-- las funciones de verdad. Vale dejarlas anotadas porque son las mismas
+-- que van a aparecer si alguna vez se agrega una función nueva:
+--
+--   1. handle_new_user (el trigger que crea el perfil al registrarse)
+--      perdió el permiso de insertar en perfiles. Sin esto, NADIE podía
+--      registrarse. Volvió a ser propiedad de postgres, que es lo
+--      correcto: cuando corre todavía no hay sesión.
+--
+--   2. Las funciones no podían llamar a es_editor(). Como casi todas
+--      arrancan con "if not es_editor() then raise", el efecto era que
+--      ninguna escritura funcionaba.
+--
+--   3. No podían llamar a auth.uid(), que usan para guardar creado_por.
+--      El esquema auth es de supabase_admin y postgres no puede otorgar
+--      USAGE sobre él; se resolvió haciendo a rutamap_rpc miembro de
+--      'authenticated', que ya tiene ese acceso (y que tampoco tiene
+--      BYPASSRLS, así que no afloja el aislamiento).
+--
+--   4. Los "on conflict (fecha)", "on conflict (nombre)", etc. de 18
+--      funciones apuntaban a claves que dejaron de existir.
+--
+--
+-- ── LAS CLAVES QUE ERAN GLOBALES ───────────────────────────────────────
+--
+-- Heredadas de cuando la base servía a una sola empresa. Tal como
+-- estaban, la segunda empresa no habría podido tener un recorrido
+-- "CE-CA-01", ni un chofer llamado igual que uno de Hogareño, ni cargar
+-- el mismo día de operación. Todas pasaron a incluir empresa_id:
+--
+--   recorridos.codigo · conductores(nombre, era PK) · analisis_diario
+--   (fecha, era PK) · feriados(fecha) · kpis_diarios(fecha) ·
+--   factores_semana · plantillas_semanales · plantilla_operacion ·
+--   doc_counter (el numerador de remitos: ahora cada empresa tiene su
+--   propia serie) · casos.numero · casos.tracking · remitos.numero ·
+--   carga_dia · operacion_dia · operaciones_diarias · volumenes_diarios
+--   y los cuatro detalles de analisis_diario.
+--
+--
+-- ── AGUJEROS QUE YA EXISTÍAN Y SE CERRARON DE PASO ─────────────────────
+--
+-- · operaciones_diarias tenía una política "ALL" para cualquier
+--   autenticado: leer, escribir y borrar todo.
+-- · feriados dejaba insertar y borrar a cualquiera.
+-- · 9 funciones eran ejecutables por 'anon' (sin sesión) vía
+--   /rest/v1/rpc/, incluida una de escritura. Desde que no hay pantallas
+--   públicas, nada de la app llama a la base sin sesión: se revocó todo.
+-- · get_usuarios listaba los usuarios —con su mail— de TODAS las
+--   empresas, y admin_set_rol / admin_set_permisos dejaban que el
+--   maestro de una empresa le cambiara el rol a alguien de otra.
+-- · perfiles_update_own dejaba que cualquiera editara su propio perfil.
+--   Con multi-tenant eso permitía cambiarse el empresa_id y meterse en
+--   los datos de otro cliente, o ponerse es_superadmin. Como RLS no sabe
+--   restringir columnas, lo frena el trigger proteger_campos_perfil.
+--
+--
+-- ── CÓMO SE VERIFICÓ ───────────────────────────────────────────────────
+--
+-- Con una empresa fantasma y un usuario suyo, dentro de transacciones
+-- que se revierten. Simulando su sesión (set role authenticated + el
+-- claim sub del JWT):
+--
+--   Acceso directo:  0 recorridos, 0 pendientes, 0 clientes, 0 casos,
+--                    0 choferes, 0 días. Sólo su perfil y su empresa.
+--   Por RPC:         0 en las nueve consultas más pesadas
+--                    (get_recorridos_con_geojson, get_pendientes,
+--                    get_conductores, get_carga_dia, get_top_clients,
+--                    get_oldest_stock, get_recorridos_base,
+--                    get_historial_dias_v2, get_dashboard_unificado).
+--   Sin sesión:      ni siquiera puede leer una tabla.
+--
+-- Y la contraprueba, que importa igual: con el usuario real de Hogareño
+-- siguen viéndose los 180 recorridos, 158 choferes, 6.007 pendientes,
+-- 38 clientes de depósito, 73 días de historial y los 21 compañeros. Las
+-- escrituras (crear recorrido, agregar chofer, marcar feriado, abrir
+-- caso, guardar KPI) funcionan y quedan marcadas con su empresa sola.
+--
+--
+-- ── LO QUE FALTA ───────────────────────────────────────────────────────
+--
+-- · spatial_ref_sys aparece como "sin RLS" en el análisis de seguridad.
+--   Es la tabla de sistemas de coordenadas de PostGIS: es de la
+--   extensión, no se le puede activar RLS y no tiene datos de nadie.
+-- · La base del demo (rutamap-demo) tiene el esquema viejo clonado. Hay
+--   que aplicarle estos mismos cambios antes de que el código empiece a
+--   depender de modulos_empresa().
+-- ============================================================
+
+
+-- ── Referencia rápida de lo aplicado ───────────────────────────────────
+
+-- empresas: los tenants. 'modulos' es la verdad efectiva de qué ve cada
+-- una; 'plan' es la etiqueta comercial que sirve de plantilla.
+--   id, nombre, slug, plan (bronce|plata|oro), modulos text[], activa
+
+-- perfiles: se le sumaron
+--   empresa_id     -- null = todavía no lo habilitaron
+--   estado         -- pendiente | activo | rechazado
+--   es_superadmin  -- transversal, no es un rol de empresa
+
+-- Funciones de contexto (siguen siendo de postgres a propósito: tienen
+-- que leer perfiles sin RLS para responder de qué empresa es alguien):
+--   empresa_actual(uid)   -- uuid de la empresa del usuario activo
+--   es_superadmin(uid)    -- boolean
+--   modulos_empresa(uid)  -- text[] de módulos habilitados
+
+-- Rol rutamap_rpc: dueño de las 127 funciones de negocio. NOLOGIN,
+-- NOBYPASSRLS, miembro de authenticated. Tiene una política por tabla
+-- ("rpc_empresa") que lo limita a su empresa; en ruta_paradas y
+-- notificaciones la política además preserva la privacidad por usuario.
+
+
+-- ============================================================
+-- Fase 3: planes, módulos y el panel del superadmin
+-- ============================================================
+-- QUIÉN VE QUÉ, ahora son dos permisos encadenados (src/lib/permisos.ts):
+--
+--   1. La EMPRESA tiene el módulo contratado (su plan). Es el techo.
+--   2. El USUARIO tiene esa solapa asignada. Es el recorte dentro del techo.
+--
+-- Un asesor de una empresa Bronce no ve el Mapa aunque le asignen la
+-- solapa: su empresa no lo contrató. Y en una empresa Oro, un asesor
+-- sigue viendo sólo lo que su maestro le habilitó.
+--
+-- El plan (bronce/plata/oro) es la etiqueta comercial y la plantilla:
+-- elegirlo marca sus módulos de un clic. Lo que manda es la lista
+-- guardada en empresas.modulos, que el superadmin ajusta de a uno. Así se
+-- puede vender "Plata más el Mapa" sin inventar un plan nuevo.
+--
+--   bronce → pendientes, ruta
+--   plata  → + alternativas, casos, deposito
+--   oro    → + mapa, carga, volumenes, analisis
+--
+-- Funciones del panel (todas verifican es_superadmin() de nuevo: que la
+-- pantalla esté escondida no es un permiso):
+--   admin_empresas()            admin_crear_empresa()
+--   admin_actualizar_empresa()  admin_registros()
+--   admin_habilitar_usuario()   admin_rechazar_usuario()
+--
+-- Pantallas nuevas: /admin (empresas, planes, altas pendientes) y
+-- /bienvenida (sala de espera de quien se registró y todavía no fue
+-- habilitado, o cuya empresa está pausada).
+--
+-- Pausar una empresa (activa = false) corta el acceso de todos sus
+-- usuarios sin borrar un solo dato: al reactivarla vuelven a entrar como
+-- estaban. Es lo que se usa cuando alguien deja de pagar.
+--
+--
+-- ============================================================
+-- Fase 4: cómo se entra
+-- ============================================================
+-- · Registro con mail y contraseña: abierto. Crea el perfil en estado
+--   pendiente (sin empresa), así que el alta no da acceso a nada.
+-- · Google: mismo botón sirve de alta y de login. Si la cuenta no existe
+--   Supabase la crea y el trigger le arma el perfil pendiente igual.
+-- · Recuperar contraseña: ya existía (resetPasswordForEmail +
+--   /actualizar-password), no hizo falta tocarlo.
+--
+-- FALTA HACER A MANO, y sin esto el botón de Google no funciona:
+--   1. Google Cloud Console → crear credenciales OAuth (tipo "aplicación
+--      web") y copiar Client ID y Client Secret.
+--   2. En "Authorized redirect URIs" poner:
+--      https://pkdkelrqtwjepksqzedh.supabase.co/auth/v1/callback
+--   3. Supabase → Authentication → Providers → Google: pegar ID y secret,
+--      y activarlo.
+--   4. Supabase → Authentication → URL Configuration: que Site URL y
+--      Redirect URLs incluyan el dominio de producción.
+--
+--
+-- ============================================================
+-- Pendiente: el demo
+-- ============================================================
+-- El proyecto rutamap-demo (htpukmetvifuoozvhyvj) está INACTIVE: lo
+-- pausó Supabase por inactividad. Cuando se reactive va a tener el
+-- esquema viejo, sin empresas ni empresa_id, y el código nuevo no va a
+-- poder levantar el perfil. Antes de volver a usarlo para una demo hay
+-- que aplicarle esta misma secuencia de migraciones y crear su empresa.

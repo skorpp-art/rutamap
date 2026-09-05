@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getPerfilActual } from "@/lib/perfil";
 import { VistaMapaClient } from "@/components/mapa/VistaMapaClient";
 import { getCargaDia } from "@/app/actions/carga-dia";
 import { hoyAR } from "@/lib/fechas";
@@ -9,18 +10,14 @@ import type { RecorridoGeo } from "@/types/database.types";
 export interface ChoferHoy { chofer: string; turno: string; }
 
 export default async function MapaPage() {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/mapa");
-
-  const { data: perfil } = await supabase
-    .from("perfiles").select("rol, solapas, puede_editar").eq("id", user.id)
-    .single<{ rol: string; solapas: string[] | null; puede_editar: boolean | null }>();
+  const perfil = await getPerfilActual();
+  if (!perfil) redirect("/login?next=/mapa");
   if (!tieneSolapa(perfil, "mapa")) redirect("/");
 
   // Solo maestro/supervisor/coordinador pueden modificar recorridos.
-  const puedeEditar = ["maestro", "supervisor", "coordinador"].includes(perfil?.rol ?? "");
+  const puedeEditar = ["maestro", "supervisor", "coordinador"].includes(perfil.rol);
+
+  const supabase = await createClient();
 
   const { data, error } = await supabase.rpc("get_recorridos_con_geojson");
   if (error) console.error("Error cargando recorridos:", error.message);

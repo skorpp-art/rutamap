@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getPerfilActual } from "@/lib/perfil";
 import { ClienteFicha } from "@/components/deposito/ClienteFicha";
 import { tieneSolapa, puedeEditarPerfil } from "@/lib/permisos";
 
@@ -9,13 +9,8 @@ export default async function DepositoClientePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect(`/login?next=/deposito/clientes/${id}`);
-
-  const { data: perfil } = await supabase
-    .from("perfiles").select("rol, solapas, puede_editar").eq("id", user.id)
-    .single<{ rol: string; solapas: string[] | null; puede_editar: boolean | null }>();
+  const perfil = await getPerfilActual();
+  if (!perfil) redirect(`/login?next=/deposito/clientes/${id}`);
   if (!tieneSolapa(perfil, "deposito")) redirect("/");
 
   return (

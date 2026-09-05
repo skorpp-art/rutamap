@@ -2,22 +2,20 @@
 
 import { usePathname } from "next/navigation";
 import {
-  MapPin, User, RefreshCw, LogIn,
+  MapPin, RefreshCw,
   TrendingUp, Settings2, BarChart3, Wrench,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useMapStore } from "@/stores/mapStore";
 import { useVolumenesStore } from "@/stores/volumenesStore";
 import { cn } from "@/lib/utils";
-import type { Perfil, Zona } from "@/types/database.types";
+import type { Zona } from "@/types/database.types";
+import type { PerfilActual } from "@/lib/perfil";
 
 interface HeaderProps {
-  perfil: Perfil | null;
-  esInvitado?: boolean;
+  perfil: PerfilActual | null;
 }
 
 const ZONAS: { valor: Zona | "todas"; etiqueta: string }[] = [
@@ -52,8 +50,7 @@ const TABS_VOLUMENES = [
   ["herramientas", "Herramientas", Wrench],
 ] as const;
 
-export function Header({ perfil, esInvitado = false }: HeaderProps) {
-  const router = useRouter();
+export function Header({ perfil }: HeaderProps) {
   const pathname = usePathname();
   const { filtros, setFiltroZona } = useMapStore();
   const kpis = useVolumenesStore((s) => s.kpis);
@@ -68,7 +65,7 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
   // En las pantallas que traen su propio encabezado grande, la barra superior
   // no aportaba nada (solo repetía el título) — se oculta y esas pantallas
   // ganan los 56px de alto. El buscador ⌘K vive en la barra lateral.
-  if (repiteTitulo && !esInvitado) return null;
+  if (repiteTitulo) return null;
 
   function handleZonaChange(valor: string) {
     setFiltroZona(valor === "todas" ? null : (valor as Zona));
@@ -141,18 +138,6 @@ export function Header({ perfil, esInvitado = false }: HeaderProps) {
         </span>
       )}
 
-      {/* Invitado → botón de login (el perfil del usuario vive en el sidebar) */}
-      {esInvitado && (
-        <div className="flex items-center gap-2">
-          <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <User className="h-3.5 w-3.5" /> Modo invitado
-          </span>
-          <Button size="sm" className="bg-brand-blue hover:bg-brand-blue/90 text-white gap-1.5 h-8"
-            onClick={() => router.push("/login")}>
-            <LogIn className="h-3.5 w-3.5" /> Iniciar sesión
-          </Button>
-        </div>
-      )}
     </header>
   );
 }
