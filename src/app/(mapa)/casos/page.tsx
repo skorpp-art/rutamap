@@ -1,16 +1,11 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getPerfilActual } from "@/lib/perfil";
 import { CasosPanel } from "@/components/casos/CasosPanel";
 import { tieneSolapa } from "@/lib/permisos";
 
 export default async function CasosPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/casos");
-
-  const { data: perfil } = await supabase
-    .from("perfiles").select("rol, nombre, solapas, puede_editar").eq("id", user.id)
-    .single<{ rol: string; nombre: string; solapas: string[] | null; puede_editar: boolean | null }>();
+  const perfil = await getPerfilActual();
+  if (!perfil) redirect("/login?next=/casos");
   if (!tieneSolapa(perfil, "casos")) redirect("/");
 
   // Quien gestiona casos se decide en la base (puede_gestionar_casos), no acá:

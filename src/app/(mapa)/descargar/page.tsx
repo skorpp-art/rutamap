@@ -1,18 +1,14 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getPerfilActual } from "@/lib/perfil";
 import { DescargarApp } from "@/components/descargar/DescargarApp";
 
 export default async function DescargarPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/descargar");
-
-  const { data: perfil } = await supabase
-    .from("perfiles").select("rol").eq("id", user.id).single<{ rol: string }>();
+  const perfil = await getPerfilActual();
+  if (!perfil) redirect("/login?next=/descargar");
 
   return (
     <div className="h-full w-full overflow-hidden">
-      <DescargarApp esMaestro={perfil?.rol === "maestro"} />
+      <DescargarApp esMaestro={perfil.rol === "maestro"} />
     </div>
   );
 }

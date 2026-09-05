@@ -10,6 +10,8 @@ import {
   Map as MapIcon, CalendarClock, BarChart3,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { tieneSolapa, type SolapaKey } from "@/lib/permisos";
+import type { PerfilActual } from "@/lib/perfil";
 import { cn } from "@/lib/utils";
 
 type Comando = {
@@ -25,7 +27,7 @@ type Comando = {
  * Paleta de comandos global (⌘K / Ctrl+K).
  * Navegación instantánea entre vistas y pestañas de la app.
  */
-export function CommandPalette({ esInvitado = false }: { esInvitado?: boolean }) {
+export function CommandPalette({ perfil }: { perfil: PerfilActual | null }) {
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const [abierto, setAbierto] = useState(false);
@@ -57,23 +59,26 @@ export function CommandPalette({ esInvitado = false }: { esInvitado?: boolean })
   }, [router]);
 
   const comandos = useMemo<Comando[]>(() => {
-    const base: Comando[] = [];
-    if (!esInvitado) {
-      base.push(
-        { id: "pendientes", titulo: "Ir a Pendientes", grupo: "Navegación", keywords: "pendientes recepcion bultos recibido retenido", icon: PackageCheck, accion: () => cerrarYNavegar("/pendientes") },
-        { id: "mapa", titulo: "Ir al Mapa", grupo: "Navegación", keywords: "mapa recorridos zonas geojson cobertura", icon: MapIcon, accion: () => cerrarYNavegar("/mapa") },
-        { id: "carga", titulo: "Ir a Carga del Día", grupo: "Navegación", keywords: "carga dia choferes turnos preturno tarde", icon: Truck, accion: () => cerrarYNavegar("/carga") },
-        { id: "volumenes", titulo: "Ir a Planificación", grupo: "Navegación", keywords: "planificacion volumenes plantillas recorridos feriados paquetes especiales", icon: CalendarClock, accion: () => cerrarYNavegar("/volumenes") },
-        { id: "analisis-diario", titulo: "Ir a Resultados", grupo: "Navegación", keywords: "resultados analisis diario indicadores kpis historial", icon: BarChart3, accion: () => cerrarYNavegar("/analisis-diario") },
-        { id: "alternativas", titulo: "Ir a Alternativas", grupo: "Navegación", keywords: "alternativas demoras whatsapp etiquetas redespacho no entregado direccion", icon: MessageCircle, accion: () => cerrarYNavegar("/alternativas") },
-        { id: "casos", titulo: "Ir a Casos", grupo: "Navegación", keywords: "casos incidencias reclamos asesoria coordinacion excel seguimiento", icon: ClipboardList, accion: () => cerrarYNavegar("/casos") },
-        { id: "deposito", titulo: "Ir al Depósito", grupo: "Navegación", keywords: "deposito guarda bultos stock galpon", icon: Warehouse, accion: () => cerrarYNavegar("/deposito") },
-        { id: "dep-clientes", titulo: "Clientes del depósito", grupo: "Depósito", keywords: "clientes cuentas fichas bultos", icon: Users, accion: () => cerrarYNavegar("/deposito/clientes") },
-        { id: "dep-control", titulo: "Control operativo", grupo: "Depósito", keywords: "control operativo metricas salidas stock antiguo", icon: Boxes, accion: () => cerrarYNavegar("/deposito/control") },
-        { id: "dep-remitos", titulo: "Remitos emitidos", grupo: "Depósito", keywords: "remitos historial salidas documentos reimprimir", icon: History, accion: () => cerrarYNavegar("/deposito/historial") },
-        { id: "ruta", titulo: "Mi ruta", grupo: "Navegación", keywords: "ruta chofer paradas campo", icon: RouteIcon, accion: () => cerrarYNavegar("/ruta") },
-      );
-    }
+    // Cada atajo declara a qué módulo pertenece: si la empresa no lo tiene
+    // contratado o la persona no lo tiene asignado, no aparece. Ofrecer un
+    // atajo que termina en "no tenés acceso" es peor que no ofrecerlo.
+    const navegacion: (Comando & { solapa: SolapaKey })[] = [
+      { id: "pendientes", solapa: "pendientes", titulo: "Ir a Pendientes", grupo: "Navegación", keywords: "pendientes recepcion bultos recibido retenido", icon: PackageCheck, accion: () => cerrarYNavegar("/pendientes") },
+      { id: "mapa", solapa: "mapa", titulo: "Ir al Mapa", grupo: "Navegación", keywords: "mapa recorridos zonas geojson cobertura", icon: MapIcon, accion: () => cerrarYNavegar("/mapa") },
+      { id: "carga", solapa: "carga", titulo: "Ir a Carga del Día", grupo: "Navegación", keywords: "carga dia choferes turnos preturno tarde", icon: Truck, accion: () => cerrarYNavegar("/carga") },
+      { id: "volumenes", solapa: "volumenes", titulo: "Ir a Planificación", grupo: "Navegación", keywords: "planificacion volumenes plantillas recorridos feriados paquetes especiales", icon: CalendarClock, accion: () => cerrarYNavegar("/volumenes") },
+      { id: "analisis-diario", solapa: "analisis", titulo: "Ir a Resultados", grupo: "Navegación", keywords: "resultados analisis diario indicadores kpis historial", icon: BarChart3, accion: () => cerrarYNavegar("/analisis-diario") },
+      { id: "alternativas", solapa: "alternativas", titulo: "Ir a Alternativas", grupo: "Navegación", keywords: "alternativas demoras whatsapp etiquetas redespacho no entregado direccion", icon: MessageCircle, accion: () => cerrarYNavegar("/alternativas") },
+      { id: "casos", solapa: "casos", titulo: "Ir a Casos", grupo: "Navegación", keywords: "casos incidencias reclamos asesoria coordinacion excel seguimiento", icon: ClipboardList, accion: () => cerrarYNavegar("/casos") },
+      { id: "deposito", solapa: "deposito", titulo: "Ir al Depósito", grupo: "Navegación", keywords: "deposito guarda bultos stock galpon", icon: Warehouse, accion: () => cerrarYNavegar("/deposito") },
+      { id: "dep-clientes", solapa: "deposito", titulo: "Clientes del depósito", grupo: "Depósito", keywords: "clientes cuentas fichas bultos", icon: Users, accion: () => cerrarYNavegar("/deposito/clientes") },
+      { id: "dep-control", solapa: "deposito", titulo: "Control operativo", grupo: "Depósito", keywords: "control operativo metricas salidas stock antiguo", icon: Boxes, accion: () => cerrarYNavegar("/deposito/control") },
+      { id: "dep-remitos", solapa: "deposito", titulo: "Remitos emitidos", grupo: "Depósito", keywords: "remitos historial salidas documentos reimprimir", icon: History, accion: () => cerrarYNavegar("/deposito/historial") },
+      { id: "ruta", solapa: "ruta", titulo: "Mi ruta", grupo: "Navegación", keywords: "ruta chofer paradas campo", icon: RouteIcon, accion: () => cerrarYNavegar("/ruta") },
+    ];
+
+    const base: Comando[] = navegacion.filter(c => tieneSolapa(perfil, c.solapa));
+
     const esOscuro = resolvedTheme === "dark";
     base.push({
       id: "tema",
@@ -84,7 +89,7 @@ export function CommandPalette({ esInvitado = false }: { esInvitado?: boolean })
       accion: () => { setTheme(esOscuro ? "light" : "dark"); setAbierto(false); },
     });
     return base;
-  }, [esInvitado, cerrarYNavegar, resolvedTheme, setTheme]);
+  }, [perfil, cerrarYNavegar, resolvedTheme, setTheme]);
 
   const filtrados = useMemo(() => {
     const q = query.trim().toLowerCase();

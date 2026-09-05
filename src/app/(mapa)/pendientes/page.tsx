@@ -1,16 +1,11 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getPerfilActual } from "@/lib/perfil";
 import { PendientesPanel } from "@/components/pendientes/PendientesPanel";
 import { tieneSolapa, puedeEditarPerfil } from "@/lib/permisos";
 
 export default async function PendientesPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/pendientes");
-
-  const { data: perfil } = await supabase
-    .from("perfiles").select("rol, solapas, puede_editar").eq("id", user.id)
-    .single<{ rol: string; solapas: string[] | null; puede_editar: boolean | null }>();
+  const perfil = await getPerfilActual();
+  if (!perfil) redirect("/login?next=/pendientes");
   if (!tieneSolapa(perfil, "pendientes")) redirect("/");
 
   return (

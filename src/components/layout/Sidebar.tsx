@@ -6,7 +6,7 @@ import {
   PackageCheck, Users, Lock, MonitorSmartphone, LogOut, LogIn, ChevronsUpDown,
   PanelLeftClose, PanelLeftOpen, Route as RouteIcon, ChevronDown, ChevronRight,
   Search, MessageCircle, Boxes, ClipboardList, Map as MapIcon, Warehouse, History, FolderOpen, Trash2, Truck,
-  CalendarClock, BarChart3,
+  CalendarClock, BarChart3, ShieldCheck, Building2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,11 +17,10 @@ import {
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
-import type { Perfil } from "@/types/database.types";
+import type { PerfilActual } from "@/lib/perfil";
 
 interface SidebarProps {
-  perfil: Perfil | null;
-  esInvitado?: boolean;
+  perfil: PerfilActual | null;
 }
 
 interface ItemNav {
@@ -47,7 +46,7 @@ interface GrupoNav {
   items: ItemNav[];
 }
 
-export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
+export function Sidebar({ perfil }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
   // Colapsado manual (persiste). Solo aplica en md+; en pantallas chicas
@@ -73,28 +72,29 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
 
   const grupos: GrupoNav[] = [
     { key: "operacion", label: "Operación diaria", desc: "Controlar lo que vuelve y lo que falta", items: [
-      { href: "/mapa", label: "Mapa", icon: MapIcon, visible: !esInvitado && tieneSolapa(perfil, "mapa") },
-      { href: "/carga", label: "Carga del Día", icon: Truck, visible: !esInvitado && tieneSolapa(perfil, "carga") },
-      { href: "/volumenes", label: "Planificación", icon: CalendarClock, visible: !esInvitado && tieneSolapa(perfil, "volumenes") },
-      { href: "/analisis-diario", label: "Resultados", icon: BarChart3, visible: !esInvitado && tieneSolapa(perfil, "analisis") },
-      { href: "/pendientes", label: "Pendientes", icon: PackageCheck, visible: !esInvitado && tieneSolapa(perfil, "pendientes") },
-      { href: "/alternativas", label: "Alternativas", icon: MessageCircle, visible: !esInvitado && tieneSolapa(perfil, "alternativas") },
-      { href: "/casos", label: "Casos", icon: ClipboardList, visible: !esInvitado && tieneSolapa(perfil, "casos") },
+      { href: "/mapa", label: "Mapa", icon: MapIcon, visible: tieneSolapa(perfil, "mapa") },
+      { href: "/carga", label: "Carga del Día", icon: Truck, visible: tieneSolapa(perfil, "carga") },
+      { href: "/volumenes", label: "Planificación", icon: CalendarClock, visible: tieneSolapa(perfil, "volumenes") },
+      { href: "/analisis-diario", label: "Resultados", icon: BarChart3, visible: tieneSolapa(perfil, "analisis") },
+      { href: "/pendientes", label: "Pendientes", icon: PackageCheck, visible: tieneSolapa(perfil, "pendientes") },
+      { href: "/alternativas", label: "Alternativas", icon: MessageCircle, visible: tieneSolapa(perfil, "alternativas") },
+      { href: "/casos", label: "Casos", icon: ClipboardList, visible: tieneSolapa(perfil, "casos") },
     ] },
     { key: "deposito", label: "Depósito", desc: "Guarda de bultos por cliente", items: [
-      { href: "/deposito", label: "Control general", icon: Warehouse, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
-      { href: "/deposito/clientes", label: "Clientes", icon: Users, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
-      { href: "/deposito/directorio", label: "Directorio", icon: FolderOpen, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
-      { href: "/deposito/control", label: "Control operativo", icon: Boxes, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
-      { href: "/deposito/historial", label: "Remitos", icon: History, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
-      { href: "/deposito/papelera", label: "Papelera", icon: Trash2, visible: !esInvitado && tieneSolapa(perfil, "deposito") },
+      { href: "/deposito", label: "Control general", icon: Warehouse, visible: tieneSolapa(perfil, "deposito") },
+      { href: "/deposito/clientes", label: "Clientes", icon: Users, visible: tieneSolapa(perfil, "deposito") },
+      { href: "/deposito/directorio", label: "Directorio", icon: FolderOpen, visible: tieneSolapa(perfil, "deposito") },
+      { href: "/deposito/control", label: "Control operativo", icon: Boxes, visible: tieneSolapa(perfil, "deposito") },
+      { href: "/deposito/historial", label: "Remitos", icon: History, visible: tieneSolapa(perfil, "deposito") },
+      { href: "/deposito/papelera", label: "Papelera", icon: Trash2, visible: tieneSolapa(perfil, "deposito") },
     ] },
     { key: "campo", label: "Campo", desc: "Herramienta para el chofer", items: [
-      { href: "/ruta", label: "Mi ruta", icon: RouteIcon, visible: !esInvitado },
+      { href: "/ruta", label: "Mi ruta", icon: RouteIcon, visible: tieneSolapa(perfil, "ruta") },
     ] },
     { key: "ajustes", label: "Ajustes", desc: "Usuarios y configuración", items: [
       { href: "/usuarios", label: "Usuarios", icon: Users, visible: perfil?.rol === "maestro" },
-      { href: "/descargar", label: "Instalar app", icon: MonitorSmartphone, visible: !esInvitado },
+      { href: "/admin", label: "Administración", icon: ShieldCheck, visible: !!perfil?.es_superadmin },
+      { href: "/descargar", label: "Instalar app", icon: MonitorSmartphone, visible: true },
     ] },
   ];
 
@@ -228,24 +228,17 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
           <ThemeToggle className="mx-auto md:mx-0" />
         </div>
 
-        {esInvitado ? (
-          <button
-            onClick={() => router.push("/login")}
-            className="w-full flex items-center gap-2.5 h-10 rounded-lg px-2.5 md:px-3 bg-brand-blue text-white hover:bg-brand-blue/90 transition-colors"
-          >
-            <LogIn className={cn("h-[18px] w-[18px] shrink-0", colapsado ? "mx-auto" : "mx-auto md:mx-0")} />
-            <span className={cn("text-sm font-medium", lblCls)}>Iniciar sesión</span>
-          </button>
-        ) : (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
               <button className="w-full flex items-center gap-2.5 h-11 rounded-lg px-1.5 md:px-2 text-white/80 hover:bg-white/10 transition-colors">
                 <span className={cn("h-8 w-8 rounded-full bg-brand-blue flex items-center justify-center shrink-0 text-xs font-bold text-white", colapsado ? "mx-auto" : "mx-auto md:mx-0")}>
                   {iniciales(perfil?.nombre ?? "U")}
                 </span>
                 <span className={cn("flex-col items-start min-w-0 flex-1", colapsado ? "hidden" : "hidden md:flex")}>
                   <span className="text-sm font-medium leading-tight truncate max-w-[120px]">{perfil?.nombre ?? "Usuario"}</span>
-                  <span className="text-xs text-white/40 capitalize leading-tight">{perfil?.rol ?? "—"}</span>
+                  <span className="text-xs text-white/40 leading-tight truncate max-w-[120px]">
+                    {perfil?.empresa?.nombre ?? perfil?.rol ?? "—"}
+                  </span>
                 </span>
                 <ChevronsUpDown className={cn("h-3.5 w-3.5 text-white/40 shrink-0", colapsado ? "hidden" : "hidden md:block")} />
               </button>
@@ -255,6 +248,9 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
                 <div className="flex flex-col space-y-0.5">
                   <span className="font-medium">{perfil?.nombre ?? "Usuario"}</span>
                   <span className="text-xs text-muted-foreground capitalize font-normal">{perfil?.rol ?? "—"}</span>
+                  {perfil?.empresa && (
+                    <span className="text-xs text-muted-foreground font-normal">{perfil.empresa.nombre}</span>
+                  )}
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -267,8 +263,7 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
                 <LogOut className="h-4 w-4" /> Cerrar sesión
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        </DropdownMenu>
       </div>
     </aside>
   );
