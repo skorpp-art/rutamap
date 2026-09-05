@@ -17,8 +17,12 @@ export default async function InicioPage() {
     .single<{ rol: string; solapas: string[] | null; puede_editar: boolean | null }>();
 
   if (tieneSolapa(perfil, "pendientes")) redirect("/pendientes");
+  if (tieneSolapa(perfil, "mapa")) redirect("/mapa");
   if (tieneSolapa(perfil, "casos")) redirect("/casos");
   if (tieneSolapa(perfil, "deposito")) redirect("/deposito");
   if (tieneSolapa(perfil, "alternativas")) redirect("/alternativas");
+  if (tieneSolapa(perfil, "carga")) redirect("/carga");
+  if (tieneSolapa(perfil, "volumenes")) redirect("/volumenes");
+  if (tieneSolapa(perfil, "analisis")) redirect("/analisis-diario");
   redirect("/ruta");
 }

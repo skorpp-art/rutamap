@@ -4,6 +4,10 @@
 // rol (como funcionaba hasta ahora). El maestro siempre ve y edita todo.
 
 export const SOLAPAS = [
+  { key: "mapa", label: "Mapa", href: "/mapa" },
+  { key: "carga", label: "Carga del Día", href: "/carga" },
+  { key: "volumenes", label: "Planificación", href: "/volumenes" },
+  { key: "analisis", label: "Resultados", href: "/analisis-diario" },
   { key: "pendientes", label: "Pendientes", href: "/pendientes" },
   { key: "alternativas", label: "Alternativas", href: "/alternativas" },
   { key: "deposito", label: "Depósito", href: "/deposito" },
