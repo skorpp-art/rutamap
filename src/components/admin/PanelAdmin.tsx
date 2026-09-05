@@ -22,6 +22,7 @@ import {
 } from "@/app/actions/admin";
 
 const PLAN_CLASE: Record<string, string> = {
+  free: "bg-sky-100 text-sky-900 dark:bg-sky-500/15 dark:text-sky-300",
   bronce: "bg-amber-100 text-amber-900 dark:bg-amber-500/15 dark:text-amber-300",
   plata: "bg-slate-200 text-slate-800 dark:bg-white/10 dark:text-white/70",
   oro: "bg-yellow-100 text-yellow-900 dark:bg-yellow-500/15 dark:text-yellow-300",

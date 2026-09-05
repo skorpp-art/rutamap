@@ -14,10 +14,12 @@ export default async function InicioPage() {
   const perfil = await getPerfilActual();
   if (!perfil) redirect("/login");
 
+  // El superadmin administra el SaaS, no una empresa: va derecho a su panel,
+  // tenga o no una empresa asignada.
+  if (perfil.es_superadmin) redirect("/admin");
+
   // Se registró pero todavía no lo habilitaron: sala de espera.
   if (perfil.estado !== "activo" || !perfil.empresa) redirect("/bienvenida");
-
-  if (perfil.es_superadmin) redirect("/admin");
 
   const destino = primeraSolapa(perfil);
   if (!destino) redirect("/bienvenida");

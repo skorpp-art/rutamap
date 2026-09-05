@@ -234,3 +234,48 @@
 -- esquema viejo, sin empresas ni empresa_id, y el código nuevo no va a
 -- poder levantar el perfil. Antes de volver a usarlo para una demo hay
 -- que aplicarle esta misma secuencia de migraciones y crear su empresa.
+
+
+-- ============================================================
+-- Ajustes post-lanzamiento
+-- ============================================================
+-- 1. tieneSolapa() tenía "if (perfil.es_superadmin) return true" al
+--    principio: el superadmin podía ver los datos operativos de
+--    CUALQUIER empresa navegando directo a la URL (/pendientes, etc.),
+--    sin ser miembro de ninguna. Se sacó: el superadmin sólo tiene
+--    acceso a /admin (chequeado aparte, con es_superadmin directo). Si
+--    además es miembro real de una empresa, ve lo que esa membresía le
+--    dé — pero no por ser superadmin.
+--
+-- 2. La cuenta de Lucas (lucas.figueredo092@gmail.com) era a la vez
+--    superadmin del SaaS Y maestro real de Hogareño (así quedó armado
+--    en la fase 1, cuando Hogareño se creó y se le asignaron todos los
+--    perfiles existentes). Se separó: se le sacó el empresa_id, así que
+--    ahora es superadmin puro. Hogareño sigue teniendo a Esteban como
+--    maestro real.
+--
+-- 3. crearUsuario() (el alta directa que hace un maestro desde
+--    /usuarios) quedó rota por la migración: creaba la cuenta pero el
+--    trigger handle_new_user la dejaba sin empresa y en estado
+--    'pendiente', así que el usuario nuevo no podía ver nada. Se
+--    corrigió para que la cuenta quede asignada a la misma empresa del
+--    maestro que la crea, ya activa.
+--
+-- 4. Plan Free de autoservicio: self_crear_empresa_free(nombre) deja
+--    que alguien recién registrado (sin empresa, sin esperar al
+--    superadmin) cree su propia empresa con plan Free (sólo Pendientes
+--    + Mi ruta) y quede de maestro, activo, en el mismo clic. Es la
+--    única función de la app que crea una empresa sin ser superadmin;
+--    valida que quien la llama no tenga ya una empresa asignada.
+--
+--    Tuvo el mismo problema que el punto 3: el trigger
+--    proteger_campos_perfil bloqueaba el propio alta porque técnicamente
+--    "alguien se está cambiando su empresa y su rol". Se agregó una
+--    bandera de sesión (rutamap.alta_self_service) que la función
+--    enciende con set_config(..., is_local=true) — vigente sólo durante
+--    esa transacción — para que el trigger la deje pasar sin abrir la
+--    puerta a que cualquiera se la ponga a mano.
+--
+--    Botón "Empezar gratis" en /bienvenida (no en /registro, porque ahí
+--    todavía no se sabe si la persona quiere sumarse a una empresa
+--    existente o arrancar la suya).
