@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { TrendingUp, TrendingDown, Minus, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getAnalisisRecorridos, type AnalisisRecorrido } from "@/app/actions/mapa-datos";
+import { getAnalisisRecorridos, type AnalisisRecorrido } from "@/app/actions/operaciones-diarias";
 
 // Cache de módulo: el análisis es el mismo para todos los recorridos, así que
 // una sola llamada sirve para todos los clicks de la sesión (TTL 5 min).

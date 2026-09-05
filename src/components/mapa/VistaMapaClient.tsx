@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { actualizarAreaRecorrido, actualizarTrazaRecorrido } from "@/app/actions/recorridos";
-import { getCalorRecorridos, type CalorRecorrido } from "@/app/actions/mapa-datos";
+import { getCalorRecorridos, type CalorRecorrido } from "@/app/actions/volumenes";
 import { PALETA } from "@/lib/estados";
 import type { ModoEdicion } from "./MapaLeaflet";
 import type { RecorridoGeo, TipoRecorrido, Zona } from "@/types/database.types";

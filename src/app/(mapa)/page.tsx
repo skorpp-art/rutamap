@@ -21,5 +21,8 @@ export default async function InicioPage() {
   if (tieneSolapa(perfil, "casos")) redirect("/casos");
   if (tieneSolapa(perfil, "deposito")) redirect("/deposito");
   if (tieneSolapa(perfil, "alternativas")) redirect("/alternativas");
+  if (tieneSolapa(perfil, "carga")) redirect("/carga");
+  if (tieneSolapa(perfil, "volumenes")) redirect("/volumenes");
+  if (tieneSolapa(perfil, "analisis")) redirect("/analisis-diario");
   redirect("/ruta");
 }

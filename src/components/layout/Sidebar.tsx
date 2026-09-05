@@ -6,6 +6,7 @@ import {
   PackageCheck, Users, Lock, MonitorSmartphone, LogOut, LogIn, ChevronsUpDown,
   PanelLeftClose, PanelLeftOpen, Route as RouteIcon, ChevronDown, ChevronRight,
   Search, MessageCircle, Boxes, ClipboardList, Map as MapIcon, Warehouse, History, FolderOpen, Trash2, Truck,
+  CalendarClock, BarChart3,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -73,6 +74,9 @@ export function Sidebar({ perfil, esInvitado = false }: SidebarProps) {
   const grupos: GrupoNav[] = [
     { key: "operacion", label: "Operación diaria", desc: "Controlar lo que vuelve y lo que falta", items: [
       { href: "/mapa", label: "Mapa", icon: MapIcon, visible: !esInvitado && tieneSolapa(perfil, "mapa") },
+      { href: "/carga", label: "Carga del Día", icon: Truck, visible: !esInvitado && tieneSolapa(perfil, "carga") },
+      { href: "/volumenes", label: "Planificación", icon: CalendarClock, visible: !esInvitado && tieneSolapa(perfil, "volumenes") },
+      { href: "/analisis-diario", label: "Resultados", icon: BarChart3, visible: !esInvitado && tieneSolapa(perfil, "analisis") },
       { href: "/pendientes", label: "Pendientes", icon: PackageCheck, visible: !esInvitado && tieneSolapa(perfil, "pendientes") },
       { href: "/alternativas", label: "Alternativas", icon: MessageCircle, visible: !esInvitado && tieneSolapa(perfil, "alternativas") },
       { href: "/casos", label: "Casos", icon: ClipboardList, visible: !esInvitado && tieneSolapa(perfil, "casos") },
