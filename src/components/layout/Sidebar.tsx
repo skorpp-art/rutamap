@@ -149,15 +149,28 @@ export function Sidebar({ perfil }: SidebarProps) {
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => router.push("/")}
-            className={cn("h-9 w-9 rounded-lg bg-gradient-to-br from-brand-blue to-blue-900 ring-1 ring-white/10 flex items-center justify-center shrink-0",
+            className={cn("h-9 w-9 rounded-lg flex items-center justify-center shrink-0 overflow-hidden",
+              perfil?.empresa?.logo_url ? "bg-white ring-1 ring-white/10" : "bg-gradient-to-br from-brand-blue to-blue-900 ring-1 ring-white/10",
               colapsado ? "mx-auto" : "mx-auto md:mx-0")}
-            title="RutaMap"
+            title={perfil?.empresa?.nombre ?? "RutaMap"}
           >
-            <Truck className="h-4 w-4 text-white" />
+            {perfil?.empresa?.logo_url ? (
+              // Logo propio de cada empresa: puede venir de cualquier dominio.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={perfil.empresa.logo_url} alt={perfil.empresa.nombre} className="h-full w-full object-contain p-1" />
+            ) : (
+              <Truck className="h-4 w-4 text-white" />
+            )}
           </button>
-          <span className={cn("font-bold text-white text-2xl tracking-tight leading-none", lblCls)}>
-            Ruta<span className="text-blue-300">Map</span>
-          </span>
+          {perfil?.empresa?.logo_url ? (
+            <span className={cn("font-bold text-white text-lg tracking-tight leading-tight truncate", lblCls)}>
+              {perfil.empresa.nombre}
+            </span>
+          ) : (
+            <span className={cn("font-bold text-white text-2xl tracking-tight leading-none", lblCls)}>
+              Ruta<span className="text-blue-300">Map</span>
+            </span>
+          )}
           <button onClick={toggleColapsar} title="Colapsar barra"
             className={cn("ml-auto h-8 w-8 rounded-md text-white/40 hover:text-white hover:bg-white/10 items-center justify-center transition-colors hidden md:inline-flex",
               colapsado && "md:hidden")}>

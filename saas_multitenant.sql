@@ -279,3 +279,24 @@
 --    Botón "Empezar gratis" en /bienvenida (no en /registro, porque ahí
 --    todavía no se sabe si la persona quiere sumarse a una empresa
 --    existente o arrancar la suya).
+
+
+-- ============================================================
+-- Personalización: logo por empresa
+-- ============================================================
+-- empresas.logo_url + bucket "logos-empresas" (público en lectura,
+-- como paquetes-especiales y app-android). La escritura se acota por
+-- carpeta: cada archivo vive en "<empresa_id>/logo.<ext>" y sólo el
+-- maestro de esa empresa puede subir/actualizar/borrar ahí — ni
+-- adivinando el id de otra empresa se le puede pisar el logo.
+--
+-- actualizar_marca_empresa(nombre, logo_url) actualiza sólo lo que se
+-- manda: al principio ambos campos usaban coalesce, pero logo_url se
+-- pisaba directo, así que renombrar la empresa sin tocar el logo se lo
+-- borraba. Se corrigió antes de que llegara a producción, verificado con
+-- una prueba real (Hogareño renombrado sin perder el logo).
+--
+-- Frontend: /usuarios (donde el maestro ya administra su equipo) suma
+-- arriba de todo una tarjeta para subir el logo y renombrar la empresa.
+-- El Sidebar muestra ese logo y el nombre de la empresa en vez de la
+-- marca "RutaMap" cuando existen; si no, sigue la marca genérica.

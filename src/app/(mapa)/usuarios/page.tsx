@@ -11,7 +11,12 @@ export default async function UsuariosPage() {
 
   return (
     <div className="h-full w-full overflow-y-auto">
-      <PanelUsuarios usuarioActualId={perfil.id} />
+      <PanelUsuarios
+        usuarioActualId={perfil.id}
+        empresa={perfil.rol === "maestro" && perfil.empresa
+          ? { nombre: perfil.empresa.nombre, logoUrl: perfil.empresa.logo_url }
+          : null}
+      />
     </div>
   );
 }
