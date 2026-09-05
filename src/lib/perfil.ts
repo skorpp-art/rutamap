@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 // no puede quedar distinta en cada pantalla, vive acá y en tieneSolapa().
 
 export type EstadoPerfil = "pendiente" | "activo" | "rechazado";
-export type PlanEmpresa = "bronce" | "plata" | "oro";
+export type PlanEmpresa = "free" | "bronce" | "plata" | "oro";
 
 export interface EmpresaActual {
   id: string;
@@ -17,6 +17,8 @@ export interface EmpresaActual {
   /** Módulos habilitados. Es la verdad efectiva; el plan es sólo la plantilla. */
   modulos: string[];
   activa: boolean;
+  /** null = sin logo propio todavía: la UI muestra la marca genérica. */
+  logo_url: string | null;
 }
 
 export interface PerfilActual {
@@ -45,7 +47,7 @@ export async function getPerfilActual(): Promise<PerfilActual | null> {
 
   const { data } = await supabase
     .from("perfiles")
-    .select("id, nombre, rol, solapas, puede_editar, estado, es_superadmin, empresas(id, nombre, slug, plan, modulos, activa)")
+    .select("id, nombre, rol, solapas, puede_editar, estado, es_superadmin, empresas(id, nombre, slug, plan, modulos, activa, logo_url)")
     .eq("id", user.id)
     .single();
 
@@ -67,6 +69,7 @@ export async function getPerfilActual(): Promise<PerfilActual | null> {
       ? {
           id: emp.id, nombre: emp.nombre, slug: emp.slug,
           plan: emp.plan, modulos: emp.modulos ?? [], activa: emp.activa,
+          logo_url: emp.logo_url ?? null,
         }
       : null,
   };

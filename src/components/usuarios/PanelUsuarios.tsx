@@ -12,6 +12,7 @@ import { ROLES, type Rol } from "@/lib/roles";
 import { SOLAPAS } from "@/lib/permisos";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
+import { MiEmpresaCard } from "./MiEmpresaCard";
 
 // Qué puede hacer cada rol — mostrado como referencia en el panel
 const ROL_INFO: Record<Rol, { label: string; desc: string; edita: boolean; badge: string }> = {
@@ -44,7 +45,13 @@ const ROL_INFO: Record<Rol, { label: string; desc: string; edita: boolean; badge
 
 const TODAS_LAS_SOLAPAS = SOLAPAS.map(s => s.key as string);
 
-export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) {
+export function PanelUsuarios({
+  usuarioActualId, empresa,
+}: {
+  usuarioActualId: string;
+  /** null si quien mira esto no es el maestro de una empresa (ej. superadmin). */
+  empresa: { nombre: string; logoUrl: string | null } | null;
+}) {
   const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([]);
   const [cargando, setCargando] = useState(true);
   const [guardandoId, setGuardandoId] = useState<string | null>(null);
@@ -156,6 +163,8 @@ export function PanelUsuarios({ usuarioActualId }: { usuarioActualId: string }) 
           </button>
         }
       />
+
+      {empresa && <MiEmpresaCard nombreInicial={empresa.nombre} logoInicial={empresa.logoUrl} />}
 
       {/* Crear cuenta directamente (recomendado para uso interno) */}
       <form onSubmit={onCrear} className="border rounded-lg p-4 bg-card space-y-3">
