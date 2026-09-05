@@ -300,3 +300,26 @@
 -- arriba de todo una tarjeta para subir el logo y renombrar la empresa.
 -- El Sidebar muestra ese logo y el nombre de la empresa en vez de la
 -- marca "RutaMap" cuando existen; si no, sigue la marca genérica.
+
+
+-- ============================================================
+-- Login y registro: layout de dos columnas con los planes
+-- ============================================================
+-- Antes /login y /registro eran una sola columna centrada (logo arriba,
+-- formulario abajo), con un montón de espacio vacío a los costados en
+-- pantallas anchas. Se rehicieron como dos columnas reales:
+--
+--   Izquierda (PanelMarketing, oculto en mobile): logo, una descripción
+--   corta de qué resuelve RutaMap, y los 3 planes comerciales
+--   (Bronce/Plata/Oro) con su precio. Free no se muestra acá: ya tiene
+--   su propio lugar (el botón "Empezar gratis" en /bienvenida) y no
+--   compite por atención con los que sí facturan.
+--
+--   Derecha: el formulario, ocupando toda su columna en vez de flotar
+--   en un cuadro angosto rodeado de fondo vacío.
+--
+-- Los precios se leen en vivo de la tabla "planes" (no están escritos a
+-- mano en el componente), así que un cambio desde /admin se refleja acá
+-- solo. Para eso "planes" pasó a ser legible también por 'anon': no hay
+-- nada sensible en nombre+precio, y esta pantalla es pública, sin sesión
+-- todavía. Se verificó que anon sigue sin poder escribir ahí.
