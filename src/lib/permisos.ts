@@ -28,13 +28,16 @@ export type SolapaKey = (typeof SOLAPAS)[number]["key"];
  * sueltos a una empresa, y lo que manda es la lista guardada en `modulos`.
  */
 export const MODULOS_POR_PLAN: Record<string, SolapaKey[]> = {
+  // El plan de autoservicio: lo elige la propia empresa al registrarse, sin
+  // pasar por el superadmin. Deliberadamente el más chico de todos.
+  free: ["pendientes", "ruta"],
   bronce: ["pendientes", "ruta"],
   plata: ["pendientes", "ruta", "alternativas", "casos", "deposito"],
   oro: ["pendientes", "ruta", "alternativas", "casos", "deposito",
         "mapa", "carga", "volumenes", "analisis"],
 };
 
-export const PLANES = ["bronce", "plata", "oro"] as const;
+export const PLANES = ["free", "bronce", "plata", "oro"] as const;
 
 interface EmpresaPermisos {
   modulos: string[];
@@ -55,7 +58,11 @@ const ROLES_EDITORES = ["maestro", "supervisor", "coordinador"];
 
 export function tieneSolapa(perfil: PerfilPermisos | null, solapa: SolapaKey): boolean {
   if (!perfil) return false;                       // sin sesión no hay nada
-  if (perfil.es_superadmin) return true;           // administra el SaaS: ve todo
+
+  // El superadmin administra el SaaS, no una empresa: su acceso es solo a
+  // /admin (chequeado aparte, con perfil.es_superadmin directo). Si además
+  // pertenece a una empresa como usuario normal, ve lo que esa membresía le
+  // permita — pero no por ser superadmin, sino por ser miembro real de ella.
 
   // Quien se registró y todavía no fue habilitado no pertenece a ninguna
   // empresa: no hay dato que pueda ver.
@@ -78,7 +85,6 @@ export function tieneSolapa(perfil: PerfilPermisos | null, solapa: SolapaKey): b
 export function puedeEditarPerfil(perfil: PerfilPermisos | null): boolean {
   if (!perfil) return false;
   if (perfil.estado && perfil.estado !== "activo") return false;
-  if (perfil.es_superadmin) return true;
   if (!perfil.empresa?.activa) return false;
   if (perfil.rol === "maestro") return true;
   return perfil.puede_editar ?? ROLES_EDITORES.includes(perfil.rol);

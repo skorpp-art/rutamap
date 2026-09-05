@@ -3,6 +3,7 @@ import { Clock, XCircle } from "lucide-react";
 import { getPerfilActual } from "@/lib/perfil";
 import { primeraSolapa } from "@/lib/permisos";
 import { EMPRESA } from "@/lib/marca";
+import { EmpezarGratis } from "@/components/auth/EmpezarGratis";
 
 /**
  * Sala de espera.
@@ -24,7 +25,7 @@ export default async function BienvenidaPage() {
   const empresaDeBaja = perfil.estado === "activo" && perfil.empresa && !perfil.empresa.activa;
 
   return (
-    <div className="h-full w-full grid place-items-center p-6">
+    <div className="h-full w-full flex flex-col items-center justify-center gap-6 p-6">
       <div className="max-w-md text-center space-y-4">
         <div className="mx-auto h-14 w-14 rounded-2xl bg-muted grid place-items-center">
           {rechazado
@@ -63,6 +64,8 @@ export default async function BienvenidaPage() {
           </>
         )}
       </div>
+
+      {!rechazado && !empresaDeBaja && <EmpezarGratis />}
     </div>
   );
 }

@@ -14,7 +14,7 @@ export interface EmpresaAdmin {
   id: string;
   nombre: string;
   slug: string;
-  plan: "bronce" | "plata" | "oro";
+  plan: "free" | "bronce" | "plata" | "oro";
   modulos: string[];
   activa: boolean;
   creada_en: string;
@@ -113,7 +113,7 @@ export async function rechazarUsuario(perfilId: string): Promise<Res<null>> {
 // ─── Precios ──────────────────────────────────────────────────────────────
 
 export interface PlanAdmin {
-  nombre: "bronce" | "plata" | "oro";
+  nombre: "free" | "bronce" | "plata" | "oro";
   precio_ars: number;
   empresas_con_este_plan: number;
 }

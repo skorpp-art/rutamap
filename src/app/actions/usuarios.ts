@@ -82,18 +82,27 @@ export async function setPasswordUsuario(
 
 // El maestro crea una cuenta directamente (sin auto-registro ni confirmación de
 // email). Evita el rechazo de dominios de email del registro público.
+//
+// Con multi-tenant, el trigger que arma el perfil al crear la cuenta la deja
+// SIN empresa y en estado "pendiente" (es el mismo trigger que usa el alta
+// pública, que sí tiene que quedar pendiente de que el superadmin la revise).
+// Acá la situación es distinta: quien crea la cuenta ya es maestro de una
+// empresa real, así que el alta queda activada de una en esa misma empresa,
+// sin pasar por el superadmin.
 export async function crearUsuario(
   nombre: string, email: string, password: string, rol: Rol,
   solapas: string[] | null = null, puedeEditar: boolean | null = null
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    // 1) Verificar que quien llama es maestro
+    // 1) Verificar que quien llama es maestro, y de qué empresa
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { ok: false, error: "No autenticado" };
     const { data: perfil } = await supabase
-      .from("perfiles").select("rol").eq("id", user.id).single<{ rol: string }>();
+      .from("perfiles").select("rol, empresa_id").eq("id", user.id)
+      .single<{ rol: string; empresa_id: string | null }>();
     if (perfil?.rol !== "maestro") return { ok: false, error: "Solo el usuario maestro puede crear cuentas" };
+    if (!perfil.empresa_id) return { ok: false, error: "Tu cuenta no tiene una empresa asignada" };
 
     // 2) Crear la cuenta con la Admin API (service_role)
     const admin = createAdmin();
@@ -111,10 +120,13 @@ export async function crearUsuario(
       return { ok: false, error: m.includes("already") ? "Ya existe una cuenta con ese email" : m };
     }
 
-    // 3) Asignar rol y permisos elegidos (el trigger la creó como 'asesor')
+    // 3) Asignarla a la misma empresa que el maestro, ya activa, con el rol y
+    // los permisos elegidos (el trigger la creó pendiente y sin empresa).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: errRol } = await (admin as any)
-      .from("perfiles").update({ rol, solapas, puede_editar: puedeEditar }).eq("id", creado.user.id);
+      .from("perfiles")
+      .update({ rol, solapas, puede_editar: puedeEditar, empresa_id: perfil.empresa_id, estado: "activo" })
+      .eq("id", creado.user.id);
     if (errRol) return { ok: false, error: `Cuenta creada, pero no se pudo asignar el rol: ${errRol.message}` };
 
     revalidatePath("/usuarios");
