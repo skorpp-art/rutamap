@@ -8,6 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 // que vuelven a verificar es_superadmin(): que la pantalla esté escondida no es
 // un permiso, es sólo comodidad.
 
+export type EstadoPago = "sin_configurar" | "al_dia" | "vencido";
+
 export interface EmpresaAdmin {
   id: string;
   nombre: string;
@@ -18,6 +20,9 @@ export interface EmpresaAdmin {
   creada_en: string;
   usuarios: number;
   usuarios_activos: number;
+  estado_pago: EstadoPago;
+  proveedor_pago: "mercadopago" | "stripe" | null;
+  proximo_vencimiento: string | null;
 }
 
 export interface RegistroAdmin {
@@ -99,6 +104,33 @@ export async function habilitarUsuario(
 export async function rechazarUsuario(perfilId: string): Promise<Res<null>> {
   try {
     const { error } = await (await sb()).rpc("admin_rechazar_usuario", { p_perfil: perfilId });
+    if (error) return { ok: false, error: error.message };
+    revalidatePath("/admin");
+    return { ok: true, data: null };
+  } catch (e) { return fallo(e); }
+}
+
+// ─── Precios ──────────────────────────────────────────────────────────────
+
+export interface PlanAdmin {
+  nombre: "bronce" | "plata" | "oro";
+  precio_ars: number;
+  empresas_con_este_plan: number;
+}
+
+export async function getPlanes(): Promise<Res<PlanAdmin[]>> {
+  try {
+    const { data, error } = await (await sb()).rpc("admin_planes");
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, data: (data ?? []) as PlanAdmin[] };
+  } catch (e) { return fallo(e); }
+}
+
+export async function actualizarPrecio(plan: string, precioArs: number): Promise<Res<null>> {
+  try {
+    const { error } = await (await sb()).rpc("admin_actualizar_precio", {
+      p_plan: plan, p_precio_ars: precioArs,
+    });
     if (error) return { ok: false, error: error.message };
     revalidatePath("/admin");
     return { ok: true, data: null };

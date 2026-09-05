@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Building2, UserPlus, Check, X, Plus, Loader2, Power, PowerOff,
+  CreditCard, Pencil, AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -16,8 +17,8 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { SOLAPAS, MODULOS_POR_PLAN, PLANES, type SolapaKey } from "@/lib/permisos";
 import {
   getEmpresas, getRegistros, crearEmpresa, actualizarEmpresa,
-  habilitarUsuario, rechazarUsuario,
-  type EmpresaAdmin, type RegistroAdmin,
+  habilitarUsuario, rechazarUsuario, getPlanes, actualizarPrecio,
+  type EmpresaAdmin, type RegistroAdmin, type PlanAdmin,
 } from "@/app/actions/admin";
 
 const PLAN_CLASE: Record<string, string> = {
@@ -25,6 +26,16 @@ const PLAN_CLASE: Record<string, string> = {
   plata: "bg-slate-200 text-slate-800 dark:bg-white/10 dark:text-white/70",
   oro: "bg-yellow-100 text-yellow-900 dark:bg-yellow-500/15 dark:text-yellow-300",
 };
+
+const ESTADO_PAGO_INFO: Record<string, { label: string; clase: string }> = {
+  al_dia: { label: "Al día", clase: "bg-emerald-100 text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-300" },
+  vencido: { label: "Pago vencido", clase: "bg-destructive/10 text-destructive" },
+  sin_configurar: { label: "Sin suscripción", clase: "bg-muted text-muted-foreground" },
+};
+
+function formatearArs(n: number): string {
+  return n.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
+}
 
 function slugDesde(nombre: string): string {
   return nombre.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
@@ -34,15 +45,18 @@ function slugDesde(nombre: string): string {
 export function PanelAdmin() {
   const [empresas, setEmpresas] = useState<EmpresaAdmin[]>([]);
   const [registros, setRegistros] = useState<RegistroAdmin[]>([]);
+  const [planes, setPlanes] = useState<PlanAdmin[]>([]);
   const [cargando, setCargando] = useState(true);
   const [editando, setEditando] = useState<EmpresaAdmin | null>(null);
   const [alta, setAlta] = useState(false);
   const [habilitando, setHabilitando] = useState<RegistroAdmin | null>(null);
+  const [editandoPrecio, setEditandoPrecio] = useState<PlanAdmin | null>(null);
 
   const cargar = useCallback(async () => {
-    const [e, r] = await Promise.all([getEmpresas(), getRegistros("pendiente")]);
+    const [e, r, p] = await Promise.all([getEmpresas(), getRegistros("pendiente"), getPlanes()]);
     if (e.ok) setEmpresas(e.data); else toast.error(e.error);
     if (r.ok) setRegistros(r.data);
+    if (p.ok) setPlanes(p.data);
     setCargando(false);
   }, []);
 
@@ -103,6 +117,30 @@ export function PanelAdmin() {
         </section>
       )}
 
+      {/* ── Precios ──────────────────────────────────────────────────────── */}
+      <section className="rounded-lg border bg-card">
+        <div className="px-4 py-2.5 border-b flex items-center gap-2">
+          <CreditCard className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold">Precios</h2>
+        </div>
+        <ul className="divide-y">
+          {planes.map(p => (
+            <li key={p.nombre} className="px-4 py-3 flex items-center gap-3">
+              <span className={cn("px-2 py-0.5 rounded text-xs font-semibold capitalize w-16 text-center", PLAN_CLASE[p.nombre])}>
+                {p.nombre}
+              </span>
+              <span className="text-sm font-medium flex-1">{formatearArs(p.precio_ars)} / mes</span>
+              <span className="text-xs text-muted-foreground">
+                {p.empresas_con_este_plan} {p.empresas_con_este_plan === 1 ? "empresa" : "empresas"}
+              </span>
+              <Button size="icon" variant="ghost" onClick={() => setEditandoPrecio(p)}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </section>
+
       {/* ── Empresas ─────────────────────────────────────────────────────── */}
       <section className="rounded-lg border bg-card">
         <div className="px-4 py-2.5 border-b flex items-center gap-2">
@@ -130,13 +168,20 @@ export function PanelAdmin() {
                     </span>
                     {!e.activa && (
                       <span className="px-2 py-0.5 rounded text-xs font-semibold bg-destructive/10 text-destructive">
-                        pausada
+                        pausada a mano
                       </span>
                     )}
+                    <span className={cn("px-2 py-0.5 rounded text-xs font-semibold flex items-center gap-1", ESTADO_PAGO_INFO[e.estado_pago].clase)}>
+                      {e.estado_pago === "vencido" && <AlertTriangle className="h-3 w-3" />}
+                      {ESTADO_PAGO_INFO[e.estado_pago].label}
+                    </span>
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {e.usuarios_activos} {Number(e.usuarios_activos) === 1 ? "usuario" : "usuarios"}
                     {" · "}{e.modulos.length} de {SOLAPAS.length} módulos
+                    {e.proximo_vencimiento && (
+                      <> · próximo cobro {new Date(e.proximo_vencimiento).toLocaleDateString("es-AR")}</>
+                    )}
                   </p>
                 </div>
                 <Button size="sm" variant="outline" onClick={() => setEditando(e)}>
@@ -160,6 +205,10 @@ export function PanelAdmin() {
         <ModalHabilitar registro={habilitando} empresas={empresas}
           onCerrar={() => setHabilitando(null)}
           onHecho={() => { setHabilitando(null); cargar(); }} />
+      )}
+      {editandoPrecio && (
+        <ModalPrecio plan={editandoPrecio} onCerrar={() => setEditandoPrecio(null)}
+          onGuardado={() => { setEditandoPrecio(null); cargar(); }} />
       )}
     </div>
   );
@@ -390,6 +439,49 @@ function ModalHabilitar({
           <Button variant="outline" onClick={onCerrar}>Cancelar</Button>
           <Button onClick={guardar} disabled={guardando}>
             {guardando && <Loader2 className="h-4 w-4 animate-spin" />} Habilitar
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ModalPrecio({
+  plan, onCerrar, onGuardado,
+}: { plan: PlanAdmin; onCerrar: () => void; onGuardado: () => void }) {
+  const [precio, setPrecio] = useState(String(plan.precio_ars));
+  const [guardando, setGuardando] = useState(false);
+
+  async function guardar() {
+    const n = Number(precio);
+    if (!Number.isFinite(n) || n < 0) return toast.error("Precio inválido");
+    setGuardando(true);
+    const r = await actualizarPrecio(plan.nombre, Math.round(n));
+    setGuardando(false);
+    if (!r.ok) return toast.error(r.error);
+    toast.success("Precio actualizado");
+    onGuardado();
+  }
+
+  return (
+    <Dialog open onOpenChange={o => { if (!o) onCerrar(); }}>
+      <DialogContent className="max-w-sm">
+        <DialogTitle className="capitalize">Precio del plan {plan.nombre}</DialogTitle>
+        <DialogDescription>
+          Se aplica al próximo cobro de las {plan.empresas_con_este_plan} {plan.empresas_con_este_plan === 1 ? "empresa" : "empresas"} con este plan.
+          No cambia lo que ya se cobró.
+        </DialogDescription>
+
+        <div className="mt-3">
+          <Label htmlFor="p-precio">Precio mensual (ARS)</Label>
+          <Input id="p-precio" type="number" min={0} step={1000} value={precio} autoFocus
+            onChange={e => setPrecio(e.target.value)} />
+        </div>
+
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={onCerrar}>Cancelar</Button>
+          <Button onClick={guardar} disabled={guardando}>
+            {guardando && <Loader2 className="h-4 w-4 animate-spin" />} Guardar
           </Button>
         </div>
       </DialogContent>
