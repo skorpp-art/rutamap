@@ -70,15 +70,24 @@ export function Sidebar({ perfil }: SidebarProps) {
     });
   }
 
+  // Reorganizado en 4 grupos por quién lo usa y para qué, no por orden de
+  // aparición histórico: "Operación diaria" es lo que se toca a cada rato
+  // (control y el chofer en la calle), "Planificación" es armar y revisar
+  // la operación (más de escritorio, menos frecuente), "Depósito" queda
+  // igual porque ya es su propio mundo, y "Cuenta" agrupa todo lo que no es
+  // trabajo operativo sino configuración.
   const grupos: GrupoNav[] = [
-    { key: "operacion", label: "Operación diaria", desc: "Controlar lo que vuelve y lo que falta", items: [
+    { key: "operacion", label: "Operación diaria", desc: "Lo que se toca a cada rato", items: [
+      { href: "/pendientes", label: "Pendientes", icon: PackageCheck, visible: tieneSolapa(perfil, "pendientes") },
+      { href: "/alternativas", label: "Alternativas", icon: MessageCircle, visible: tieneSolapa(perfil, "alternativas") },
+      { href: "/casos", label: "Casos", icon: ClipboardList, visible: tieneSolapa(perfil, "casos") },
+      { href: "/ruta", label: "Mi ruta", icon: RouteIcon, visible: tieneSolapa(perfil, "ruta") },
+    ] },
+    { key: "planificacion", label: "Planificación", desc: "Armar y revisar la operación", items: [
       { href: "/mapa", label: "Mapa", icon: MapIcon, visible: tieneSolapa(perfil, "mapa") },
       { href: "/carga", label: "Carga del Día", icon: Truck, visible: tieneSolapa(perfil, "carga") },
       { href: "/volumenes", label: "Planificación", icon: CalendarClock, visible: tieneSolapa(perfil, "volumenes") },
       { href: "/analisis-diario", label: "Resultados", icon: BarChart3, visible: tieneSolapa(perfil, "analisis") },
-      { href: "/pendientes", label: "Pendientes", icon: PackageCheck, visible: tieneSolapa(perfil, "pendientes") },
-      { href: "/alternativas", label: "Alternativas", icon: MessageCircle, visible: tieneSolapa(perfil, "alternativas") },
-      { href: "/casos", label: "Casos", icon: ClipboardList, visible: tieneSolapa(perfil, "casos") },
     ] },
     { key: "deposito", label: "Depósito", desc: "Guarda de bultos por cliente", items: [
       { href: "/deposito", label: "Control general", icon: Warehouse, visible: tieneSolapa(perfil, "deposito") },
@@ -88,10 +97,7 @@ export function Sidebar({ perfil }: SidebarProps) {
       { href: "/deposito/historial", label: "Remitos", icon: History, visible: tieneSolapa(perfil, "deposito") },
       { href: "/deposito/papelera", label: "Papelera", icon: Trash2, visible: tieneSolapa(perfil, "deposito") },
     ] },
-    { key: "campo", label: "Campo", desc: "Herramienta para el chofer", items: [
-      { href: "/ruta", label: "Mi ruta", icon: RouteIcon, visible: tieneSolapa(perfil, "ruta") },
-    ] },
-    { key: "ajustes", label: "Ajustes", desc: "Usuarios y configuración", items: [
+    { key: "cuenta", label: "Cuenta", desc: "Usuarios y configuración", items: [
       { href: "/usuarios", label: "Usuarios", icon: Users, visible: perfil?.rol === "maestro" },
       { href: "/admin", label: "Administración", icon: ShieldCheck, visible: !!perfil?.es_superadmin },
       { href: "/descargar", label: "Instalar app", icon: MonitorSmartphone, visible: true },
