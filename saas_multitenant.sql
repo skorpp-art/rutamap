@@ -323,3 +323,38 @@
 -- solo. Para eso "planes" pasó a ser legible también por 'anon': no hay
 -- nada sensible en nombre+precio, y esta pantalla es pública, sin sesión
 -- todavía. Se verificó que anon sigue sin poder escribir ahí.
+
+
+-- ============================================================
+-- Mi Ruta se rehizo: se arma sola desde Pendientes
+-- ============================================================
+-- Era la pantalla más pobre de las nueve: sólo buscador de dirección +
+-- link a Google Maps, sin mapa visual, sin conexión con nada que el
+-- sistema ya supiera, y con una función de reordenar (reordenar_ruta)
+-- que existía en la base pero no se usaba en ningún lado de la UI.
+--
+-- Cada pendiente ya sabe quién lo reparte (columna "cadete") y su
+-- dirección. Ahora Mi Ruta elige "quién reparte hoy" de una lista (en vez
+-- de tipear direcciones una por una) y carga sola sus pendientes en
+-- estado "recibido" (ya están en el depósito, listos para salir).
+--
+-- pendientes.lat/lon cachea el geocoding: la primera vez que se arma la
+-- ruta de un pendiente se le pide la posición a Nominatim (máximo 1 pedido
+-- por segundo, se respeta con una pausa); las próximas veces que se
+-- recargue esa ruta, ya está guardado y no se vuelve a pedir.
+--
+-- ruta_paradas.pendiente_id une cada parada con su origen. Marcar una
+-- parada como entregada (marcar_parada_estado) intenta reflejarlo también
+-- en Pendientes llamando a marcar_pendiente — que exige ser editor; si
+-- quien usa Mi Ruta no lo es, la parada se marca igual (es su propio
+-- dato) pero Pendientes no se entera, sin que falle el check.
+--
+-- Sigue siendo manual, no automático como Spoke: arma la lista sola,
+-- geocodifica y deja reordenar y marcar entregas, pero el orden óptimo
+-- de las paradas lo sigue eligiendo la persona (con las flechas subir/
+-- bajar) o Google Maps al navegar. Un ruteo automático de verdad es un
+-- proyecto aparte, mucho más grande.
+--
+-- Nuevo mini-mapa (MiniMapaRuta) con el área del recorrido elegido y las
+-- paradas: verde = dentro del recorrido, rojo = fuera, gris = ya
+-- entregada.
